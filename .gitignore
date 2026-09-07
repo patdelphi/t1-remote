@@ -1,0 +1,20 @@
+# Python 缓存与测试临时目录
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 本地虚拟环境与配置
+.venv/
+venv/
+env/
+.env
+
+# 构建产物
+build/
+dist/
+*.egg-info/
+
+# 本地对话记录不进入公开仓库
+chat_history.md
