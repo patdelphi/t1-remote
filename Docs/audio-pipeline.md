@@ -8,8 +8,11 @@
 - `t1remote.core.audio_buffer.PcmFrameQueue`：固定容量、线程安全的 PCM chunk 队列，满载时丢弃最旧 chunk，并提供丢弃计数。
 - `t1remote.core.audio_buffer.PcmFormat`：采样率、声道数和采样宽度校验。
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
+- `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
 
-这些模块不依赖 `bleak`、WinRT 或 WASAPI，便于在没有设备协议样本时进行确定性测试。
+核心解码、队列和状态机不依赖 `bleak`、WinRT 或 WASAPI，便于在没有设备协议样本时进行确定性测试。
+
+GATT 探测命令需要显式安装项目的可选 `ble` extra；当前开发环境没有自动安装该依赖。
 
 ## 未宣称兼容的部分
 
