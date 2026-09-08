@@ -17,9 +17,19 @@ from t1remote.core.input_mapping import ButtonEvent
 
 
 MAPPING_VERSION = 1
-_ACTION_KINDS = {"none", "key", "media", "special", "shortcut", "combo", "command"}
+_ACTION_KINDS = {
+    "none",
+    "key",
+    "media",
+    "special",
+    "shortcut",
+    "combo",
+    "command",
+    "macro",
+}
 _MODIFIER_NAMES = {"ALT", "CTRL", "SHIFT", "WIN"}
 _TRIGGER_KINDS = {"press", "long_press", "double_click", "hold_repeat"}
+_MACRO_STEP_KINDS = {"key", "special"}
 
 
 class MappingConfigError(ValueError):
@@ -87,6 +97,63 @@ class TriggerConfig:
 
 
 @dataclass(frozen=True)
+class MacroStep:
+    """宏中的一个原子键击；按下和抬起后等待 delay_ms 再执行下一步。"""
+
+    kind: str = "key"
+    key: str = ""
+    modifiers: tuple[str, ...] = ()
+    delay_ms: int = 0
+
+    def __post_init__(self) -> None:
+        normalized_kind = self.kind.strip().lower()
+        if normalized_kind not in _MACRO_STEP_KINDS:
+            raise MappingConfigError(f"不支持的宏步骤类型：{self.kind}")
+        if not isinstance(self.key, str) or not self.key.strip():
+            raise MappingConfigError("宏步骤必须包含非空 key")
+        if isinstance(self.delay_ms, bool) or not isinstance(self.delay_ms, int):
+            raise MappingConfigError("宏步骤间隔必须是整数")
+        if not 0 <= self.delay_ms <= 60000:
+            raise MappingConfigError("宏步骤间隔必须在 0-60000 毫秒之间")
+        normalized_modifiers = tuple(item.strip().upper() for item in self.modifiers)
+        if any(item not in _MODIFIER_NAMES for item in normalized_modifiers):
+            raise MappingConfigError("宏步骤修饰键只支持 ALT、CTRL、SHIFT、WIN")
+        if len(set(normalized_modifiers)) != len(normalized_modifiers):
+            raise MappingConfigError("宏步骤修饰键不能重复")
+        object.__setattr__(self, "kind", normalized_kind)
+        object.__setattr__(self, "key", self.key.strip().upper())
+        object.__setattr__(self, "modifiers", normalized_modifiers)
+
+    @classmethod
+    def from_dict(cls, raw: object) -> "MacroStep":
+        """从 JSON 对象读取一个宏步骤。"""
+
+        if not isinstance(raw, dict):
+            raise MappingConfigError("宏 steps 中的每一项必须是对象")
+        kind = raw.get("type", "key")
+        key = raw.get("key")
+        modifiers = raw.get("modifiers", ())
+        delay_ms = raw.get("delay_ms", 0)
+        if not isinstance(kind, str) or not isinstance(key, str):
+            raise MappingConfigError("宏步骤 type 和 key 必须是字符串")
+        if not isinstance(modifiers, (list, tuple)) or any(
+            not isinstance(item, str) for item in modifiers
+        ):
+            raise MappingConfigError("宏步骤 modifiers 必须是字符串数组")
+        return cls(kind, key, tuple(modifiers), delay_ms)
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为稳定的 JSON 对象。"""
+
+        data: dict[str, Any] = {"type": self.kind, "key": self.key}
+        if self.modifiers:
+            data["modifiers"] = list(self.modifiers)
+        if self.delay_ms:
+            data["delay_ms"] = self.delay_ms
+        return data
+
+
+@dataclass(frozen=True)
 class KeyAction:
     """一个按键对应的输出动作。"""
 
@@ -95,6 +162,7 @@ class KeyAction:
     modifiers: tuple[str, ...] = ()
     argv: tuple[str, ...] = ()
     trigger: TriggerConfig = TriggerConfig()
+    macro: tuple[MacroStep, ...] = ()
 
     def __post_init__(self) -> None:
         kind = self.kind.lower()
@@ -104,11 +172,11 @@ class KeyAction:
             raise MappingConfigError("trigger 必须是 TriggerConfig")
         object.__setattr__(self, "kind", kind)
         if kind == "none":
-            if self.key is not None or self.modifiers or self.argv:
-                raise MappingConfigError("none 动作不能包含 key、modifiers 或 argv")
+            if self.key is not None or self.modifiers or self.argv or self.macro:
+                raise MappingConfigError("none 动作不能包含 key、modifiers、argv 或 macro")
             return
         if kind == "command":
-            if self.key is not None or self.modifiers:
+            if self.key is not None or self.modifiers or self.macro:
                 raise MappingConfigError("command 动作只能包含 argv")
             normalized_argv = tuple(self.argv)
             if not normalized_argv or any(
@@ -117,6 +185,14 @@ class KeyAction:
             ):
                 raise MappingConfigError("command 动作必须包含非空 argv 字符串数组")
             object.__setattr__(self, "argv", normalized_argv)
+            return
+        if kind == "macro":
+            if self.key is not None or self.modifiers or self.argv:
+                raise MappingConfigError("macro 动作只能包含 steps")
+            if not self.macro or any(not isinstance(step, MacroStep) for step in self.macro):
+                raise MappingConfigError("macro 动作至少需要一个有效步骤")
+            if self.trigger.kind == "hold_repeat":
+                raise MappingConfigError("macro 暂不支持按住重复触发")
             return
         if not isinstance(self.key, str) or not self.key.strip():
             raise MappingConfigError(f"{kind} 动作必须包含非空 key")
@@ -145,6 +221,7 @@ class KeyAction:
         key = raw.get("key")
         modifiers = raw.get("modifiers", ())
         argv = raw.get("argv", ())
+        macro = raw.get("steps", ())
         trigger = TriggerConfig.from_dict(raw.get("trigger"))
         if not isinstance(modifiers, (list, tuple)) or any(
             not isinstance(item, str) for item in modifiers
@@ -154,12 +231,15 @@ class KeyAction:
             not isinstance(item, str) for item in argv
         ):
             raise MappingConfigError("argv 必须是字符串数组")
+        if not isinstance(macro, (list, tuple)):
+            raise MappingConfigError("steps 必须是数组")
         return cls(
             kind,
             key if isinstance(key, str) else key,
             tuple(modifiers),
             tuple(argv),
             trigger,
+            tuple(MacroStep.from_dict(item) for item in macro),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -169,6 +249,14 @@ class KeyAction:
             return {"type": "none"}
         if self.kind == "command":
             data: dict[str, Any] = {"type": "command", "argv": list(self.argv)}
+            if self.trigger.kind != "press":
+                data["trigger"] = self.trigger.to_dict()
+            return data
+        if self.kind == "macro":
+            data = {
+                "type": "macro",
+                "steps": [step.to_dict() for step in self.macro],
+            }
             if self.trigger.kind != "press":
                 data["trigger"] = self.trigger.to_dict()
             return data
@@ -469,6 +557,7 @@ def save_mapping_config(path: str | Path, config: MappingConfig) -> None:
 
 __all__ = [
     "KeyAction",
+    "MacroStep",
     "MappingConfig",
     "MappingConfigError",
     "MappingEngine",

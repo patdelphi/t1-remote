@@ -6,9 +6,10 @@ import threading
 from typing import Protocol
 
 from t1remote.core.input_mapping import ButtonEvent, T1InputDecoder
-from t1remote.core.key_mapping import MappingConfig, MappingEngine, MappingEvent
+from t1remote.core.key_mapping import MacroStep, MappingConfig, MappingEngine, MappingEvent
 from t1remote.core.mapping_diagnostics import DiagnosticSnapshot, MappingDiagnostics
 from t1remote.windows.command_runner import WindowsCommandExecutor
+from t1remote.windows.macro import KeyboardMacroExecutor
 from t1remote.windows.send_input import KeyboardOutput, build_mapping_output_events
 
 
@@ -26,6 +27,16 @@ class CommandExecutor(Protocol):
         """启动一条命令。"""
 
 
+class MacroExecutor(Protocol):
+    """键盘宏执行器的最小协议。"""
+
+    def run(self, steps: tuple[MacroStep, ...]) -> None:
+        """开始执行一组宏步骤。"""
+
+    def stop(self) -> None:
+        """取消当前宏并释放活动键。"""
+
+
 class MappingRuntimeError(RuntimeError):
     """Key Mapping 运行时输出失败。"""
 
@@ -40,6 +51,7 @@ class T1MappingRuntime:
         decoder: T1InputDecoder | None = None,
         engine: MappingEngine | None = None,
         command_executor: CommandExecutor | None = None,
+        macro_executor: MacroExecutor | None = None,
         diagnostics: MappingDiagnostics | None = None,
     ) -> None:
         self._emitter = emitter
@@ -48,6 +60,11 @@ class T1MappingRuntime:
         self._command_executor = command_executor or WindowsCommandExecutor()
         self._diagnostics = diagnostics or MappingDiagnostics()
         self._lock = threading.RLock()
+        self._output_lock = threading.RLock()
+        self._macro_executor = macro_executor or KeyboardMacroExecutor(
+            self._emit_outputs,
+            on_error=self._diagnostics.record_error,
+        )
 
     @property
     def config(self) -> MappingConfig:
@@ -103,6 +120,7 @@ class T1MappingRuntime:
         """切换配置并先释放旧配置产生的活动输出。"""
 
         with self._lock:
+            self._macro_executor.stop()
             releases = self._engine.reload(config)
             self._emit_mapping_events(releases)
             return releases
@@ -111,6 +129,7 @@ class T1MappingRuntime:
         """设备断开或程序退出时释放活动输出并清空解码状态。"""
 
         with self._lock:
+            self._macro_executor.stop()
             releases = self._engine.reset()
             self._decoder.reset()
             self._emit_mapping_events(releases)
@@ -128,8 +147,13 @@ class T1MappingRuntime:
                         self._command_executor.run(event.action.argv)
                         self._diagnostics.record_command()
                     continue
+                if event.action.kind == "macro":
+                    # 宏只在触发按下时启动，抬起事件不重复执行。
+                    if event.state == "down":
+                        self._macro_executor.run(event.action.macro)
+                    continue
                 outputs = build_mapping_output_events(event)
-                self._emitter.emit(outputs)
+                self._emit_outputs(outputs)
                 self._diagnostics.record_output(len(outputs))
             except (OSError, RuntimeError, ValueError) as exc:
                 self._diagnostics.record_error(exc)
@@ -137,10 +161,17 @@ class T1MappingRuntime:
                     f"输出按键动作失败：{event.button}/{event.action.kind}"
                 ) from exc
 
+    def _emit_outputs(self, outputs: tuple[KeyboardOutput, ...]) -> None:
+        """串行提交输出，避免宏与普通映射交错写入 SendInput。"""
+
+        with self._output_lock:
+            self._emitter.emit(outputs)
+
 
 __all__ = [
     "CommandExecutor",
     "MappingRuntimeError",
+    "MacroExecutor",
     "OutputEmitter",
     "T1MappingRuntime",
 ]

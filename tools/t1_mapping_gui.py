@@ -14,6 +14,7 @@ from tkinter import filedialog, messagebox, ttk
 from t1remote.core.capture_scope import REMOTE_BUTTONS
 from t1remote.core.key_mapping import (
     KeyAction,
+    MacroStep,
     MappingConfig,
     MappingConfigError,
     load_mapping_config,
@@ -47,14 +48,17 @@ class MappingEditorWindow:
     def __init__(self, root: tk.Tk, config_path: Path, config: MappingConfig) -> None:
         self.root = root
         self.config_path = config_path
+        self.profile_dir = config_path.parent / "profiles"
         self._working_actions: dict[str, KeyAction] = dict(config.mappings)
         self._selected_button: str | None = None
+        self._macro_steps: list[MacroStep] = []
+        self.profile_var = tk.StringVar(value="当前配置文件")
 
         self.root.title("T1 Remote 按键映射")
-        self.root.geometry("1180x720")
-        self.root.minsize(980, 620)
+        self.root.geometry("1180x780")
+        self.root.minsize(980, 680)
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(2, weight=1)
+        self.root.rowconfigure(3, weight=1)
 
         self.status_var = tk.StringVar(value=f"配置文件：{self.config_path}")
         self.kind_var = tk.StringVar()
@@ -69,6 +73,7 @@ class MappingEditorWindow:
         }
 
         self._build_layout()
+        self._refresh_profile_list()
         self._refresh_button_table()
         if REMOTE_BUTTONS:
             self._select_button(REMOTE_BUTTONS[0])
@@ -87,8 +92,10 @@ class MappingEditorWindow:
             foreground="#52606d",
         ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 8))
 
+        self._build_profile_toolbar()
+
         content = ttk.Frame(self.root)
-        content.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 8))
+        content.grid(row=3, column=0, sticky="nsew", padx=16, pady=(0, 8))
         content.columnconfigure(0, weight=1, minsize=260)
         content.columnconfigure(1, weight=1, minsize=230)
         content.columnconfigure(2, weight=2, minsize=420)
@@ -98,6 +105,35 @@ class MappingEditorWindow:
         self._build_kind_panel(content)
         self._build_detail_panel(content)
         self._build_footer()
+
+    def _build_profile_toolbar(self) -> None:
+        """创建独立配置存档的加载和保存操作栏。"""
+
+        frame = ttk.LabelFrame(self.root, text="配置存档")
+        frame.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 8))
+        frame.columnconfigure(1, weight=1)
+        ttk.Label(frame, text="当前存档：").grid(row=0, column=0, padx=(10, 6), pady=8)
+        self.profile_combo = ttk.Combobox(
+            frame,
+            textvariable=self.profile_var,
+            state="readonly",
+            width=36,
+        )
+        self.profile_combo.grid(row=0, column=1, sticky="ew", pady=8)
+        ttk.Button(frame, text="加载", command=self._load_profile).grid(
+            row=0, column=2, padx=(8, 4), pady=8
+        )
+        ttk.Button(frame, text="保存", command=self._save_profile).grid(
+            row=0, column=3, padx=4, pady=8
+        )
+        ttk.Button(frame, text="另存为…", command=self._save_profile_as).grid(
+            row=0, column=4, padx=(4, 10), pady=8
+        )
+        ttk.Label(
+            frame,
+            text="每个存档是一个 JSON 文件；加载后修改，点击保存即可覆盖当前存档。",
+            foreground="#7b8794",
+        ).grid(row=1, column=0, columnspan=5, sticky="w", padx=10, pady=(0, 8))
 
     def _build_button_panel(self, parent: ttk.Frame) -> None:
         """创建物理按键列表。"""
@@ -133,17 +169,39 @@ class MappingEditorWindow:
         ttk.Label(frame, text="当前按键的输出方式：").grid(
             row=0, column=0, sticky="w", padx=12, pady=(14, 6)
         )
-        self.kind_combo = ttk.Combobox(
-            frame,
-            textvariable=self.kind_var,
-            values=tuple(ACTION_TYPE_LABELS.values()),
-            state="readonly",
-        )
-        self.kind_combo.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 14))
-        self.kind_combo.bind("<<ComboboxSelected>>", self._on_kind_changed)
+        normal_frame = ttk.LabelFrame(frame, text="普通键位")
+        normal_frame.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        for row, kind in enumerate(("none", "key", "combo", "macro")):
+            ttk.Radiobutton(
+                normal_frame,
+                text=ACTION_TYPE_LABELS[kind],
+                value=kind,
+                variable=self.kind_var,
+                command=self._refresh_form,
+            ).grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=4)
+
+        special_frame = ttk.LabelFrame(frame, text="媒体与系统功能")
+        special_frame.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
+        ttk.Radiobutton(
+            special_frame,
+            text="媒体/系统键",
+            value="special",
+            variable=self.kind_var,
+            command=self._refresh_form,
+        ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
+
+        command_frame = ttk.LabelFrame(frame, text="自动化")
+        command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
+        ttk.Radiobutton(
+            command_frame,
+            text=ACTION_TYPE_LABELS["command"],
+            value="command",
+            variable=self.kind_var,
+            command=self._refresh_form,
+        ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
 
         ttk.Label(frame, text="触发方式：").grid(
-            row=2, column=0, sticky="w", padx=12, pady=(0, 6)
+            row=4, column=0, sticky="w", padx=12, pady=(0, 6)
         )
         self.trigger_combo = ttk.Combobox(
             frame,
@@ -151,20 +209,21 @@ class MappingEditorWindow:
             values=tuple(TRIGGER_TYPE_LABELS.values()),
             state="readonly",
         )
-        self.trigger_combo.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
+        self.trigger_combo.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 14))
         self.trigger_combo.bind("<<ComboboxSelected>>", self._on_trigger_changed)
 
-        ttk.Separator(frame).grid(row=4, column=0, sticky="ew", padx=12, pady=4)
+        ttk.Separator(frame).grid(row=6, column=0, sticky="ew", padx=12, pady=4)
         ttk.Label(
             frame,
             text=(
                 "未映射不会产生系统输出。\n"
+                "宏只发送键位和间隔，不执行命令。\n"
                 "命令行只在真实运行时启动，预览不会执行。\n"
                 "COL01 仍可能保留原始键盘输入。"
             ),
             justify="left",
             foreground="#7b8794",
-        ).grid(row=5, column=0, sticky="nw", padx=12, pady=14)
+        ).grid(row=7, column=0, sticky="nw", padx=12, pady=14)
 
     def _build_detail_panel(self, parent: ttk.Frame) -> None:
         """创建单键、组合键、特殊键和命令行参数面板。"""
@@ -172,7 +231,7 @@ class MappingEditorWindow:
         frame = ttk.LabelFrame(parent, text="动作参数")
         frame.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(5, weight=1)
+        frame.rowconfigure(3, weight=1)
         self.detail_frame = frame
 
         self.key_frame = ttk.Frame(frame)
@@ -219,6 +278,88 @@ class MappingEditorWindow:
         self.arguments_text = tk.Text(self.command_frame, height=8, width=42)
         self.arguments_text.grid(row=1, column=1, sticky="nsew", padx=(8, 0))
 
+        self.macro_frame = ttk.Frame(frame)
+        self.macro_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=6)
+        self.macro_frame.columnconfigure(0, weight=1)
+        self.macro_frame.rowconfigure(0, weight=1)
+        self.macro_tree = ttk.Treeview(
+            self.macro_frame,
+            columns=("step", "delay"),
+            show="headings",
+            selectmode="browse",
+            height=8,
+        )
+        self.macro_tree.heading("step", text="宏步骤")
+        self.macro_tree.heading("delay", text="本步后等待（毫秒）")
+        self.macro_tree.column("step", width=220, anchor="w")
+        self.macro_tree.column("delay", width=150, anchor="center")
+        self.macro_tree.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.macro_tree.bind("<<TreeviewSelect>>", self._on_macro_step_selected)
+
+        macro_form = ttk.Frame(self.macro_frame)
+        macro_form.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        macro_form.columnconfigure(1, weight=1)
+        ttk.Label(macro_form, text="步骤类型：").grid(row=0, column=0, sticky="w")
+        self.macro_kind_var = tk.StringVar(value="普通键")
+        self.macro_kind_combo = ttk.Combobox(
+            macro_form,
+            textvariable=self.macro_kind_var,
+            values=("普通键", "媒体/系统键"),
+            state="readonly",
+            width=14,
+        )
+        self.macro_kind_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
+        self.macro_kind_combo.bind("<<ComboboxSelected>>", self._on_macro_kind_changed)
+        ttk.Label(macro_form, text="键位：").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        self.macro_key_var = tk.StringVar()
+        self.macro_key_combo = ttk.Combobox(
+            macro_form,
+            textvariable=self.macro_key_var,
+            state="readonly",
+            width=20,
+        )
+        self.macro_key_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        ttk.Label(macro_form, text="修饰键：").grid(row=2, column=0, sticky="w", pady=(6, 0))
+        self.macro_modifier_vars = {
+            modifier: tk.BooleanVar(value=False) for modifier in FORM_MODIFIERS
+        }
+        modifier_box = ttk.Frame(macro_form)
+        modifier_box.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        for modifier in FORM_MODIFIERS:
+            ttk.Checkbutton(
+                modifier_box,
+                text=modifier,
+                variable=self.macro_modifier_vars[modifier],
+            ).pack(side="left", padx=(0, 8))
+        ttk.Label(macro_form, text="本步后等待：").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        self.macro_delay_var = tk.StringVar(value="100")
+        ttk.Entry(macro_form, textvariable=self.macro_delay_var, width=10).grid(
+            row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0)
+        )
+        macro_buttons = ttk.Frame(self.macro_frame)
+        macro_buttons.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        for text, command in (
+            ("添加为下一步", self._add_macro_step),
+            ("更新所选", self._update_macro_step),
+            ("删除所选", self._delete_macro_step),
+            ("上移", lambda: self._move_macro_step(-1)),
+            ("下移", lambda: self._move_macro_step(1)),
+        ):
+            ttk.Button(macro_buttons, text=text, command=command).pack(
+                side="left", padx=(0, 6)
+            )
+        ttk.Label(
+            self.macro_frame,
+            text="每一步都会按下再抬起；本步完成后等待指定毫秒。示例：Ctrl+C → 等待120ms → Ctrl+V。",
+            foreground="#7b8794",
+        ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        self.macro_empty_hint = ttk.Label(
+            self.macro_frame,
+            text="还没有步骤：先选择键位和修饰键，再点击“添加为下一步”。",
+            foreground="#7b8794",
+        )
+        self.macro_empty_hint.grid(row=4, column=0, columnspan=2, sticky="w", pady=(4, 0))
+
         ttk.Label(
             frame,
             text="保存前会执行字段校验；点击预览可查看最终动作。",
@@ -241,7 +382,7 @@ class MappingEditorWindow:
         """创建保存、预览和重载操作。"""
 
         footer = ttk.Frame(self.root)
-        footer.grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 14))
+        footer.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 14))
         footer.columnconfigure(0, weight=1)
         ttk.Label(footer, textvariable=self.status_var).grid(
             row=0, column=0, sticky="w"
@@ -268,14 +409,115 @@ class MappingEditorWindow:
             row=0, column=7, padx=4
         )
 
+    def _profile_label_for_path(self, path: Path) -> str:
+        """把配置路径转换为存档下拉框中的显示名称。"""
+
+        try:
+            if path.resolve().parent == self.profile_dir.resolve():
+                return path.name
+        except OSError:
+            pass
+        return "当前配置文件"
+
+    def _refresh_profile_list(self) -> None:
+        """刷新配置存档列表，不创建目录或修改文件。"""
+
+        try:
+            profile_names = sorted(
+                path.name
+                for path in self.profile_dir.glob("*.json")
+                if path.is_file()
+            )
+        except OSError:
+            profile_names = []
+        values = ("当前配置文件", *profile_names)
+        self.profile_combo.configure(values=values)
+        label = self._profile_label_for_path(self.config_path)
+        self.profile_var.set(label if label in values else "当前配置文件")
+
+    def _selected_profile_path(self) -> Path:
+        """解析用户在存档下拉框中选择的安全路径。"""
+
+        label = self.profile_var.get()
+        if label == "当前配置文件":
+            return self.config_path
+        if label not in tuple(self.profile_combo.cget("values")):
+            raise MappingConfigError("所选配置存档无效")
+        return self.profile_dir / label
+
+    def _load_profile(self) -> None:
+        """加载选中的配置存档，后续保存会覆盖该存档文件。"""
+
+        try:
+            selected_path = self._selected_profile_path()
+        except MappingConfigError as error:
+            messagebox.showerror("存档选择无效", str(error), parent=self.root)
+            return
+        if not selected_path.is_file():
+            messagebox.showerror("存档不存在", f"找不到配置文件：{selected_path}", parent=self.root)
+            return
+        if not messagebox.askyesno(
+            "加载配置存档",
+            f"放弃当前未保存修改并加载此存档？\n\n{selected_path.name}",
+            parent=self.root,
+        ):
+            return
+        try:
+            config = load_mapping_config(selected_path)
+        except MappingConfigError as error:
+            messagebox.showerror("存档加载失败", str(error), parent=self.root)
+            return
+        self.config_path = selected_path
+        self._working_actions = dict(config.mappings)
+        self._refresh_profile_list()
+        self._refresh_button_table()
+        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self.status_var.set(f"已加载存档：{selected_path}")
+
+    def _save_profile(self) -> None:
+        """保存当前编辑内容到当前活动配置文件。"""
+
+        config = self._build_working_config()
+        if config is None:
+            return
+        try:
+            save_mapping_config(self.config_path, config)
+        except MappingConfigError as error:
+            messagebox.showerror("存档保存失败", str(error), parent=self.root)
+            return
+        self._refresh_profile_list()
+        self.status_var.set(f"已保存存档：{self.config_path}")
+
+    def _save_profile_as(self) -> None:
+        """把当前编辑内容另存为一个独立 JSON 存档。"""
+
+        config = self._build_working_config()
+        if config is None:
+            return
+        selected_path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="另存为配置存档",
+            initialdir=str(self.profile_dir),
+            initialfile="t1-key-mapping-profile.json",
+            defaultextension=".json",
+            filetypes=(("JSON 配置存档", "*.json"), ("所有文件", "*.*")),
+        )
+        if not selected_path:
+            return
+        try:
+            save_mapping_config(selected_path, config)
+        except MappingConfigError as error:
+            messagebox.showerror("存档保存失败", str(error), parent=self.root)
+            return
+        self.config_path = Path(selected_path)
+        self._refresh_profile_list()
+        self.status_var.set(f"已另存为：{self.config_path}")
+
     def _current_kind(self) -> str:
         """返回当前界面选择的内部动作类型。"""
 
-        label = self.kind_var.get()
-        for kind, display_name in ACTION_TYPE_LABELS.items():
-            if display_name == label:
-                return kind
-        return "none"
+        kind = self.kind_var.get().strip().lower()
+        return kind if kind in ACTION_TYPE_LABELS else "none"
 
     def _refresh_button_table(self) -> None:
         """刷新物理按键和动作摘要。"""
@@ -320,7 +562,7 @@ class MappingEditorWindow:
         action = self._working_actions.get(button, KeyAction("none"))
         fields = action_to_form(action)
         ui_kind = _UI_KIND_BY_ACTION_KIND.get(fields["kind"], fields["kind"])
-        self.kind_var.set(ACTION_TYPE_LABELS.get(ui_kind, ACTION_TYPE_LABELS["none"]))
+        self.kind_var.set(ui_kind if ui_kind in ACTION_TYPE_LABELS else "none")
         self.trigger_kind_var.set(
             TRIGGER_TYPE_LABELS.get(fields["trigger_kind"], TRIGGER_TYPE_LABELS["press"])
         )
@@ -333,6 +575,8 @@ class MappingEditorWindow:
         self.program_var.set(fields["program"])
         self.arguments_text.delete("1.0", "end")
         self.arguments_text.insert("1.0", "\n".join(fields["argument_lines"]))
+        self._macro_steps = list(fields["macro_steps"])
+        self._refresh_macro_tree()
         self._refresh_form()
         self.button_tree.selection_set(button)
         self.button_tree.see(button)
@@ -380,7 +624,13 @@ class MappingEditorWindow:
 
         kind = self._current_kind()
         self.trigger_combo.configure(state="disabled" if kind == "none" else "readonly")
-        for widget in (self.key_frame, self.modifier_frame, self.special_hint, self.command_frame):
+        for widget in (
+            self.key_frame,
+            self.modifier_frame,
+            self.special_hint,
+            self.command_frame,
+            self.macro_frame,
+        ):
             widget.grid_remove()
         if kind in {"key", "combo"}:
             self.key_combo.configure(values=tuple(KEY_VIRTUAL_KEY_NAMES))
@@ -393,7 +643,157 @@ class MappingEditorWindow:
             self.special_hint.grid()
         elif kind == "command":
             self.command_frame.grid(sticky="nsew")
+        elif kind == "macro":
+            self.macro_frame.grid(sticky="nsew")
+            self._on_macro_kind_changed()
+            self._refresh_macro_tree()
+        trigger_values = tuple(TRIGGER_TYPE_LABELS.values())
+        if kind == "macro":
+            trigger_values = tuple(
+                TRIGGER_TYPE_LABELS[item]
+                for item in ("press", "long_press", "double_click")
+            )
+            if self._current_trigger_kind() == "hold_repeat":
+                self.trigger_kind_var.set(TRIGGER_TYPE_LABELS["press"])
+        self.trigger_combo.configure(values=trigger_values)
         self._refresh_trigger_form()
+
+    def _macro_kind(self) -> str:
+        """返回宏步骤的内部类型。"""
+
+        return "special" if self.macro_kind_var.get() == "媒体/系统键" else "key"
+
+    def _macro_step_summary(self, step: MacroStep) -> str:
+        """生成人类可读的宏步骤摘要。"""
+
+        prefix = "+".join(step.modifiers)
+        return f"{prefix}+{step.key}" if prefix else step.key
+
+    def _refresh_macro_tree(self) -> None:
+        """刷新宏步骤列表，不执行任何输出。"""
+
+        if not hasattr(self, "macro_tree"):
+            return
+        for item in self.macro_tree.get_children():
+            self.macro_tree.delete(item)
+        for index, step in enumerate(self._macro_steps):
+            self.macro_tree.insert(
+                "",
+                "end",
+                iid=str(index),
+                values=(self._macro_step_summary(step), step.delay_ms),
+            )
+        if hasattr(self, "macro_empty_hint"):
+            self.macro_empty_hint.configure(
+                text=(
+                    "还没有步骤：先选择键位和修饰键，再点击“添加为下一步”。"
+                    if not self._macro_steps
+                    else "可选中步骤进行更新、删除或调整顺序。"
+                )
+            )
+
+    def _on_macro_kind_changed(self, _event: tk.Event[tk.Misc] | None = None) -> None:
+        """切换宏步骤的普通键/媒体系统键列表。"""
+
+        if not hasattr(self, "macro_key_combo"):
+            return
+        values = SPECIAL_HID_KEY_NAMES if self._macro_kind() == "special" else KEY_VIRTUAL_KEY_NAMES
+        self.macro_key_combo.configure(values=tuple(values))
+        if self.macro_key_var.get() not in values:
+            self.macro_key_var.set(values[0] if values else "")
+
+    def _on_macro_step_selected(self, _event: tk.Event[tk.Misc]) -> None:
+        """把选中的宏步骤加载到编辑控件。"""
+
+        selected = self.macro_tree.selection()
+        if not selected:
+            return
+        index = int(selected[0])
+        if not 0 <= index < len(self._macro_steps):
+            return
+        step = self._macro_steps[index]
+        self.macro_kind_var.set("媒体/系统键" if step.kind == "special" else "普通键")
+        self._on_macro_kind_changed()
+        self.macro_key_var.set(step.key)
+        for modifier in FORM_MODIFIERS:
+            self.macro_modifier_vars[modifier].set(modifier in step.modifiers)
+        self.macro_delay_var.set(str(step.delay_ms))
+
+    def _build_macro_step(self) -> MacroStep:
+        """校验宏步骤编辑控件并构造一个步骤。"""
+
+        modifiers = tuple(
+            modifier
+            for modifier in FORM_MODIFIERS
+            if self.macro_modifier_vars[modifier].get()
+        )
+        try:
+            delay_ms = int(self.macro_delay_var.get())
+        except ValueError as error:
+            raise MappingConfigError("本步后等待必须是整数") from error
+        return MacroStep(
+            kind=self._macro_kind(),
+            key=self.macro_key_var.get(),
+            modifiers=modifiers,
+            delay_ms=delay_ms,
+        )
+
+    def _add_macro_step(self) -> None:
+        """把当前宏步骤追加到列表。"""
+
+        try:
+            step = self._build_macro_step()
+        except MappingConfigError as error:
+            messagebox.showerror("宏步骤无效", str(error), parent=self.root)
+            return
+        self._macro_steps.append(step)
+        self._refresh_macro_tree()
+        self.macro_tree.selection_set(str(len(self._macro_steps) - 1))
+
+    def _update_macro_step(self) -> None:
+        """替换当前选中的宏步骤。"""
+
+        selected = self.macro_tree.selection()
+        if not selected:
+            return
+        try:
+            step = self._build_macro_step()
+        except MappingConfigError as error:
+            messagebox.showerror("宏步骤无效", str(error), parent=self.root)
+            return
+        index = int(selected[0])
+        if 0 <= index < len(self._macro_steps):
+            self._macro_steps[index] = step
+            self._refresh_macro_tree()
+            self.macro_tree.selection_set(str(index))
+
+    def _delete_macro_step(self) -> None:
+        """删除当前选中的宏步骤。"""
+
+        selected = self.macro_tree.selection()
+        if not selected:
+            return
+        index = int(selected[0])
+        if 0 <= index < len(self._macro_steps):
+            self._macro_steps.pop(index)
+            self._refresh_macro_tree()
+
+    def _move_macro_step(self, offset: int) -> None:
+        """在宏步骤列表中移动当前步骤。"""
+
+        selected = self.macro_tree.selection()
+        if not selected:
+            return
+        index = int(selected[0])
+        target = index + offset
+        if not (0 <= index < len(self._macro_steps) and 0 <= target < len(self._macro_steps)):
+            return
+        self._macro_steps[index], self._macro_steps[target] = (
+            self._macro_steps[target],
+            self._macro_steps[index],
+        )
+        self._refresh_macro_tree()
+        self.macro_tree.selection_set(str(target))
 
     def _build_current_action(self) -> KeyAction:
         """从当前控件读取并校验一个动作。"""
@@ -410,6 +810,9 @@ class MappingEditorWindow:
             modifiers=modifiers,
             program=self.program_var.get(),
             argument_lines=argument_lines,
+            macro_steps=tuple(self._macro_steps)
+            if self._current_kind() == "macro"
+            else (),
             trigger_kind=self._current_trigger_kind(),
             threshold_ms=self.threshold_var.get(),
             window_ms=self.window_var.get(),
@@ -444,6 +847,12 @@ class MappingEditorWindow:
             preview = "当前按键未映射，不会产生系统输出。"
         elif action.kind == "command":
             preview = f"命令 argv：{action.argv}\n\n这里只预览，不会启动程序。"
+        elif action.kind == "macro":
+            lines = [
+                f"{index}. {self._macro_step_summary(step)}，本步后等待 {step.delay_ms}ms"
+                for index, step in enumerate(action.macro, start=1)
+            ]
+            preview = "宏步骤：\n" + "\n".join(lines)
         else:
             try:
                 binding = binding_from_action(action)
@@ -492,15 +901,7 @@ class MappingEditorWindow:
     def _save_config(self) -> None:
         """校验全部编辑内容并安全保存配置文件。"""
 
-        if not self._apply_current(show_error=True):
-            return
-        try:
-            config = MappingConfig(mappings=dict(self._working_actions))
-            save_mapping_config(self.config_path, config)
-        except MappingConfigError as error:
-            messagebox.showerror("配置保存失败", str(error), parent=self.root)
-            return
-        self.status_var.set(f"已保存：{self.config_path}")
+        self._save_profile()
 
     def _build_working_config(self) -> MappingConfig | None:
         """校验当前表单并构造待写入配置。"""
@@ -581,6 +982,7 @@ def run_mapping_gui(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
         messagebox.showerror("配置加载失败", str(error), parent=root)
         root.destroy()
         return 1
+    try:
         MappingEditorWindow(root, config_path, config)
         root.mainloop()
         return 0

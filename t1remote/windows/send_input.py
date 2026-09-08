@@ -13,7 +13,7 @@ import os
 from typing import Iterable, Mapping
 
 from t1remote.core.input_mapping import ButtonEvent
-from t1remote.core.key_mapping import KeyAction, MappingEvent
+from t1remote.core.key_mapping import KeyAction, MacroStep, MappingEvent
 
 
 KEYEVENTF_EXTENDEDKEY = 0x0001
@@ -150,6 +150,37 @@ def binding_from_action(action: KeyAction) -> OutputBinding | None:
     )
 
 
+def binding_from_macro_step(step: MacroStep) -> OutputBinding:
+    """把宏步骤转换为普通或特殊虚拟键绑定。"""
+
+    if step.kind == "special":
+        virtual_key = _SPECIAL_VIRTUAL_KEYS.get(step.key)
+        if virtual_key is None:
+            raise ValueError(f"不支持的宏特殊功能键：{step.key}")
+    else:
+        virtual_key = _KEY_VIRTUAL_KEYS.get(step.key)
+        if virtual_key is None:
+            raise ValueError(f"不支持的宏虚拟键：{step.key}")
+    modifiers = tuple(_MODIFIER_VIRTUAL_KEYS[item] for item in step.modifiers)
+    return OutputBinding(
+        virtual_key,
+        extended=step.key in _EXTENDED_KEYS,
+        modifiers=modifiers,
+    )
+
+
+def build_macro_step_events(
+    step: MacroStep,
+) -> tuple[tuple[KeyboardOutput, ...], tuple[KeyboardOutput, ...]]:
+    """生成一个宏步骤的按下和抬起事件，间隔由宏执行器处理。"""
+
+    binding = binding_from_macro_step(step)
+    return (
+        _build_binding_events("down", binding),
+        _build_binding_events("up", binding),
+    )
+
+
 def _build_binding_events(
     state: str, binding: OutputBinding
 ) -> tuple[KeyboardOutput, ...]:
@@ -232,6 +263,8 @@ __all__ = [
     "SPECIAL_HID_KEY_NAMES",
     "WindowsInputEmitter",
     "binding_from_action",
+    "binding_from_macro_step",
+    "build_macro_step_events",
     "build_mapping_output_events",
     "build_output_events",
 ]

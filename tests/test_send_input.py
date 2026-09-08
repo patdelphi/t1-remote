@@ -3,10 +3,11 @@
 import unittest
 
 from t1remote.core.input_mapping import ButtonEvent
-from t1remote.core.key_mapping import KeyAction, MappingEvent
+from t1remote.core.key_mapping import KeyAction, MacroStep, MappingEvent
 from t1remote.windows.send_input import (
     binding_from_action,
     build_mapping_output_events,
+    build_macro_step_events,
     build_output_events,
 )
 
@@ -78,6 +79,18 @@ class SendInputTests(unittest.TestCase):
 
         self.assertEqual(output[0].virtual_key, 0xB3)
         self.assertEqual(binding_from_action(KeyAction("command", argv=("x",))), None)
+
+    def test_macro_step_emits_a_chord_then_releases_in_reverse_order(self) -> None:
+        down, up = build_macro_step_events(MacroStep("key", "1", ("CTRL", "SHIFT")))
+
+        self.assertEqual(
+            [(item.virtual_key, item.flags) for item in down],
+            [(0x11, 0), (0x10, 0), (0x31, 0)],
+        )
+        self.assertEqual(
+            [(item.virtual_key, item.flags) for item in up],
+            [(0x31, 0x02), (0x10, 0x02), (0x11, 0x02)],
+        )
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import unittest
 from t1remote.core.input_mapping import ButtonEvent
 from t1remote.core.key_mapping import (
     KeyAction,
+    MacroStep,
     MappingConfig,
     MappingConfigError,
     MappingEngine,
@@ -85,6 +86,33 @@ class KeyMappingTests(unittest.TestCase):
     def test_command_action_requires_nonempty_argv(self) -> None:
         with self.assertRaises(MappingConfigError):
             KeyAction("command")
+
+    def test_macro_roundtrip_preserves_key_chords_and_delays(self) -> None:
+        action = KeyAction(
+            "macro",
+            macro=(
+                MacroStep("key", "C", ("CTRL",), 120),
+                MacroStep("key", "V", ("CTRL",), 0),
+            ),
+        )
+
+        loaded = MappingConfig.from_dict(
+            MappingConfig(
+                mappings={**MappingConfig.default().mappings, "Voice": action}
+            ).to_dict()
+        )
+
+        self.assertEqual(loaded.mappings["Voice"], action)
+
+    def test_macro_rejects_hold_repeat_and_empty_steps(self) -> None:
+        with self.assertRaises(MappingConfigError):
+            KeyAction("macro", macro=())
+        with self.assertRaises(MappingConfigError):
+            KeyAction(
+                "macro",
+                macro=(MacroStep("key", "A"),),
+                trigger=TriggerConfig("hold_repeat"),
+            )
 
     def test_trigger_config_roundtrip_and_validation(self) -> None:
         config = MappingConfig(

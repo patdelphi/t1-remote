@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from t1remote.core.key_mapping import KeyAction, MappingConfigError, TriggerConfig
+from t1remote.core.key_mapping import (
+    KeyAction,
+    MacroStep,
+    MappingConfigError,
+    TriggerConfig,
+)
 
 
 ACTION_TYPE_LABELS: dict[str, str] = {
@@ -17,6 +22,7 @@ ACTION_TYPE_LABELS: dict[str, str] = {
     "combo": "组合键",
     "special": "HID 特殊功能",
     "command": "命令行",
+    "macro": "宏",
 }
 
 FORM_MODIFIERS: tuple[str, ...] = ("ALT", "CTRL", "SHIFT", "WIN")
@@ -54,6 +60,7 @@ def build_action_from_form(
     threshold_ms: int | str = 500,
     window_ms: int | str = 300,
     interval_ms: int | str = 100,
+    macro_steps: Iterable[MacroStep] = (),
 ) -> KeyAction:
     """把编辑器表单转换为 KeyAction，并执行统一配置校验。"""
 
@@ -76,6 +83,12 @@ def build_action_from_form(
             "command",
             argv=build_command_argv(program, argument_lines),
             trigger=trigger,
+        )
+    if normalized_kind == "macro":
+        return KeyAction(
+            "macro",
+            trigger=trigger,
+            macro=tuple(macro_steps),
         )
     if normalized_kind == "special":
         return KeyAction("special", key=key, trigger=trigger)
@@ -104,6 +117,7 @@ def action_to_form(action: KeyAction) -> dict[str, Any]:
         "threshold_ms": action.trigger.threshold_ms,
         "window_ms": action.trigger.window_ms,
         "interval_ms": action.trigger.interval_ms,
+        "macro_steps": action.macro,
     }
 
 
@@ -114,6 +128,8 @@ def format_action_summary(action: KeyAction) -> str:
         return ACTION_TYPE_LABELS["none"]
     if action.kind == "command":
         return f"命令：{' '.join(action.argv)}"
+    if action.kind == "macro":
+        return f"宏：{len(action.macro)} 步"
     if action.kind in {"combo", "shortcut"}:
         prefix = "+".join(action.modifiers)
         return f"{prefix}+{action.key}" if prefix else str(action.key)

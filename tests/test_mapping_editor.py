@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from t1remote.core.key_mapping import KeyAction, MappingConfigError
+from t1remote.core.key_mapping import KeyAction, MacroStep, MappingConfigError
 from t1remote.core.mapping_editor import (
     action_to_form,
     build_action_from_form,
@@ -88,6 +88,23 @@ class MappingEditorTests(unittest.TestCase):
             ("notepad.exe", "--new-window"),
         )
 
+    def test_macro_form_supports_key_chords_and_delays(self) -> None:
+        steps = (
+            MacroStep("key", "C", ("CTRL",), 100),
+            MacroStep("key", "V", ("CTRL",), 0),
+        )
+        action = build_action_from_form(
+            "macro",
+            key="",
+            modifiers=(),
+            program="",
+            argument_lines=(),
+            macro_steps=steps,
+        )
+
+        self.assertEqual(action.macro, steps)
+        self.assertEqual(action_to_form(action)["macro_steps"], steps)
+
     def test_invalid_form_is_rejected_before_save(self) -> None:
         with self.assertRaises(MappingConfigError):
             build_action_from_form(
@@ -115,6 +132,12 @@ class MappingEditorTests(unittest.TestCase):
         self.assertEqual(
             format_action_summary(KeyAction("command", argv=("app.exe", "--x"))),
             "命令：app.exe --x",
+        )
+        self.assertEqual(
+            format_action_summary(
+                KeyAction("macro", macro=(MacroStep("key", "A"),))
+            ),
+            "宏：1 步",
         )
 
 

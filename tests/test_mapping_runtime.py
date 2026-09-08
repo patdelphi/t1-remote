@@ -2,7 +2,7 @@
 
 import unittest
 
-from t1remote.core.key_mapping import KeyAction, MappingConfig, MappingEngine
+from t1remote.core.key_mapping import KeyAction, MacroStep, MappingConfig, MappingEngine
 from t1remote.windows.mapping_runtime import T1MappingRuntime
 
 
@@ -20,6 +20,18 @@ class _FakeCommandExecutor:
 
     def run(self, argv) -> None:
         self.calls.append(argv)
+
+
+class _FakeMacroExecutor:
+    def __init__(self) -> None:
+        self.calls = []
+        self.stop_calls = 0
+
+    def run(self, steps) -> None:
+        self.calls.append(steps)
+
+    def stop(self) -> None:
+        self.stop_calls += 1
 
 
 class MappingRuntimeTests(unittest.TestCase):
@@ -104,6 +116,33 @@ class MappingRuntimeTests(unittest.TestCase):
         runtime.process_report("COL02", 2, bytes.fromhex("02 00 00"))
 
         self.assertEqual(command_executor.calls, [("notepad.exe",)])
+        self.assertEqual(emitter.outputs, [])
+
+    def test_macro_mapping_starts_on_press_and_stops_on_reset(self) -> None:
+        emitter = _FakeEmitter()
+        macro_executor = _FakeMacroExecutor()
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "Voice": KeyAction(
+                    "macro",
+                    macro=(MacroStep("key", "C", ("CTRL",), 100),),
+                ),
+            }
+        )
+        runtime = T1MappingRuntime(
+            emitter=emitter,
+            engine=MappingEngine(config),
+            macro_executor=macro_executor,
+        )
+
+        runtime.process_report("COL02", 2, bytes.fromhex("02 21 02"))
+        runtime.process_report("COL02", 2, bytes.fromhex("02 00 00"))
+        runtime.reset()
+
+        self.assertEqual(len(macro_executor.calls), 1)
+        self.assertEqual(macro_executor.calls[0][0].key, "C")
+        self.assertEqual(macro_executor.stop_calls, 1)
         self.assertEqual(emitter.outputs, [])
 
     def test_runtime_exposes_input_mapping_and_output_diagnostics(self) -> None:
