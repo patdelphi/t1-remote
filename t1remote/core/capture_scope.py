@@ -277,6 +277,61 @@ def build_capture_coverage(events: list[CaptureEvent]) -> dict[str, Any]:
     }
 
 
+def build_physical_mapping_table(events: list[CaptureEvent]) -> list[dict[str, Any]]:
+    """生成按键物理映射观察表，不把观察结果写入动作配置。"""
+
+    actions = build_logical_actions(events)
+    table: list[dict[str, Any]] = []
+    for button in REMOTE_BUTTONS:
+        button_events = [event for event in events if event.button == button]
+        button_actions = [action for action in actions if action.button == button]
+        if button in DISABLED_CAPTURE_BUTTONS:
+            status = "disabled"
+        elif any(action.state == "press_release" for action in button_actions):
+            status = "confirmed"
+        elif button_events:
+            status = "observed"
+        else:
+            status = "missing"
+
+        collections = sorted({event.collection for event in button_events})
+        raw_input_types = sorted({event.raw_input_type for event in button_events})
+        states: set[str] = set()
+        usages: set[tuple[int, int]] = set()
+        samples: list[str] = []
+        for event in button_events:
+            state, usage_page, usage = capture_metadata(
+                event.raw_input_type,
+                event.collection,
+                event.raw_data_hex,
+            )
+            states.add(event.state if event.state in {"down", "up"} else state)
+            resolved_page = event.usage_page if event.usage_page is not None else usage_page
+            resolved_usage = event.usage if event.usage is not None else usage
+            if resolved_page is not None and resolved_usage not in (None, 0):
+                usages.add((resolved_page, resolved_usage))
+            if event.raw_data_hex not in samples and len(samples) < 3:
+                samples.append(event.raw_data_hex)
+        table.append(
+            {
+                "button": button,
+                "status": status,
+                "collections": collections,
+                "raw_input_types": raw_input_types,
+                "states": sorted(states),
+                "usages": [
+                    {"usage_page": f"0x{page:02X}", "usage": f"0x{usage:X}"}
+                    for page, usage in sorted(usages)
+                ],
+                "paired_actions": sum(
+                    action.state == "press_release" for action in button_actions
+                ),
+                "sample_reports": samples,
+            }
+        )
+    return table
+
+
 def is_t1_device_path(device_path: str) -> bool:
     """只匹配当前 T1 的 VID/PID，避免采集普通键鼠。"""
 

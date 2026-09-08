@@ -8,6 +8,7 @@ from t1remote.core.capture_scope import (
     CaptureEvent,
     build_capture_coverage,
     build_logical_actions,
+    build_physical_mapping_table,
     capture_metadata,
     collection_from_device_path,
     classify_hid_transport,
@@ -164,6 +165,41 @@ class CaptureScopeTests(unittest.TestCase):
         self.assertEqual(coverage["paired_press_release_buttons"], ["Home"])
         self.assertIn("Power", coverage["missing_buttons"])
         self.assertFalse(coverage["complete"])
+
+    def test_physical_mapping_table_preserves_observed_usage_without_auto_mapping(self) -> None:
+        events = [
+            CaptureEvent(
+                timestamp_utc="2026-09-07T05:13:30.000+00:00",
+                button="Home",
+                raw_input_type=2,
+                collection="COL02",
+                device_family="T1-Remote/COL02",
+                raw_data_hex="02 23 02",
+                state="down",
+                usage_page=0x0C,
+                usage=0x223,
+            ),
+            CaptureEvent(
+                timestamp_utc="2026-09-07T05:13:30.100+00:00",
+                button="Home",
+                raw_input_type=2,
+                collection="COL02",
+                device_family="T1-Remote/COL02",
+                raw_data_hex="02 00 00",
+                state="up",
+                usage_page=0x0C,
+                usage=0,
+            ),
+        ]
+
+        table = build_physical_mapping_table(events)
+        home = next(item for item in table if item["button"] == "Home")
+        air_mouse = next(item for item in table if item["button"] == "Air Mouse")
+
+        self.assertEqual(home["status"], "confirmed")
+        self.assertEqual(home["usages"], [{"usage_page": "0x0C", "usage": "0x223"}])
+        self.assertEqual(home["collections"], ["COL02"])
+        self.assertEqual(air_mouse["status"], "disabled")
 
 
 if __name__ == "__main__":

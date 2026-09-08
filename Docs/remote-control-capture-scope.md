@@ -59,6 +59,8 @@ Inspector 启动后输入按键编号并回车，再只按对应的遥控区域�
 
 每条 `events` 记录还会保存可从当前已知布局推导出的 `state`、`usage_page` 和 `usage`。文件中的 `capture_coverage` 摘要按已启用的 13 个实体键统计观测结果；只有每个按键至少出现一次成对的按下+抬起操作时，`complete` 才为 `true`。未知布局仍保存原始包，但不会被判定为完成。
 
+文件中的 `physical_mapping` 是观察表，不会直接覆盖 `config/t1-key-mapping.json`。每个按键会标记为 `confirmed`、`observed`、`missing` 或 `disabled`，同时保留 Collection、Usage、状态和最多 3 条样本报告，便于人工确认后再配置动作。
+
 右侧“后续组件预留”区域会实时显示驱动诊断：附着的 Collection、收到/拦截/转发的报告数量和队列深度。按键无记录时先看这里：`收到=0` 表示驱动没有拿到输入报告，`收到>0` 但表格无记录则继续检查 Python 事件处理。
 
 ## 暂定验收标准

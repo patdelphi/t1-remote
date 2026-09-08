@@ -15,6 +15,7 @@ from t1remote.core.capture_scope import (
     CaptureEvent,
     build_capture_coverage,
     build_logical_actions,
+    build_physical_mapping_table,
     capture_metadata,
     collection_from_device_path,
     is_t1_device_path,
@@ -54,6 +55,7 @@ def _write_capture(output_path: Path, events: list[CaptureEvent]) -> None:
             action.to_dict() for action in build_logical_actions(events)
         ],
         "capture_coverage": build_capture_coverage(events),
+        "physical_mapping": build_physical_mapping_table(events),
     }
     content = json.dumps(document, ensure_ascii=False, indent=2)
     with output_path.open("w", encoding="utf-8-sig", newline="\r\n") as file:
