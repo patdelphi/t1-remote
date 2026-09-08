@@ -58,6 +58,38 @@ def _write_capture(output_path: Path, events: list[CaptureEvent]) -> None:
         file.write("\r\n")
 
 
+def _load_capture(input_path: Path) -> list[CaptureEvent]:
+    """读取已有脱敏采集事件，供 GUI 跨会话保留结果。"""
+
+    if not input_path.exists():
+        return []
+    try:
+        document = json.loads(input_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    raw_events = document.get("events", [])
+    if not isinstance(raw_events, list):
+        return []
+    events: list[CaptureEvent] = []
+    for raw_event in raw_events:
+        if not isinstance(raw_event, dict):
+            continue
+        try:
+            events.append(
+                CaptureEvent(
+                    timestamp_utc=str(raw_event["timestamp_utc"]),
+                    button=str(raw_event["button"]),
+                    raw_input_type=int(raw_event["raw_input_type"]),
+                    collection=str(raw_event["collection"]),
+                    device_family=str(raw_event["device_family"]),
+                    raw_data_hex=str(raw_event["raw_data_hex"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+    return events
+
+
 def _write_capture_if_nonempty(
     output_path: Path,
     events: list[CaptureEvent],
@@ -67,6 +99,19 @@ def _write_capture_if_nonempty(
     if not events:
         return False
     _write_capture(output_path, events)
+    return True
+
+
+def _append_capture_if_nonempty(
+    output_path: Path,
+    new_events: list[CaptureEvent],
+) -> bool:
+    """只追加本次采集的新事件，保留已有夹具内容。"""
+
+    if not new_events:
+        return False
+    existing_events = _load_capture(output_path)
+    _write_capture(output_path, existing_events + new_events)
     return True
 
 
@@ -119,17 +164,16 @@ def main() -> int:
     state_lock = threading.Lock()
     events: list[CaptureEvent] = []
     events_lock = threading.Lock()
+    persisted_event_count = 0
 
     def on_event(raw_event: RawInputEvent) -> None:
         """过滤 T1 路径，并把当前手动选择的物理键写入内存。"""
 
-        # 空中鼠标移动会产生大量 Mouse Report，本轮按键夹具不记录它。
-        if raw_event.raw_input_type == 0 or not is_t1_device_path(raw_event.device_path):
+        # 不按 Usage、按键类型或当前标签丢弃 T1 报文；未选标签的报文标记为“未标记”。
+        if not is_t1_device_path(raw_event.device_path):
             return
         with state_lock:
-            button = current_button
-        if button is None:
-            return
+            button = current_button or "未标记"
 
         event = CaptureEvent(
             timestamp_utc=_utc_now(),
@@ -170,10 +214,12 @@ def main() -> int:
                 break
             if command.lower() == "s":
                 with events_lock:
-                    if _write_capture_if_nonempty(args.output, events):
-                        print(f"已保存 {len(events)} 条事件：{args.output}")
+                    pending_events = events[persisted_event_count:]
+                    if _append_capture_if_nonempty(args.output, pending_events):
+                        persisted_event_count = len(events)
+                        print(f"已追加 {len(pending_events)} 条新事件：{args.output}")
                     else:
-                        print("当前没有新事件，保留已有 JSON 文件。")
+                        print("当前没有待存储的新事件，保留已有 JSON 文件。")
                 continue
             if command == "0":
                 with state_lock:
@@ -199,10 +245,11 @@ def main() -> int:
     finally:
         listener.stop()
         with events_lock:
-            if _write_capture_if_nonempty(args.output, events):
-                print(f"已保存 {len(events)} 条事件：{args.output}")
+            pending_events = events[persisted_event_count:]
+            if _append_capture_if_nonempty(args.output, pending_events):
+                print(f"已追加 {len(pending_events)} 条新事件：{args.output}")
             else:
-                print("没有新事件，未覆盖已有 JSON 文件。")
+                print("没有待存储的新事件，保留已有 JSON 文件。")
     return 0
 
 

@@ -55,6 +55,26 @@ class RawInputEvent:
     raw_data: bytes
 
 
+def build_raw_input_registrations(hwnd: int) -> list[RawInputDevice]:
+    """构造 T1 键盘、Consumer Control 和 System Control 的注册项。"""
+
+    flags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY
+    return [
+        RawInputDevice(0x01, 0x06, flags, hwnd),  # Keyboard
+        RawInputDevice(0x01, 0x02, flags, hwnd),  # Mouse
+        # 按页面注册，覆盖 T1 实际 Descriptor 中未预先识别的 Consumer Usage。
+        RawInputDevice(0x0C, 0x00, flags | RIDEV_PAGEONLY, hwnd),
+        # Power 等 System Control 不属于 Keyboard Usage 0x06。
+        RawInputDevice(0x01, 0x80, flags, hwnd),
+        RawInputDevice(
+            0xFF00,
+            0x00,
+            flags | RIDEV_PAGEONLY,
+            hwnd,
+        ),  # Vendor Defined
+    ]
+
+
 class RawInputListener:
     """在后台线程中接收 Raw Input，不设置 RIDEV_NOLEGACY。"""
 
@@ -150,18 +170,7 @@ class RawInputListener:
         if not self._user32 or not self._hwnd:
             raise RuntimeError("Raw Input API 尚未初始化")
 
-        flags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY
-        registrations = [
-            RawInputDevice(0x01, 0x06, flags, self._hwnd),  # Keyboard
-            RawInputDevice(0x01, 0x02, flags, self._hwnd),  # Mouse
-            RawInputDevice(0x0C, 0x01, flags, self._hwnd),  # Consumer Control
-            RawInputDevice(
-                0xFF00,
-                0x00,
-                flags | RIDEV_PAGEONLY,
-                self._hwnd,
-            ),  # Vendor Defined
-        ]
+        registrations = build_raw_input_registrations(self._hwnd)
         registration_array = (RawInputDevice * len(registrations))(*registrations)
         result = self._user32.RegisterRawInputDevices(
             registration_array,
@@ -282,4 +291,3 @@ class RawInputListener:
             except Exception:
                 # 错误回调不能再次打断 Raw Input 消息循环。
                 pass
-

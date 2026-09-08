@@ -20,7 +20,7 @@
 | BLE HID Service | `0x1812` |
 | VID | `0x620A` |
 | PID | `0x0407` |
-| 已发现 Collection | `COL01`、`COL02`、`COL04`、`COL05` |
+| 已发现 Collection | `COL01`、`COL02`、`COL03`、`COL04`、`COL05` |
 | GATT 服务线索 | `AB5E0001-5A21-4F05-BC7D-AF01F617B664` |
 
 ## 第一阶段范围：遥控区域报文采集
@@ -29,7 +29,7 @@
 
 遥控区域按键清单：Power、方向上、方向下、方向左、方向右、OK、Return、Voice、Mute、Home、Menu、`Air Mouse`、Volume Plus、Volume Minus。
 
-采集数据分为两层：保留每一条原始 Report 用于协议分析，同时将按下/抬起配对为一条逻辑操作用于界面和后续映射。Power 和 Air Mouse 在采集阶段禁用，不要求触发这两个实体按键。
+采集数据分为两层：保留每一条原始 Report 用于协议分析，同时将按下/抬起配对为一条逻辑操作用于界面和后续映射。Power 由驱动层拦截后在 Python 采集界面启用；Air Mouse 在采集阶段禁用。
 
 ## 暂不承诺
 

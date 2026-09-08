@@ -8,102 +8,2703 @@
   },
   "events": [
     {
-      "timestamp_utc": "2026-09-07T11:11:58.447+00:00",
-      "button": "Home",
-      "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
-      "raw_data_hex": "02 23 02"
+      "timestamp_utc": "2026-09-08T08:40:22.497+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
     },
     {
-      "timestamp_utc": "2026-09-07T11:11:58.598+00:00",
-      "button": "Home",
+      "timestamp_utc": "2026-09-08T08:40:22.643+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T08:40:24.191+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T08:40:24.364+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T08:40:24.815+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T08:40:24.915+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.448+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.462+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.490+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.491+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.495+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.497+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.602+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.604+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.607+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.608+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.608+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fc ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.609+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fa ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.609+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 f9 ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.610+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff f7 ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.611+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff f8 ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.613+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff f9 ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.614+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.617+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.680+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.733+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.734+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.735+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.736+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.787+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.788+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.789+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.789+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.791+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 01 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:21.793+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.101+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.103+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.168+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.171+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.173+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.174+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.471+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.530+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.531+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.532+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.533+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.534+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.597+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.599+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.658+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.659+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.660+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.661+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.665+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.719+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.720+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.762+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.807+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.858+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:22.859+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.001+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.054+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.101+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.249+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.298+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.348+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.350+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.351+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 01 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.397+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.398+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.443+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.445+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.497+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.499+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.501+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.551+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.553+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.554+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.599+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.601+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.643+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.690+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.692+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.738+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.740+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.743+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.746+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.747+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.750+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.805+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.807+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.860+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.864+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.866+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.930+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.933+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:23.974+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:24.021+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 08 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:24.064+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:24.108+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:06:24.171+00:00",
+      "button": "Mute",
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "device_family": "T1-Remote/COL04",
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:09:59.787+00:00",
+      "button": "Power",
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 01"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:09:59.895+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:03.343+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e9 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:03.478+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
       "raw_data_hex": "02 00 00"
     },
     {
-      "timestamp_utc": "2026-09-07T11:12:06.717+00:00",
-      "button": "Home",
+      "timestamp_utc": "2026-09-08T09:10:04.958+00:00",
+      "button": "Volume Minus",
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
-      "raw_data_hex": "02 23 02"
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 ea 00"
     },
     {
-      "timestamp_utc": "2026-09-07T11:12:06.856+00:00",
-      "button": "Home",
+      "timestamp_utc": "2026-09-08T09:10:05.118+00:00",
+      "button": "Volume Minus",
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
       "raw_data_hex": "02 00 00"
     },
     {
-      "timestamp_utc": "2026-09-07T11:12:07.916+00:00",
+      "timestamp_utc": "2026-09-08T09:10:07.393+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 21 02"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:07.492+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:08.986+00:00",
       "button": "Home",
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
       "raw_data_hex": "02 23 02"
     },
     {
-      "timestamp_utc": "2026-09-07T11:12:08.073+00:00",
+      "timestamp_utc": "2026-09-08T09:10:09.166+00:00",
       "button": "Home",
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "device_family": "T1-Remote/UNKNOWN",
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
       "raw_data_hex": "02 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:10.491+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:10.666+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:14.236+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 24 02"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:14.351+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:15.299+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e2 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:15.547+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:17.394+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:17.532+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:19.785+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:19.909+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:20.783+00:00",
+      "button": "OK",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:20.961+00:00",
+      "button": "OK",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:21.790+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:21.969+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:23.641+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00"
+    },
+    {
+      "timestamp_utc": "2026-09-08T09:10:23.816+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00"
     }
   ],
   "logical_actions": [
     {
       "action_id": 1,
-      "button": "Home",
+      "button": "Menu",
       "state": "press_release",
-      "down_timestamp_utc": "2026-09-07T11:11:58.447+00:00",
-      "up_timestamp_utc": "2026-09-07T11:11:58.598+00:00",
-      "duration_ms": 151,
+      "down_timestamp_utc": "2026-09-08T08:40:22.497+00:00",
+      "up_timestamp_utc": "2026-09-08T08:40:22.643+00:00",
+      "duration_ms": 146,
       "packet_count": 2,
       "raw_event_indexes": [
         1,
         2
       ],
-      "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "signature": "hid:02:2302"
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:005d"
     },
     {
       "action_id": 2,
-      "button": "Home",
+      "button": "Menu",
       "state": "press_release",
-      "down_timestamp_utc": "2026-09-07T11:12:06.717+00:00",
-      "up_timestamp_utc": "2026-09-07T11:12:06.856+00:00",
-      "duration_ms": 139,
+      "down_timestamp_utc": "2026-09-08T08:40:24.191+00:00",
+      "up_timestamp_utc": "2026-09-08T08:40:24.364+00:00",
+      "duration_ms": 173,
       "packet_count": 2,
       "raw_event_indexes": [
         3,
         4
       ],
-      "raw_input_type": 2,
-      "collection": "UNKNOWN",
-      "signature": "hid:02:2302"
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:005d"
     },
     {
       "action_id": 3,
-      "button": "Home",
+      "button": "Menu",
       "state": "press_release",
-      "down_timestamp_utc": "2026-09-07T11:12:07.916+00:00",
-      "up_timestamp_utc": "2026-09-07T11:12:08.073+00:00",
-      "duration_ms": 157,
+      "down_timestamp_utc": "2026-09-08T08:40:24.815+00:00",
+      "up_timestamp_utc": "2026-09-08T08:40:24.915+00:00",
+      "duration_ms": 100,
       "packet_count": 2,
       "raw_event_indexes": [
         5,
         6
       ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:005d"
+    },
+    {
+      "action_id": 4,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.448+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        7
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 5,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.462+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        8
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 6,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.490+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        9
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 7,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.491+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        10
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 8,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.495+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        11
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 9,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.497+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        12
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 10,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.602+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        13
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 11,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.604+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        14
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 12,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.607+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        15
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 13,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.608+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        16
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 14,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.608+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        17
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fc ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 15,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.609+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        18
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fa ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 16,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.609+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        19
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 f9 ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 17,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.610+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        20
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff f7 ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 18,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.611+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        21
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff f8 ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 19,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.613+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        22
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff f9 ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 20,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.614+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        23
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 21,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.617+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        24
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 22,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.680+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        25
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 23,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.733+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        26
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 24,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.734+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        27
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 25,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.735+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        28
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 26,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.736+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        29
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 27,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.787+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        30
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 28,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.788+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        31
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 29,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.789+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        32
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 30,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.789+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        33
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 02 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 31,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.791+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        34
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 01 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 32,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:21.793+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        35
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 33,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.101+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        36
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 34,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.103+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        37
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 35,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.168+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        38
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 36,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.171+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        39
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 37,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.173+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        40
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 38,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.174+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        41
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 39,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.471+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        42
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 40,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.530+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        43
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 41,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.531+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        44
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 42,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.532+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        45
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 43,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.533+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        46
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 44,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.534+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        47
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 45,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.597+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        48
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 46,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.599+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        49
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 47,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.658+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        50
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 48,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.659+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        51
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 49,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.660+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        52
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 50,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.661+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        53
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 51,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.665+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        54
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 52,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.719+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        55
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 53,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.720+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        56
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 54,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.762+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        57
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 55,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.807+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        58
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 56,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.858+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        59
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 57,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:22.859+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        60
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 58,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.001+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        61
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 59,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.054+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        62
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 60,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.101+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        63
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+    },
+    {
+      "action_id": 61,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.249+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        64
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 62,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.298+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        65
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 63,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.348+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        66
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 64,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.350+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        67
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 65,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.351+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        68
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 01 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 66,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.397+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        69
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 67,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.398+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        70
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 68,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.443+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        71
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 69,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.445+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        72
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 70,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.497+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        73
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 71,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.499+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        74
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 72,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.501+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        75
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 73,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.551+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        76
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 74,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.553+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        77
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 75,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.554+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        78
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 76,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.599+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        79
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 77,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.601+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        80
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 78,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.643+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        81
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 79,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.690+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        82
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 80,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.692+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        83
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 81,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.738+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        84
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 82,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.740+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        85
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 83,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.743+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        86
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 84,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.746+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        87
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 85,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.747+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        88
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 86,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.750+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        89
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 87,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.805+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        90
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 88,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.807+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        91
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 89,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.860+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        92
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 90,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.864+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        93
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 91,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.866+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        94
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 92,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.930+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        95
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 93,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.933+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        96
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 94,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:23.974+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        97
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 95,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:24.021+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        98
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 08 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 96,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:24.064+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        99
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 97,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:24.108+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        100
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 06 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 98,
+      "button": "Mute",
+      "state": "unknown",
+      "down_timestamp_utc": "2026-09-08T09:06:24.171+00:00",
+      "up_timestamp_utc": null,
+      "duration_ms": null,
+      "packet_count": 1,
+      "raw_event_indexes": [
+        101
+      ],
+      "raw_input_type": 0,
+      "collection": "COL04",
+      "signature": "raw:00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 05 00 00 00 00 00 00 00"
+    },
+    {
+      "action_id": 99,
+      "button": "Power",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:09:59.787+00:00",
+      "up_timestamp_utc": "2026-09-08T09:09:59.895+00:00",
+      "duration_ms": 108,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        102,
+        103
+      ],
       "raw_input_type": 2,
-      "collection": "UNKNOWN",
+      "collection": "COL03",
+      "signature": "hid:03:01"
+    },
+    {
+      "action_id": 100,
+      "button": "Volume Plus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:03.343+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:03.478+00:00",
+      "duration_ms": 135,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        104,
+        105
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e900"
+    },
+    {
+      "action_id": 101,
+      "button": "Volume Minus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:04.958+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:05.118+00:00",
+      "duration_ms": 160,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        106,
+        107
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:ea00"
+    },
+    {
+      "action_id": 102,
+      "button": "Voice",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:07.393+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:07.492+00:00",
+      "duration_ms": 99,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        108,
+        109
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2102"
+    },
+    {
+      "action_id": 103,
+      "button": "Home",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:08.986+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:09.166+00:00",
+      "duration_ms": 180,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        110,
+        111
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
       "signature": "hid:02:2302"
+    },
+    {
+      "action_id": 104,
+      "button": "Menu",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:10.491+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:10.666+00:00",
+      "duration_ms": 175,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        112,
+        113
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:005d"
+    },
+    {
+      "action_id": 105,
+      "button": "Return",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:14.236+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:14.351+00:00",
+      "duration_ms": 115,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        114,
+        115
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2402"
+    },
+    {
+      "action_id": 106,
+      "button": "Mute",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:15.299+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:15.547+00:00",
+      "duration_ms": 248,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        116,
+        117
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e200"
+    },
+    {
+      "action_id": 107,
+      "button": "Arrow Up",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:17.394+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:17.532+00:00",
+      "duration_ms": 138,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        118,
+        119
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0026"
+    },
+    {
+      "action_id": 108,
+      "button": "Arrow Down",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:19.785+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:19.909+00:00",
+      "duration_ms": 124,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        120,
+        121
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0028"
+    },
+    {
+      "action_id": 109,
+      "button": "OK",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:20.783+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:20.961+00:00",
+      "duration_ms": 178,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        122,
+        123
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:000d"
+    },
+    {
+      "action_id": 110,
+      "button": "Arrow Left",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:21.790+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:21.969+00:00",
+      "duration_ms": 179,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        124,
+        125
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0025"
+    },
+    {
+      "action_id": 111,
+      "button": "Arrow Right",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-08T09:10:23.641+00:00",
+      "up_timestamp_utc": "2026-09-08T09:10:23.816+00:00",
+      "duration_ms": 175,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        126,
+        127
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0027"
     }
   ]
 }

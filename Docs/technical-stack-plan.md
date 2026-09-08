@@ -149,7 +149,7 @@ T1Product
 └── 2.4G Receiver HID（待确认）
 ```
 
-T1 当前已观察到 BLE HID 的 `COL01`、`COL02`、`COL04`、`COL05`。项目不能假定所有按键都来自 Keyboard Collection，也不能把 Mouse Collection 的移动报告当成按键。
+T1 当前已观察到 BLE HID 的 `COL01`、`COL02`、`COL03`、`COL04`、`COL05`。项目不能假定所有按键都来自 Keyboard Collection，也不能把 Mouse Collection 的移动报告当成按键。
 
 每条事件至少携带：
 

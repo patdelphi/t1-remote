@@ -24,11 +24,9 @@ class CaptureScopeTests(unittest.TestCase):
         self.assertIn("Volume Plus", REMOTE_BUTTONS)
         self.assertIn("Volume Minus", REMOTE_BUTTONS)
 
-    def test_power_and_air_mouse_are_disabled_for_capture(self) -> None:
-        self.assertEqual(
-            DISABLED_CAPTURE_BUTTONS,
-            ("Power", "Air Mouse"),
-        )
+    def test_only_air_mouse_is_disabled_for_capture(self) -> None:
+        self.assertEqual(DISABLED_CAPTURE_BUTTONS, ("Air Mouse",))
+        self.assertNotIn("Power", DISABLED_CAPTURE_BUTTONS)
 
     def test_t1_path_filter_requires_vid_and_pid(self) -> None:
         t1_path = (
@@ -51,6 +49,14 @@ class CaptureScopeTests(unittest.TestCase):
         self.assertEqual(collection_from_device_path(device_path), "COL02")
         self.assertEqual(redacted_device_family(device_path), "T1-Remote/COL02")
         self.assertNotIn("F7426D57FBA1", redacted_device_family(device_path))
+
+    def test_collection_parser_accepts_setupapi_hid_interface_path(self) -> None:
+        device_path = (
+            r"\\?\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_"
+            r"f7426d57fba1&Col02#b&39f0e088&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}"
+        )
+
+        self.assertEqual(collection_from_device_path(device_path), "COL02")
 
     def test_button_number_validation(self) -> None:
         self.assertEqual(validate_button_number(1), "Power")

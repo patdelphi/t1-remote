@@ -14,7 +14,7 @@ HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col0
 ABI v2 已包含：
 
 - Python 会话心跳租约；租约失效后自动停止吞键，回到 Windows 透传；
-- Collection 附着状态、普通/内部 HID 请求路径、完成错误和设备重连统计；
+- Collection 附着状态、Read/普通/内部 HID 请求路径、完成错误和设备重连统计；
 - Report Descriptor 编译出的字段规则，支持 Report ID、字段偏移、1/2 字节值和基础改写；
 - 策略代数、事件时间戳、队列溢出和运行能力查询。
 

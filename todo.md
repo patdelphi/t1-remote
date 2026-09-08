@@ -10,8 +10,8 @@
 - Windows 设备名称：`T1-Remote`。
 - BLE HID 服务：`0x1812`。
 - 设备标识：`VID=0x620A`、`PID=0x0407`。
-- HID Collection：`COL01` 键盘、`COL02` Consumer Control、`COL04` 鼠标、`COL05` Vendor Defined。
-- Raw Input 已发现 T1 的键盘、Consumer Control、鼠标和 Vendor Defined 路径。
+- HID Collection：`COL01` 键盘、`COL02` Consumer Control、`COL03` System Control、`COL04` 鼠标、`COL05` Vendor Defined；`COL02/COL03` 的 Top-Level Usage 已由 PnP Hardware ID 确认。
+- Raw Input 已发现 T1 的键盘、鼠标和 Vendor Defined 路径；Home/Power 的 `COL02/COL03` 归属已有驱动行为证据，其他按键仍需逐键采集确认。
 - 设备还暴露 `AB5E0001-5A21-4F05-BC7D-AF01F617B664` GATT 服务；是否与参考项目的 ATVV 音频协议完全一致，必须通过特征发现和真实报文验证。
 
 ## 阶段 A：工程骨架
@@ -21,7 +21,7 @@
 - [x] 建立遥控区域 14 键范围模型、T1 路径过滤和脱敏 JSON 采集工具。
 - [x] 建立以遥控器正面产品图为中心的 Tkinter 采集窗口。
 - [x] 将按下/抬起原始包配对为逻辑操作，同时保留原始包。
-- [x] 采集界面禁用 Power 键，避免要求触发系统电源键。
+- [x] 采集界面禁用 Air Mouse 键；Power 已允许在驱动拦截后进入采集流程。
 - [x] 建立 T1 设备身份匹配函数，只接受 `VID_620A`、`PID_0407` 及对应 BLE 实例路径。
 - [ ] 建立设置、日志、配置文件和错误处理边界。
 - [ ] 创建 Windows x64 构建、`pytest`/`unittest` 测试和基础安装配置。

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import threading
-from time import monotonic
 
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -14,16 +13,10 @@ from t1remote.core.capture_scope import (
     REMOTE_BUTTONS,
     CaptureEvent,
     build_logical_actions,
+    collection_from_device_path,
     is_t1_device_path,
 )
-from t1remote.windows.driver_bridge import (
-    BridgeError,
-    BridgeUnavailable,
-    DriverInputEvent,
-    HidUsage,
-    InterceptionPolicy,
-    T1BridgeClient,
-)
+from t1remote.windows.hid_input import HidInputEvent, HidInputListener
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
 
 
@@ -37,17 +30,6 @@ BUTTON_DISPLAY_NAMES = {
     "Volume Plus": "Volume +",
     "Volume Minus": "Volume -",
 }
-
-DRIVER_BLOCKED_USAGES = (
-    HidUsage(0x0C, 0x223, "COL02"),  # Home
-    HidUsage(0x0C, 0x221, "COL02"),  # Voice
-    HidUsage(0x0C, 0x0E2, "COL02"),  # Mute
-    HidUsage(0x0C, 0x0E9, "COL02"),  # Volume Plus
-    HidUsage(0x0C, 0x0EA, "COL02"),  # Volume Minus
-    HidUsage(0x0C, 0x224, "COL02"),  # Return
-    HidUsage(0x01, 0x081, "COL03"),  # Power / System Power Down
-)
-
 
 def _load_remote_image(root: tk.Tk) -> tk.PhotoImage | None:
     """加载项目内的干净遥控器正面产品图。"""
@@ -71,8 +53,8 @@ def run_gui(output_path: Path) -> int:
 
     # 延迟导入，避免 --help 或命令行模式强制依赖 GUI 模块。
     from tools.t1_inspector import (
+        _append_capture_if_nonempty,
         _build_event,
-        _write_capture_if_nonempty,
     )
 
     root = tk.Tk()
@@ -90,18 +72,19 @@ def run_gui(output_path: Path) -> int:
     ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 2))
     ttk.Label(
         root,
-        text="左侧按产品图操作遥控器，右侧查看与保存报文；键盘面、空中鼠标移动、Power 和 Air Mouse 不写入夹具。",
+        text="左侧按产品图操作遥控器，右侧查看与保存报文；T1 输入报文全部记录，当前标签仅用于标注。",
     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
 
     selected_label = tk.StringVar(value="当前标签：未选择")
     status_label = tk.StringVar(value="状态：正在启动 Raw Input")
+    driver_stats_label = tk.StringVar(value="驱动统计：采集模式未启用拦截")
     count_label = tk.StringVar(value="原始包：0 | 逻辑操作：0")
     current_button: str | None = None
     state_lock = threading.Lock()
     events: list[CaptureEvent] = []
-    driver_client: T1BridgeClient | None = None
-    driver_stop = threading.Event()
-    driver_thread: threading.Thread | None = None
+    persisted_event_count = 0
+    hid_listener: HidInputListener | None = None
+    hid_active = False
 
     content_frame = ttk.Frame(root)
     content_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 10))
@@ -190,7 +173,7 @@ def run_gui(output_path: Path) -> int:
             width=17,
         )
         if button in DISABLED_CAPTURE_BUTTONS:
-            # Power 可能被 Windows 当作系统电源键处理；Air Mouse 会切换飞鼠模式。
+            # Air Mouse 会切换飞鼠模式；Power 已由驱动层拦截，可安全采集。
             widget.state(["disabled"])
         button_widgets[button] = widget
         button_items[button] = canvas.create_window(0, 0, window=widget)
@@ -250,6 +233,11 @@ def run_gui(output_path: Path) -> int:
         text="设备状态 · 按键映射 · 快捷操作",
         foreground="#7b8794",
     ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+    ttk.Label(
+        future_frame,
+        textvariable=driver_stats_label,
+        foreground="#52606d",
+    ).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
 
     footer = ttk.Frame(operation_frame)
     footer.grid(row=3, column=0, sticky="ew", padx=8, pady=(0, 10))
@@ -261,23 +249,30 @@ def run_gui(output_path: Path) -> int:
     def save_capture() -> None:
         """保存当前内存中的脱敏采集结果。"""
 
+        nonlocal persisted_event_count
+        pending_events = events[persisted_event_count:]
         try:
-            saved = _write_capture_if_nonempty(output_path, events)
+            saved = _append_capture_if_nonempty(output_path, pending_events)
         except Exception as error:
             messagebox.showerror("保存失败", str(error), parent=root)
             return
         if not saved:
-            status_label.set("状态：没有新采集记录，未覆盖已有 JSON 文件")
+            status_label.set("状态：没有待存储的新采集记录，已有 JSON 文件未改变")
             return
+        persisted_event_count = len(events)
         action_count = len(build_logical_actions(events))
-        status_label.set(f"状态：已保存 {len(events)} 个原始包，{action_count} 个逻辑操作")
+        status_label.set(
+            f"状态：已追加 {len(pending_events)} 个新原始包，当前会话 {action_count} 个逻辑操作"
+        )
 
     def clear_events() -> None:
         """清空当前窗口内尚未保存的事件。"""
 
+        nonlocal persisted_event_count
         if events and not messagebox.askyesno("确认清空", "清空当前采集记录？", parent=root):
             return
         events.clear()
+        persisted_event_count = 0
         for item in tree.get_children():
             tree.delete(item)
         count_label.set("原始包：0 | 逻辑操作：0")
@@ -327,16 +322,20 @@ def run_gui(output_path: Path) -> int:
         refresh_action_table()
         status_label.set("状态：监听中")
 
-    def on_raw_event(raw_event: RawInputEvent) -> None:
+    def on_raw_event(raw_event: RawInputEvent, from_direct_hid: bool = False) -> None:
         """在 Raw Input 线程中复制事件和当前标签，再投递到 UI 线程。"""
 
-        # 空中鼠标移动会产生大量 Mouse Report，本轮按键夹具不记录它。
-        if raw_event.raw_input_type == 0 or not is_t1_device_path(raw_event.device_path):
+        # 不按 Usage、按键类型或当前标签丢弃 T1 报文；未选标签的报文标记为“未标记”。
+        if not is_t1_device_path(raw_event.device_path):
             return
+        collection = collection_from_device_path(raw_event.device_path)
         with state_lock:
-            button = current_button
-        if button is None:
-            return
+            button = current_button or "未标记"
+            direct_is_active = hid_active
+        if not from_direct_hid and collection in ("COL02", "COL03"):
+            # 直读监听器已经提供完整报文时，Raw Input 只会造成重复。
+            if direct_is_active:
+                return
         try:
             root.after(0, handle_raw_event, raw_event, button)
         except RuntimeError:
@@ -351,36 +350,27 @@ def run_gui(output_path: Path) -> int:
         except RuntimeError:
             pass
 
-    def driver_event_to_raw_event(event: DriverInputEvent) -> RawInputEvent:
-        """把驱动事件转成采集表复用的 Raw Input 事件模型。"""
+    def hid_event_to_raw_event(event: HidInputEvent) -> RawInputEvent:
+        """把 HID 直读报告转成采集表事件。"""
 
         return RawInputEvent(
-            device_path=f"HID\\VID_620A&PID_0407&{event.collection}",
+            device_path=event.device_path,
             raw_input_type=2,
             raw_data=event.report,
         )
 
-    def driver_event_loop(client: T1BridgeClient) -> None:
-        """轮询驱动事件队列，并把原始报文投递到 Tk 线程。"""
+    def hid_event_loop_callback(event: HidInputEvent) -> None:
+        """使用直读报告作为 COL02/COL03 的唯一采集来源。"""
 
-        last_heartbeat = 0.0
-        while not driver_stop.is_set():
-            try:
-                now = monotonic()
-                if now - last_heartbeat >= 0.5:
-                    client.heartbeat()
-                    last_heartbeat = now
-                event = client.read_event()
-            except BridgeError as error:
-                try:
-                    root.after(0, on_error, error)
-                except RuntimeError:
-                    pass
-                return
-            if event is None:
-                driver_stop.wait(0.02)
-                continue
-            on_raw_event(driver_event_to_raw_event(event))
+        on_raw_event(hid_event_to_raw_event(event), from_direct_hid=True)
+
+    def hid_error_callback(error: Exception) -> None:
+        """把 HID 直读错误显示到窗口状态栏。"""
+
+        try:
+            root.after(0, status_label.set, f"状态：HID 直读错误：{error}")
+        except RuntimeError:
+            pass
 
     listener = RawInputListener(on_event=on_raw_event, on_error=on_error)
     try:
@@ -390,33 +380,26 @@ def run_gui(output_path: Path) -> int:
         root.destroy()
         return 1
 
+    # Inspector 是采集工具，不在采集阶段启用桥接拦截，避免改变 Home、Power 等按键行为。
+    driver_stats_label.set("驱动统计：采集模式未启用拦截")
+    status_label.set("状态：准备启动 HID 直读采集")
+
     try:
-        driver_client = T1BridgeClient()
-        driver_client.open(
-            InterceptionPolicy(
-                blocked_usages=DRIVER_BLOCKED_USAGES,
-                target_collections=("COL02", "COL03"),
-                lease_required=True,
-            )
+        hid_listener = HidInputListener(
+            on_event=hid_event_loop_callback,
+            on_error=hid_error_callback,
+            target_collections=("COL02", "COL03"),
         )
-        driver_client.start()
-        driver_thread = threading.Thread(
-            target=driver_event_loop,
-            args=(driver_client,),
-            name="t1-driver-events",
-            daemon=True,
+        hid_listener.start()
+        with state_lock:
+            hid_active = True
+        status_label.set(
+            "状态：HID 直读采集已启动，输入保持正常透传；请点击按键标签后操作遥控器"
         )
-        driver_thread.start()
-        status_label.set("状态：驱动拦截已启动，请点击按键标签后操作遥控器")
-    except BridgeUnavailable:
-        # 未安装驱动时继续保留 Raw Input 采集模式，方便开发机采集报文。
-        driver_client = None
-        status_label.set("状态：Raw Input 监听中；驱动未安装")
-    except BridgeError as error:
-        if driver_client:
-            driver_client.close()
-        driver_client = None
-        status_label.set(f"状态：驱动未启动：{error}")
+    except Exception as error:
+        hid_listener = None
+        hid_active = False
+        hid_error_callback(error)
 
     ttk.Button(footer, text="保存", command=save_capture).grid(row=0, column=3, padx=4)
     ttk.Button(footer, text="清空记录", command=clear_events).grid(row=0, column=4, padx=4)
@@ -424,20 +407,16 @@ def run_gui(output_path: Path) -> int:
     def on_close() -> None:
         """停止 Raw Input 线程并保存当前结果。"""
 
-        driver_stop.set()
-        if driver_thread:
-            driver_thread.join(timeout=1)
-        if driver_client:
+        nonlocal hid_active
+        with state_lock:
+            hid_active = False
+        if hid_listener:
             try:
-                driver_client.stop()
-            except BridgeError:
-                pass
-            driver_client.close()
+                hid_listener.stop()
+            except Exception as error:
+                hid_error_callback(error)
         listener.stop()
-        try:
-            _write_capture_if_nonempty(output_path, events)
-        except Exception as error:
-            messagebox.showerror("保存失败", str(error), parent=root)
+        save_capture()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)

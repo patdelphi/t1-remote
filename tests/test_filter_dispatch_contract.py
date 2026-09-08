@@ -26,6 +26,21 @@ def test_hid_report_has_device_control_dispatch_path() -> None:
     assert "IOCTL_HID_READ_REPORT" in source
 
 
+def test_ble_hid_read_requests_have_a_read_dispatch_path() -> None:
+    """BLE HID/UMDF 的持续输入报告必须通过 Read 队列进入过滤器。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    header = FILTER_HEADER.read_text(encoding="utf-8")
+
+    assert "EVT_WDF_IO_QUEUE_IO_READ T1FilterEvtHidRead;" in header
+    assert "EVT_WDF_IO_QUEUE_IO_STOP T1FilterEvtIoStop;" in header
+    assert "queue_config.EvtIoRead = T1FilterEvtHidRead;" in source
+    assert "queue_config.EvtIoStop = T1FilterEvtIoStop;" in source
+    assert "T1FilterEvtHidRead(" in source
+    assert "T1FilterEvtReadCompletion" in source
+    assert "WdfRequestCancelSentRequest(Request)" in source
+
+
 def test_hid_report_completion_reads_wdf_ioctl_output_memory() -> None:
     """METHOD_NEITHER 报告完成时必须优先读取 WDF IOCTL 输出内存。"""
 

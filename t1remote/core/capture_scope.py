@@ -26,8 +26,9 @@ REMOTE_BUTTONS: tuple[str, ...] = (
     "Volume Minus",
 )
 
-# 这两个物理键可能触发系统级行为或大量连续鼠标报文，采集界面不允许选择。
-DISABLED_CAPTURE_BUTTONS: tuple[str, ...] = ("Power", "Air Mouse")
+# Air Mouse 会切换飞鼠模式并产生连续鼠标报文，采集界面暂不允许选择。
+# Power 由驱动层拦截后允许在 Python 采集界面中选择，避免触发 Windows 电源动作。
+DISABLED_CAPTURE_BUTTONS: tuple[str, ...] = ("Air Mouse",)
 
 T1_VID = "620A"
 T1_PID = "0407"
@@ -225,7 +226,11 @@ def is_t1_device_path(device_path: str) -> bool:
 def collection_from_device_path(device_path: str) -> str:
     """从 Raw Input 设备路径提取 Collection 编号。"""
 
-    match = re.search(r"(?:^|[&\\])COL(\d{2})(?:&|\\|$)", device_path or "", re.IGNORECASE)
+    match = re.search(
+        r"(?:^|[&#\\])COL(\d{2})(?=[&#\\]|$)",
+        device_path or "",
+        re.IGNORECASE,
+    )
     return f"COL{match.group(1)}".upper() if match else "UNKNOWN"
 
 

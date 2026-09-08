@@ -33,7 +33,7 @@ t1bridge.dll（用户态轻量桥接）
     │ DeviceIoControl / \.\T1RemoteFilter
     ▼
 t1filter.sys（KMDF HID 过滤驱动）
-    │ 过滤 IOCTL_HID_READ_REPORT
+    │ 过滤 IRP_MJ_READ / IOCTL_HID_READ_REPORT
     ▼
 T1 HID Collection → HIDClass → Windows 应用
 ```
@@ -89,7 +89,7 @@ HidUsage(
 
 驱动真正匹配时应依据 Report Descriptor 得出的 Usage，不应长期依赖 Raw Input 的 `RAWKEYBOARD.VKey` 或固定报文字节。Menu 的当前夹具包含多组键盘和 Consumer Control 记录，需要重新确认 Report Descriptor、Collection 和物理按键标签后才写入生产策略。
 
-Power 和 Air Mouse 继续保持禁用采集：Power 避免触发系统电源行为，Air Mouse 避免把连续鼠标移动混入按键夹具。两者是否进入后续拦截策略，需要分别验证电源键和鼠标 Collection 的完整生命周期。
+Power 由驱动层拦截后允许 Python 采集，避免触发系统电源行为；Air Mouse 继续保持禁用采集，避免把连续鼠标移动混入按键夹具。两者仍需分别验证电源键和鼠标 Collection 的完整生命周期。
 
 ## 5. 过滤驱动工作方式
 

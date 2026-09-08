@@ -709,6 +709,52 @@ T1FilterEvtHidDeviceControl(
 }
 
 VOID
+T1FilterEvtHidRead(
+    _In_ WDFQUEUE Queue,
+    _In_ WDFREQUEST Request,
+    _In_ size_t Length
+)
+{
+    WDFDEVICE device = WdfIoQueueGetDevice(Queue);
+    NTSTATUS status;
+
+    UNREFERENCED_PARAMETER(Length);
+
+    /* BLE HID/UMDF 的持续输入报告通过 Read 请求到达这里。 */
+    WdfRequestFormatRequestUsingCurrentType(Request);
+    WdfRequestSetCompletionRoutine(
+        Request,
+        T1FilterEvtReadCompletion,
+        device
+    );
+    if (!WdfRequestSend(
+            Request,
+            WdfDeviceGetIoTarget(device),
+            WDF_NO_SEND_OPTIONS)) {
+        status = WdfRequestGetStatus(Request);
+        WdfRequestComplete(Request, status);
+    }
+}
+
+VOID
+T1FilterEvtIoStop(
+    _In_ WDFQUEUE Queue,
+    _In_ WDFREQUEST Request,
+    _In_ ULONG ActionFlags
+)
+{
+    UNREFERENCED_PARAMETER(Queue);
+
+    /* 转发中的 Read 请求必须参与睡眠、移除和取消流程。 */
+    if ((ActionFlags & WdfRequestStopActionPurge) != 0) {
+        (void)WdfRequestCancelSentRequest(Request);
+        return;
+    }
+
+    WdfRequestStopAcknowledge(Request, FALSE);
+}
+
+VOID
 T1FilterEvtInternalDeviceControl(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
@@ -1134,6 +1180,8 @@ T1FilterEvtDeviceAdd(
         WdfIoQueueDispatchSequential
     );
     queue_config.EvtIoDeviceControl = T1FilterEvtHidDeviceControl;
+    queue_config.EvtIoRead = T1FilterEvtHidRead;
+    queue_config.EvtIoStop = T1FilterEvtIoStop;
     status = WdfIoQueueCreate(
         device,
         &queue_config,

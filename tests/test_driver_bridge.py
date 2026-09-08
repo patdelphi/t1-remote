@@ -10,6 +10,7 @@ from t1remote.windows.driver_bridge import (
     BridgeStatus,
     BridgeStats,
     BridgeUnavailable,
+    format_bridge_diagnostics,
     HidFieldRule,
     HidUsage,
     InterceptionPolicy,
@@ -58,6 +59,37 @@ class _FakeReadEventFunction(_FakeFunction):
         event.report[1] = 0x23
         event.report[2] = 0x02
         return result
+
+
+class BridgeDiagnosticsTests(unittest.TestCase):
+    """验证采集窗口使用的驱动诊断文本包含关键计数。"""
+
+    def test_format_bridge_diagnostics_decodes_collection_mask(self) -> None:
+        status = BridgeStatus(
+            state="running",
+            last_error=0,
+            dropped_reports=0,
+            abi_version=2,
+            attached_collections=12,
+        )
+        stats = BridgeStats(
+            received_reports=5,
+            blocked_reports=4,
+            queued_events=4,
+            dropped_events=0,
+            buffer_errors=0,
+            queue_depth=1,
+            abi_version=2,
+            forwarded_reports=1,
+            completion_errors=0,
+        )
+
+        text = format_bridge_diagnostics(status, stats)
+
+        self.assertIn("COL02,COL03", text)
+        self.assertIn("收到:5", text)
+        self.assertIn("拦截:4", text)
+        self.assertIn("队列:1", text)
 
 
 class _FakeCapabilitiesFunction(_FakeFunction):
@@ -159,6 +191,18 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(native.lease_timeout_ms, 5000)
         self.assertEqual(native.field_rule_count, 0)
         self.assertTrue(native.flags & 0x0008)
+
+    def test_policy_serializes_unmapped_report_capture(self) -> None:
+        policy = InterceptionPolicy(
+            target_collections=("COL02", "COL03"),
+            drop_unmapped=True,
+        )
+
+        native = policy.to_native()
+
+        self.assertEqual(native.usage_count, 0)
+        self.assertEqual(native.target_collection_count, 2)
+        self.assertTrue(native.flags & 0x0002)
 
     def test_policy_serializes_descriptor_field_rule(self) -> None:
         policy = InterceptionPolicy(

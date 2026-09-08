@@ -429,6 +429,27 @@ class BridgeStats:
     internal_device_control_reports: int = 0
 
 
+def format_bridge_diagnostics(status: BridgeStatus, stats: BridgeStats) -> str:
+    """把驱动状态和计数压缩成采集窗口可直接显示的一行。"""
+
+    attached = ",".join(
+        f"COL{collection:02d}"
+        for collection in range(1, 32)
+        if status.attached_collections & (1 << collection)
+    ) or "无"
+    error_text = (
+        f" | 错误:0x{status.last_error:08X}"
+        if status.last_error
+        else ""
+    )
+    return (
+        f"驱动:{status.state} | 附着:{attached} | "
+        f"收到:{stats.received_reports} | 拦截:{stats.blocked_reports} | "
+        f"转发:{stats.forwarded_reports} | 队列:{stats.queue_depth}"
+        f"{error_text}"
+    )
+
+
 @dataclass(frozen=True)
 class DriverInputEvent:
     """驱动保存的原始 T1 输入事件。"""
