@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "t1-remote"
+version = "0.2.0"
+description = "T1 Remote Windows HID mapping and diagnostics"
+requires-python = ">=3.11"
+dependencies = [
+  "pywin32>=306",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8",
+]
+package = [
+  "pyinstaller>=6",
+]
+
+[project.scripts]
+t1-remote = "tools.t1_app:main"
+t1-remote-inspector = "tools.t1_inspector:main"
+t1-remote-mapping-test = "tools.t1_mapping_test:main"
+t1-remote-mapping-gui = "tools.t1_mapping_gui:main"
+
+[tool.setuptools.packages.find]
+include = ["t1remote*", "tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
