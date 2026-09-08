@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import unittest
 
+from t1remote.core.audio_buffer import PcmFrameQueue
+from t1remote.core.audio_pipeline import ImaPcmPipeline
+from t1remote.core.gatt_audio_pipeline import GattAudioProcessor
 from t1remote.core.gatt_session import (
     GattAudioSession,
     GattSessionError,
@@ -63,6 +66,36 @@ class GattAudioSessionTests(unittest.TestCase):
 
         with self.assertRaises(GattSessionError):
             session.on_negotiated(generation)
+
+    def test_processor_decodes_current_generation_into_pcm_queue(self) -> None:
+        session = GattAudioSession()
+        generation = session.begin_connect()
+        session.on_connected(generation)
+        session.on_services_discovered(generation)
+        session.on_negotiated(generation)
+        queue = PcmFrameQueue()
+        processor = GattAudioProcessor(session, ImaPcmPipeline(queue))
+
+        self.assertTrue(processor.handle_notification(generation, b"\x77"))
+        self.assertEqual(queue.pop(), b"\x0b\x00\x29\x00")
+        self.assertEqual(processor.snapshot.session.accepted_notifications, 1)
+
+    def test_processor_can_inject_frame_header_adapter(self) -> None:
+        session = GattAudioSession()
+        generation = session.begin_connect()
+        session.on_connected(generation)
+        session.on_services_discovered(generation)
+        session.on_negotiated(generation)
+        queue = PcmFrameQueue()
+        processor = GattAudioProcessor(
+            session,
+            ImaPcmPipeline(queue),
+            payload_adapter=lambda payload: payload[1:],
+        )
+
+        processor.handle_notification(generation, b"\x99\x77")
+
+        self.assertEqual(queue.pop(), b"\x0b\x00\x29\x00")
 
 
 if __name__ == "__main__":
