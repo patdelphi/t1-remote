@@ -32,6 +32,7 @@ from t1remote.windows.send_input import (
     SPECIAL_HID_KEY_NAMES,
     binding_from_action,
 )
+from t1remote.windows.single_instance import SingleInstanceGuard
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -569,15 +570,22 @@ def run_mapping_gui(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
     """创建并运行映射编辑器窗口。"""
 
     root = tk.Tk()
+    instance_guard = SingleInstanceGuard("Local\\T1Remote.MappingEditor")
+    if not instance_guard.acquire():
+        messagebox.showerror("映射编辑器已运行", "已有一个映射编辑器窗口正在运行。", parent=root)
+        root.destroy()
+        return 1
     try:
         config = _load_startup_config(config_path)
     except MappingConfigError as error:
         messagebox.showerror("配置加载失败", str(error), parent=root)
         root.destroy()
         return 1
-    MappingEditorWindow(root, config_path, config)
-    root.mainloop()
-    return 0
+        MappingEditorWindow(root, config_path, config)
+        root.mainloop()
+        return 0
+    finally:
+        instance_guard.release()
 
 
 def main() -> int:

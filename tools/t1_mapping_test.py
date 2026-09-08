@@ -26,6 +26,7 @@ from t1remote.windows.driver_bridge import (
 from t1remote.windows.mapping_runtime import MappingRuntimeError, T1MappingRuntime
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
 from t1remote.windows.send_input import KeyboardOutput, WindowsInputEmitter
+from t1remote.windows.single_instance import SingleInstanceGuard
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -126,14 +127,18 @@ def run(config_path: Path, dry_run: bool = False) -> int:
         _print_mapping_events(releases)
         print(f"[配置] 已热加载：{config_path}")
 
+    def report_error(prefix: str, error: Exception) -> None:
+        print(f"[{prefix}错误] {error}")
+
+    instance_guard = SingleInstanceGuard("Local\\T1Remote.MappingSession")
+    if not instance_guard.acquire():
+        print("[启动错误] 已有一个 T1 Mapping 会话正在运行")
+        return 1
     config_watcher = MappingConfigWatcher(
         config_path,
         on_reload=reload_mapping_config,
         on_error=lambda error: report_error("配置监视", error),
     )
-
-    def report_error(prefix: str, error: Exception) -> None:
-        print(f"[{prefix}错误] {error}")
 
     def handle_raw_event(event: RawInputEvent) -> None:
         if not is_t1_device_path(event.device_path):
@@ -236,6 +241,7 @@ def run(config_path: Path, dry_run: bool = False) -> int:
                     bridge.close()
         except BridgeError as error:
             report_error("驱动停止", error)
+        instance_guard.release()
     return 0
 
 
