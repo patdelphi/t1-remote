@@ -13,6 +13,7 @@ from t1remote.core.audio_buffer import PcmFormat, PcmFrameQueue
 from t1remote.core.audio_pipeline import ImaPcmPipeline, samples_to_pcm16le
 from t1remote.core.ima_adpcm import ImaAdpcmDecoder, decode_ima_adpcm
 from t1remote.core.pcm_sink import PcmSinkError, WaveFilePcmSink
+from t1remote.core.sounddevice_sink import SoundDevicePcmSink
 
 
 class ImaAdpcmTests(unittest.TestCase):
@@ -104,6 +105,41 @@ class PcmFrameQueueTests(unittest.TestCase):
                 self.assertEqual(audio.readframes(2), b"\x0b\x00\x29\x00")
             with self.assertRaises(PcmSinkError):
                 WaveFilePcmSink(path, PcmFormat(16000, 1))
+
+    def test_sounddevice_sink_uses_injected_stream_factory(self) -> None:
+        created: list[dict[str, object]] = []
+        instances: list[object] = []
+
+        class FakeStream:
+            def __init__(self, **kwargs: object) -> None:
+                created.append(kwargs)
+                instances.append(self)
+                self.writes: list[bytes] = []
+                self.started = False
+                self.closed = False
+
+            def start(self) -> None:
+                self.started = True
+
+            def write(self, chunk: bytes) -> None:
+                self.writes.append(chunk)
+
+            def stop(self) -> None:
+                self.started = False
+
+            def close(self) -> None:
+                self.closed = True
+
+        with SoundDevicePcmSink(
+            PcmFormat(16000, 1),
+            device="test-output",
+            stream_factory=FakeStream,
+        ) as sink:
+            sink.write(b"\x00\x00")
+
+        self.assertEqual(created[0]["samplerate"], 16000)
+        self.assertEqual(instances[0].writes, [b"\x00\x00"])
+        self.assertTrue(instances[0].closed)
 
 
 if __name__ == "__main__":

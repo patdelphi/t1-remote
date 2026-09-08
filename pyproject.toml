@@ -21,6 +21,9 @@ package = [
 ble = [
   "bleak>=0.22",
 ]
+audio = [
+  "sounddevice>=0.4",
+]
 
 [project.scripts]
 t1-remote = "tools.t1_app:main"
