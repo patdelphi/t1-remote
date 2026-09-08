@@ -8,7 +8,9 @@ from t1remote.windows.raw_input import (
     RIDEV_DEVNOTIFY,
     RIDEV_INPUTSINK,
     RIDEV_PAGEONLY,
+    RawInputDeviceInfo,
     build_raw_input_registrations,
+    summarize_raw_input_devices,
 )
 
 
@@ -30,6 +32,22 @@ class RawInputRegistrationTests(unittest.TestCase):
     def test_device_and_power_notification_constants_are_declared(self) -> None:
         self.assertEqual(WM_INPUT_DEVICE_CHANGE, 0x00FE)
         self.assertEqual(WM_POWERBROADCAST, 0x0218)
+
+    def test_device_summary_redacts_path_and_handle(self) -> None:
+        devices = summarize_raw_input_devices(
+            (
+                RawInputDeviceInfo(
+                    device_handle=123,
+                    raw_input_type=2,
+                    device_path=r"\\?\hid#vid_620a&pid_0407&col02#secret-address",
+                ),
+            )
+        )
+
+        self.assertEqual(devices[0]["collection"], "COL02")
+        self.assertEqual(devices[0]["device_family"], "T1-Remote/COL02")
+        self.assertNotIn("secret-address", str(devices))
+        self.assertNotIn("123", str(devices))
 
 
 if __name__ == "__main__":

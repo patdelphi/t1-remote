@@ -1,4 +1,4 @@
-﻿# T1 HID Collection 分析记录
+# T1 HID Collection 分析记录
 
 程序说明：记录 Windows 当前枚举到的 T1 HID Collection、已验证的功能和仍需确认的协议细节。本文只记录已获得的系统证据，不根据 Collection 编号推测业务用途。
 
@@ -76,6 +76,17 @@ Inspector 会话期间直接读取驱动统计得到：
 
 已补充 `EvtIoRead` 转发和共用完成回调，并成功构建新的 `t1filter.sys`/CAT 包。新包尚未安装；安装后需要重启设备栈才能验证 `received_reports` 是否开始增长。
 
+### 3.5 Raw Input 设备清单诊断
+
+已增加只读清单命令：
+
+```powershell
+python -m tools.t1_raw_input_probe
+python -m tools.t1_raw_input_probe --all
+```
+
+默认命令只输出 T1；`--all` 输出当前用户会话登记的全部设备，但始终只输出设备类型、Collection 和脱敏归属。当前主机实测默认结果为空，`--all` 可以看到 26 条其他 Raw Input 设备，没有 `VID_620A/PID_0407`。这说明本次会话的 Raw Input 设备清单中没有 T1，问题早于按键报文解析；需要先恢复 T1 HID 子设备或重新建立用户会话，再复测 HID 接口和驱动队列。
+
 ## 4. 当前不能直接下结论的内容
 
 - `COL05` 不能直接认定为 Air Mouse、麦克风或其他具体功能；目前只确认它是 Vendor Defined HID。
@@ -93,9 +104,10 @@ python -m tools.t1_hid_probe
 工具只输出 Collection、Usage Page、Usage 和报告长度，不输出完整设备路径。当前主机实测返回空列表，说明系统虽然枚举了 `T1-Remote` GATT 服务，但本次会话没有可打开的 T1 HID Collection；这项结果需要在 T1 真机保持连接并完成 HID 子设备枚举后复测。
 
 1. 安装新驱动并重启一次设备栈。
-2. 在 Raw Input 和驱动队列同时运行时，每次只按一个物理键。
-3. 记录设备路径、Collection、Usage Page、Usage、Report ID、原始报告和按下/释放状态。
-4. 只有在单键证据与 Descriptor 对齐后，才调整 Python 策略或过滤驱动。
+2. 运行 Raw Input 清单命令，确认 T1 的 `COL01` 至 `COL05` 已出现在当前用户会话。
+3. 在 Raw Input 和驱动队列同时运行时，每次只按一个物理键。
+4. 记录设备路径、Collection、Usage Page、Usage、Report ID、原始报告和按下/释放状态。
+5. 只有在单键证据与 Descriptor 对齐后，才调整 Python 策略或过滤驱动。
 
 ## 6. 当前结论
 

@@ -12,6 +12,12 @@ from typing import Callable
 import win32api
 import win32gui
 
+from t1remote.core.capture_scope import (
+    collection_from_device_path,
+    is_t1_device_path,
+    redacted_device_family,
+)
+
 
 WM_INPUT = 0x00FF
 WM_INPUT_DEVICE_CHANGE = 0x00FE
@@ -31,6 +37,16 @@ RIDEV_DEVNOTIFY = 0x00002000
 RAW_INPUT_ERROR = 0xFFFFFFFF
 
 
+@dataclass(frozen=True)
+class RawInputDeviceInfo:
+    """系统当前登记的一条 Raw Input 设备信息。"""
+
+    device_handle: int
+    raw_input_type: int
+    device_path: str
+    name_error: int | None = None
+
+
 class RawInputDevice(ctypes.Structure):
     """RegisterRawInputDevices 使用的设备注册结构。"""
 
@@ -39,6 +55,15 @@ class RawInputDevice(ctypes.Structure):
         ("usUsage", wintypes.USHORT),
         ("dwFlags", wintypes.DWORD),
         ("hwndTarget", wintypes.HWND),
+    )
+
+
+class RawInputDeviceListEntry(ctypes.Structure):
+    """GetRawInputDeviceList 返回的设备句柄和类型。"""
+
+    _fields_ = (
+        ("hDevice", wintypes.HANDLE),
+        ("dwType", wintypes.DWORD),
     )
 
 
@@ -80,6 +105,124 @@ def build_raw_input_registrations(hwnd: int) -> list[RawInputDevice]:
             hwnd,
         ),  # Vendor Defined
     ]
+
+
+def _configure_raw_input_device_api() -> ctypes.WinDLL:
+    """初始化设备清单查询所需的 User32 API 签名。"""
+
+    if os.name != "nt":
+        raise RuntimeError("Raw Input 设备清单只能在 Windows 上读取")
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    user32.GetRawInputDeviceList.restype = wintypes.UINT
+    user32.GetRawInputDeviceList.argtypes = [
+        ctypes.POINTER(RawInputDeviceListEntry),
+        ctypes.POINTER(wintypes.UINT),
+        wintypes.UINT,
+    ]
+    user32.GetRawInputDeviceInfoW.restype = wintypes.UINT
+    user32.GetRawInputDeviceInfoW.argtypes = [
+        wintypes.HANDLE,
+        wintypes.UINT,
+        ctypes.c_void_p,
+        ctypes.POINTER(wintypes.UINT),
+    ]
+    return user32
+
+
+def _raw_input_device_name(
+    user32: ctypes.WinDLL,
+    device_handle: int,
+) -> tuple[str, int | None]:
+    """读取 Raw Input 设备路径；单条设备失败时保留错误码继续清单。"""
+
+    if not device_handle:
+        return "", None
+    size = wintypes.UINT(0)
+    result = user32.GetRawInputDeviceInfoW(
+        wintypes.HANDLE(device_handle),
+        RIDI_DEVICENAME,
+        None,
+        ctypes.byref(size),
+    )
+    if result == RAW_INPUT_ERROR or size.value == 0:
+        return "", ctypes.get_last_error()
+    buffer = ctypes.create_unicode_buffer(size.value + 1)
+    result = user32.GetRawInputDeviceInfoW(
+        wintypes.HANDLE(device_handle),
+        RIDI_DEVICENAME,
+        buffer,
+        ctypes.byref(size),
+    )
+    if result == RAW_INPUT_ERROR:
+        return "", ctypes.get_last_error()
+    return buffer.value, None
+
+
+def enumerate_raw_input_devices(
+    *,
+    target_only: bool = False,
+) -> tuple[RawInputDeviceInfo, ...]:
+    """枚举当前 Raw Input 设备；可选地只保留 T1 设备。"""
+
+    user32 = _configure_raw_input_device_api()
+    device_count = wintypes.UINT(0)
+    result = user32.GetRawInputDeviceList(
+        None,
+        ctypes.byref(device_count),
+        ctypes.sizeof(RawInputDeviceListEntry),
+    )
+    if result == RAW_INPUT_ERROR:
+        raise ctypes.WinError(ctypes.get_last_error())
+    if device_count.value == 0:
+        return ()
+
+    entries = (RawInputDeviceListEntry * device_count.value)()
+    requested_count = wintypes.UINT(device_count.value)
+    result = user32.GetRawInputDeviceList(
+        entries,
+        ctypes.byref(requested_count),
+        ctypes.sizeof(RawInputDeviceListEntry),
+    )
+    if result == RAW_INPUT_ERROR:
+        raise ctypes.WinError(ctypes.get_last_error())
+
+    devices: list[RawInputDeviceInfo] = []
+    for entry in entries[:result]:
+        raw_handle = entry.hDevice
+        handle = int(raw_handle if isinstance(raw_handle, int) else (raw_handle.value or 0))
+        path, name_error = _raw_input_device_name(user32, handle)
+        if target_only and not is_t1_device_path(path):
+            continue
+        devices.append(
+            RawInputDeviceInfo(
+                device_handle=handle,
+                raw_input_type=int(entry.dwType),
+                device_path=path,
+                name_error=name_error,
+            )
+        )
+    return tuple(devices)
+
+
+def summarize_raw_input_devices(
+    devices: list[RawInputDeviceInfo] | tuple[RawInputDeviceInfo, ...],
+) -> list[dict[str, object]]:
+    """生成不包含完整路径和设备句柄的 Raw Input 清单。"""
+
+    type_names = {0: "mouse", 1: "keyboard", 2: "hid"}
+    summary: list[dict[str, object]] = []
+    for device in devices:
+        item: dict[str, object] = {
+            "raw_input_type": device.raw_input_type,
+            "device_type": type_names.get(device.raw_input_type, "unknown"),
+            "collection": collection_from_device_path(device.device_path),
+            "device_family": redacted_device_family(device.device_path),
+            "path_resolved": bool(device.device_path),
+        }
+        if device.name_error is not None:
+            item["name_error"] = device.name_error
+        summary.append(item)
+    return summary
 
 
 class RawInputListener:

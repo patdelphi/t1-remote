@@ -1,4 +1,4 @@
-﻿
+
 # T1 Remote Windows 项目实施清单
 
 ## 目标
@@ -28,7 +28,7 @@
 
 ## 阶段 B：T1 遥控区域 HID Inspector
 
-- [ ] 枚举 T1 的全部 Raw Input 路径和设备类型，但本轮只建立遥控区域按键采集流程。
+- [x] 枚举当前 Raw Input 路径和设备类型，并提供 T1 过滤与脱敏清单；本轮只建立遥控区域按键采集流程。
 - [x] 提供只读 HID Collection/Report 能力探测入口；完整报告描述符仍需 HID 子设备可枚举后读取。
 - [ ] 只捕获 14 个遥控区域按键的原始 HID Report、Usage Page、Usage、按下/释放状态。
 - [ ] 生成脱敏 JSON 夹具，不保存蓝牙地址和无关设备路径。
