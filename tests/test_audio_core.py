@@ -15,6 +15,7 @@ from t1remote.core.ima_adpcm import ImaAdpcmDecoder, decode_ima_adpcm
 from t1remote.core.pcm_sink import PcmSinkError, WaveFilePcmSink
 from t1remote.core.sounddevice_sink import (
     SoundDevicePcmSink,
+    WasapiPcmSink,
     enumerate_output_devices,
 )
 
@@ -159,6 +160,35 @@ class PcmFrameQueueTests(unittest.TestCase):
         self.assertEqual(len(devices), 1)
         self.assertEqual(devices[0].index, 1)
         self.assertEqual(devices[0].name, "speaker")
+
+    def test_wasapi_sink_passes_shared_mode_settings_to_stream(self) -> None:
+        created: list[dict[str, object]] = []
+
+        class FakeStream:
+            def __init__(self, **kwargs: object) -> None:
+                created.append(kwargs)
+
+            def start(self) -> None:
+                pass
+
+            def write(self, _chunk: bytes) -> None:
+                pass
+
+            def stop(self) -> None:
+                pass
+
+            def close(self) -> None:
+                pass
+
+        settings = object()
+        with WasapiPcmSink(
+            PcmFormat(16000, 1),
+            stream_factory=FakeStream,
+            settings_factory=lambda **kwargs: (settings, kwargs),
+        ):
+            pass
+
+        self.assertEqual(created[0]["extra_settings"], (settings, {"exclusive": False}))
 
 
 if __name__ == "__main__":

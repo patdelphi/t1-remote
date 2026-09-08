@@ -19,6 +19,7 @@ class SoundDevicePcmSink:
         device: int | str | None = None,
         blocksize: int = 0,
         stream_factory: Callable[..., Any] | None = None,
+        extra_settings: Any | None = None,
     ) -> None:
         if pcm_format.sample_width_bytes != 2:
             raise ValueError("SoundDevicePcmSink 当前只支持 PCM16LE")
@@ -42,6 +43,7 @@ class SoundDevicePcmSink:
                 dtype="int16",
                 device=device,
                 blocksize=blocksize,
+                extra_settings=extra_settings,
             )
             self._stream.start()
         except Exception as error:
@@ -80,6 +82,44 @@ class SoundDevicePcmSink:
 
     def __exit__(self, _exc_type: object, _exc: object, _traceback: object) -> None:
         self.close()
+
+
+class WasapiPcmSink(SoundDevicePcmSink):
+    """通过 sounddevice 的 WASAPI host 设置输出 PCM16LE。
+
+    该端点只负责播放到现有输出设备，不创建虚拟麦克风，也不宣称已经
+    完成 T1 的真实语音协议接入。
+    """
+
+    def __init__(
+        self,
+        pcm_format: PcmFormat,
+        *,
+        device: int | str | None = None,
+        blocksize: int = 0,
+        exclusive: bool = False,
+        stream_factory: Callable[..., Any] | None = None,
+        settings_factory: Callable[..., Any] | None = None,
+    ) -> None:
+        if settings_factory is None:
+            try:
+                import sounddevice
+                settings_factory = sounddevice.WasapiSettings
+            except (AttributeError, ImportError) as error:
+                raise PcmSinkError(
+                    "未安装可选依赖 sounddevice，不能启动 WASAPI PCM 输出"
+                ) from error
+        try:
+            extra_settings = settings_factory(exclusive=exclusive)
+        except Exception as error:
+            raise PcmSinkError("无法创建 WASAPI 音频设置") from error
+        super().__init__(
+            pcm_format,
+            device=device,
+            blocksize=blocksize,
+            stream_factory=stream_factory,
+            extra_settings=extra_settings,
+        )
 
 
 @dataclass(frozen=True)
@@ -139,6 +179,7 @@ def enumerate_output_devices(
 __all__ = [
     "AudioOutputDevice",
     "SoundDevicePcmSink",
+    "WasapiPcmSink",
     "enumerate_output_devices",
     "summarize_output_devices",
 ]
