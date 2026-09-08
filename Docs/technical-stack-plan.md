@@ -124,6 +124,8 @@ Windows GATT API 能完成服务发现、特征读写和通知回调，但 T1 �
 
 WASAPI 共享模式适合把应用生成的 PCM 写入用户选择的端点；但要让其他应用把它当成麦克风读取，仍需要一个可见的虚拟音频设备。微软文档区分了 WASAPI 端点、共享模式和音频引擎边界。
 
+当前已先落地与设备协议无关的 `ImaAdpcmDecoder`、`PcmFrameQueue`、`PcmFormat` 和 GATT 会话 generation 状态机，详见 [Docs/audio-pipeline.md](audio-pipeline.md)。T1 的特征、报文和编码仍未确认，真实 GATT/WASAPI 接入保持关闭。
+
 ### `t1remote.ui` 与设备会话协调
 
 - Tkinter + `ttk` 承载设置页和 Inspector；
