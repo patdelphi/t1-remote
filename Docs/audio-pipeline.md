@@ -12,6 +12,7 @@
 - `t1remote.core.pcm_sink.WaveFilePcmSink`：把 PCM16LE 保存为新的 WAV 文件，供离线听感和波形校验。
 - `t1remote.core.sounddevice_sink.SoundDevicePcmSink`：通过可选 `sounddevice` 播放 PCM16LE，供输出端点验证。
 - `t1remote.core.sounddevice_sink.WasapiPcmSink`：通过 `sounddevice` 的 WASAPI host 设置播放 PCM16LE，支持共享模式和可选独占模式。
+- `t1remote.core.pcm_output.PcmSinkWorker`：后台消费有界 PCM 队列，写入 WAV、WASAPI 或 sounddevice 端点，并在输出失败时关闭队列和报告错误。
 - `tools.t1_audio_devices`：只读枚举可输出端点，不连接设备。
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
 - `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
