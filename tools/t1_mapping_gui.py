@@ -54,6 +54,14 @@ _INPUT_KIND_LABELS = {
     "mouse": "鼠标/HID（COL04）；当前仅支持未映射",
     "unknown": "未知输入类型；当前仅支持未映射",
 }
+UI_BACKGROUND = "#F4F7FB"
+UI_SURFACE = "#FFFFFF"
+UI_TEXT = "#172033"
+UI_MUTED = "#667085"
+UI_BORDER = "#D8E0EB"
+UI_ACCENT = "#2563EB"
+UI_ACCENT_HOVER = "#1D4ED8"
+UI_DANGER = "#B42318"
 
 
 class MappingEditorWindow:
@@ -71,8 +79,10 @@ class MappingEditorWindow:
         self.input_kind_var = tk.StringVar(value="当前输入类型：")
 
         self.root.title("T1 Remote 按键映射")
-        self.root.geometry("1180x780")
-        self.root.minsize(980, 680)
+        self.root.geometry("1280x820")
+        self.root.minsize(1080, 720)
+        self._configure_styles()
+        self.root.configure(background=UI_BACKGROUND)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(3, weight=1)
 
@@ -94,24 +104,171 @@ class MappingEditorWindow:
         if REMOTE_BUTTONS:
             self._select_button(REMOTE_BUTTONS[0])
 
+    def _configure_styles(self) -> None:
+        """配置统一的浅色主题和交互状态。"""
+
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+        style.configure("TFrame", background=UI_SURFACE)
+        style.configure("Root.TFrame", background=UI_BACKGROUND)
+        style.configure(
+            "TLabel",
+            background=UI_SURFACE,
+            foreground=UI_TEXT,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "Root.TLabel",
+            background=UI_BACKGROUND,
+            foreground=UI_TEXT,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "Title.TLabel",
+            background=UI_BACKGROUND,
+            foreground=UI_TEXT,
+            font=("Segoe UI", 22, "bold"),
+        )
+        style.configure(
+            "Subtitle.TLabel",
+            background=UI_BACKGROUND,
+            foreground=UI_MUTED,
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "Card.TLabelframe",
+            background=UI_SURFACE,
+            bordercolor=UI_BORDER,
+            relief="solid",
+            borderwidth=1,
+            padding=10,
+        )
+        style.configure(
+            "Card.TLabelframe.Label",
+            background=UI_SURFACE,
+            foreground=UI_TEXT,
+            font=("Segoe UI", 10, "bold"),
+        )
+        style.configure(
+            "TButton",
+            background=UI_SURFACE,
+            foreground=UI_TEXT,
+            bordercolor=UI_BORDER,
+            lightcolor=UI_SURFACE,
+            darkcolor=UI_BORDER,
+            padding=(12, 7),
+            font=("Segoe UI", 9),
+        )
+        style.map(
+            "TButton",
+            background=[("active", "#EEF4FF"), ("pressed", "#E0EAFF")],
+            bordercolor=[("active", "#9DBAF8")],
+        )
+        style.configure(
+            "Accent.TButton",
+            background=UI_ACCENT,
+            foreground="#FFFFFF",
+            bordercolor=UI_ACCENT,
+            lightcolor=UI_ACCENT,
+            darkcolor=UI_ACCENT_HOVER,
+            padding=(14, 7),
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", UI_ACCENT_HOVER), ("pressed", UI_ACCENT_HOVER)],
+            foreground=[("disabled", "#B8C0CC")],
+        )
+        style.configure(
+            "Danger.TButton",
+            foreground=UI_DANGER,
+            padding=(12, 7),
+        )
+        style.configure(
+            "Muted.TLabel",
+            background=UI_SURFACE,
+            foreground=UI_MUTED,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "TEntry",
+            fieldbackground="#FBFCFE",
+            foreground=UI_TEXT,
+            bordercolor=UI_BORDER,
+            lightcolor=UI_BORDER,
+            darkcolor=UI_BORDER,
+            padding=7,
+        )
+        style.configure(
+            "TCombobox",
+            fieldbackground="#FBFCFE",
+            foreground=UI_TEXT,
+            bordercolor=UI_BORDER,
+            lightcolor=UI_BORDER,
+            darkcolor=UI_BORDER,
+            padding=6,
+        )
+        style.configure(
+            "TCheckbutton",
+            background=UI_SURFACE,
+            foreground=UI_TEXT,
+            padding=3,
+        )
+        style.configure(
+            "TRadiobutton",
+            background=UI_SURFACE,
+            foreground=UI_TEXT,
+            padding=4,
+        )
+        style.map(
+            "TRadiobutton",
+            foreground=[("disabled", "#98A2B3")],
+            background=[("active", "#F7FAFF")],
+        )
+        style.configure(
+            "Treeview",
+            background=UI_SURFACE,
+            fieldbackground=UI_SURFACE,
+            foreground=UI_TEXT,
+            bordercolor=UI_BORDER,
+            borderwidth=1,
+            rowheight=31,
+            font=("Segoe UI", 9),
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", "#DCE9FF")],
+            foreground=[("selected", UI_TEXT)],
+        )
+        style.configure(
+            "Treeview.Heading",
+            background="#EEF2F7",
+            foreground="#475467",
+            relief="flat",
+            padding=(8, 8),
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.map("Treeview.Heading", background=[("active", "#E5EBF4")])
+        style.configure("TSeparator", background=UI_BORDER)
+
     def _build_layout(self) -> None:
         """创建三栏编辑布局和底部操作栏。"""
 
         ttk.Label(
             self.root,
             text="T1 Remote 按键映射",
-            font=("Segoe UI", 16, "bold"),
-        ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 2))
+            style="Title.TLabel",
+        ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 3))
         ttk.Label(
             self.root,
-            text="选择物理按键，再配置单键、组合键、HID 特殊功能或命令行动作。",
-            foreground="#52606d",
-        ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 8))
+            text="为遥控器按键配置输出动作。先选左侧按键，再在中间选择 mapping 类型。",
+            style="Subtitle.TLabel",
+        ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 14))
 
         self._build_profile_toolbar()
 
-        content = ttk.Frame(self.root)
-        content.grid(row=3, column=0, sticky="nsew", padx=16, pady=(0, 8))
+        content = ttk.Frame(self.root, style="Root.TFrame")
+        content.grid(row=3, column=0, sticky="nsew", padx=24, pady=(0, 12))
         content.columnconfigure(0, weight=1, minsize=260)
         content.columnconfigure(1, weight=1, minsize=230)
         content.columnconfigure(2, weight=2, minsize=420)
@@ -125,8 +282,13 @@ class MappingEditorWindow:
     def _build_profile_toolbar(self) -> None:
         """创建独立配置存档的加载和保存操作栏。"""
 
-        frame = ttk.LabelFrame(self.root, text="配置存档")
-        frame.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 8))
+        frame = ttk.LabelFrame(
+            self.root,
+            text="配置存档",
+            style="Card.TLabelframe",
+            padding=(12, 8),
+        )
+        frame.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 12))
         frame.columnconfigure(1, weight=1)
         ttk.Label(frame, text="当前存档：").grid(row=0, column=0, padx=(10, 6), pady=8)
         self.profile_combo = ttk.Combobox(
@@ -139,7 +301,7 @@ class MappingEditorWindow:
         ttk.Button(frame, text="加载", command=self._load_profile).grid(
             row=0, column=2, padx=(8, 4), pady=8
         )
-        ttk.Button(frame, text="保存", command=self._save_profile).grid(
+        ttk.Button(frame, text="保存", command=self._save_profile, style="Accent.TButton").grid(
             row=0, column=3, padx=4, pady=8
         )
         ttk.Button(frame, text="另存为…", command=self._save_profile_as).grid(
@@ -148,13 +310,13 @@ class MappingEditorWindow:
         ttk.Label(
             frame,
             text="每个存档是一个 JSON 文件；加载后修改，点击保存即可覆盖当前存档。",
-            foreground="#7b8794",
+            style="Muted.TLabel",
         ).grid(row=1, column=0, columnspan=5, sticky="w", padx=10, pady=(0, 8))
 
     def _build_button_panel(self, parent: ttk.Frame) -> None:
         """创建物理按键列表。"""
 
-        frame = ttk.LabelFrame(parent, text="物理按键")
+        frame = ttk.LabelFrame(parent, text="物理按键", style="Card.TLabelframe")
         frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         frame.columnconfigure(0, weight=1)
         frame.rowconfigure(0, weight=1)
@@ -168,6 +330,7 @@ class MappingEditorWindow:
         self.button_tree.heading("action", text="当前动作")
         self.button_tree.column("button", width=115, anchor="w")
         self.button_tree.column("action", width=145, anchor="w")
+        self.button_tree.tag_configure("stripe", background="#F8FAFC")
         self.button_tree.grid(row=0, column=0, sticky="nsew", padx=(8, 0), pady=8)
         scrollbar = ttk.Scrollbar(
             frame, orient="vertical", command=self.button_tree.yview
@@ -179,13 +342,15 @@ class MappingEditorWindow:
     def _build_kind_panel(self, parent: ttk.Frame) -> None:
         """创建动作类型选择和配置边界说明。"""
 
-        frame = ttk.LabelFrame(parent, text="动作类型")
+        frame = ttk.LabelFrame(parent, text="动作类型", style="Card.TLabelframe")
         frame.grid(row=0, column=1, sticky="nsew", padx=8)
         frame.columnconfigure(0, weight=1)
         ttk.Label(frame, textvariable=self.input_kind_var, foreground="#52606d").grid(
             row=0, column=0, sticky="w", padx=12, pady=(14, 6)
         )
-        normal_frame = ttk.LabelFrame(frame, text="普通键位")
+        normal_frame = ttk.LabelFrame(
+            frame, text="普通键位", style="Card.TLabelframe", padding=(8, 4)
+        )
         normal_frame.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
         for row, kind in enumerate(("none", "key", "combo", "macro")):
             radio = ttk.Radiobutton(
@@ -198,7 +363,9 @@ class MappingEditorWindow:
             self.kind_radios[kind] = radio
             radio.grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=4)
 
-        special_frame = ttk.LabelFrame(frame, text="媒体与系统功能")
+        special_frame = ttk.LabelFrame(
+            frame, text="媒体与系统功能", style="Card.TLabelframe", padding=(8, 4)
+        )
         special_frame.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
         special_radio = ttk.Radiobutton(
             special_frame,
@@ -210,7 +377,9 @@ class MappingEditorWindow:
         self.kind_radios["special"] = special_radio
         special_radio.grid(row=0, column=0, sticky="w", padx=8, pady=4)
 
-        command_frame = ttk.LabelFrame(frame, text="自动化")
+        command_frame = ttk.LabelFrame(
+            frame, text="自动化", style="Card.TLabelframe", padding=(8, 4)
+        )
         command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
         for column, kind in enumerate(("command", "text")):
             radio = ttk.Radiobutton(
@@ -251,7 +420,7 @@ class MappingEditorWindow:
     def _build_detail_panel(self, parent: ttk.Frame) -> None:
         """创建单键、组合键、特殊键和命令行参数面板。"""
 
-        frame = ttk.LabelFrame(parent, text="动作参数")
+        frame = ttk.LabelFrame(parent, text="动作参数", style="Card.TLabelframe")
         frame.grid(row=0, column=2, sticky="nsew", padx=(8, 0))
         frame.columnconfigure(0, weight=1)
         frame.rowconfigure(3, weight=1)
@@ -343,6 +512,7 @@ class MappingEditorWindow:
         self.macro_tree.heading("delay", text="本步后等待（毫秒）")
         self.macro_tree.column("step", width=220, anchor="w")
         self.macro_tree.column("delay", width=150, anchor="center")
+        self.macro_tree.tag_configure("stripe", background="#F8FAFC")
         self.macro_tree.grid(row=0, column=0, columnspan=2, sticky="nsew")
         self.macro_tree.bind("<<TreeviewSelect>>", self._on_macro_step_selected)
 
@@ -431,19 +601,19 @@ class MappingEditorWindow:
     def _build_footer(self) -> None:
         """创建保存、预览和重载操作。"""
 
-        footer = ttk.Frame(self.root)
-        footer.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 14))
+        footer = ttk.Frame(self.root, style="Root.TFrame")
+        footer.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 18))
         footer.columnconfigure(0, weight=1)
-        ttk.Label(footer, textvariable=self.status_var).grid(
+        ttk.Label(footer, textvariable=self.status_var, style="Root.TLabel").grid(
             row=0, column=0, sticky="w"
         )
         ttk.Button(
-            footer, text="应用到当前按键", command=self._apply_current
+            footer, text="应用到当前按键", command=self._apply_current, style="Accent.TButton"
         ).grid(row=0, column=1, padx=4)
         ttk.Button(footer, text="预览动作", command=self._preview_current).grid(
             row=0, column=2, padx=4
         )
-        ttk.Button(footer, text="恢复默认", command=self._restore_default).grid(
+        ttk.Button(footer, text="恢复默认", command=self._restore_default, style="Danger.TButton").grid(
             row=0, column=3, padx=4
         )
         ttk.Button(footer, text="重新加载", command=self._reload_config).grid(
@@ -455,7 +625,7 @@ class MappingEditorWindow:
         ttk.Button(footer, text="导出", command=self._export_config).grid(
             row=0, column=6, padx=4
         )
-        ttk.Button(footer, text="保存配置", command=self._save_config).grid(
+        ttk.Button(footer, text="保存配置", command=self._save_config, style="Accent.TButton").grid(
             row=0, column=7, padx=4
         )
 
@@ -585,6 +755,7 @@ class MappingEditorWindow:
                 "end",
                 iid=button,
                 values=(BUTTON_DISPLAY_NAMES.get(button, button), summary),
+                tags=("stripe",) if len(self.button_tree.get_children()) % 2 else (),
             )
         if selected in REMOTE_BUTTONS:
             self.button_tree.selection_set(selected)
@@ -763,6 +934,7 @@ class MappingEditorWindow:
                 "end",
                 iid=str(index),
                 values=(self._macro_step_summary(step), step.delay_ms),
+                tags=("stripe",) if index % 2 else (),
             )
         if hasattr(self, "macro_empty_hint"):
             self.macro_empty_hint.configure(
