@@ -359,9 +359,13 @@ class InterceptionPolicy:
 
 
 def build_default_interception_policy(
-    *, lease_required: bool = True
+    *, enabled: bool = True, lease_required: bool = True
 ) -> InterceptionPolicy:
-    """构造当前已确认遥控键的安全拦截策略。"""
+    """构造当前已确认遥控键的拦截策略。
+
+    ``enabled=False`` 用于 dry-run：仍保留目标 VID/PID 和 Usage 清单，便于
+    诊断策略内容，但底层过滤器不会拦截输入，也不建立租约。
+    """
 
     blocked_usages = (
         HidUsage(0x0C, 0x221, "COL02"),  # Voice
@@ -375,7 +379,7 @@ def build_default_interception_policy(
     return InterceptionPolicy(
         blocked_usages=blocked_usages,
         target_collections=("COL02", "COL03"),
-        enabled=True,
+        enabled=enabled,
         drop_unmapped=False,
         remap_enabled=False,
         lease_required=lease_required,

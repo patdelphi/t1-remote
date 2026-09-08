@@ -15,10 +15,12 @@ from t1remote.windows.raw_input import RawInputEvent
 class _FakeBridge:
     def __init__(self) -> None:
         self.is_open = False
+        self.policy = None
         self.reads = 0
         self.closed = False
 
-    def open(self, _policy) -> None:
+    def open(self, policy) -> None:
+        self.policy = policy
         self.is_open = True
 
     def start(self) -> None:
@@ -34,7 +36,7 @@ class _FakeBridge:
             dropped_reports=0,
             abi_version=2,
             attached_collections=0x06,
-            lease_active=True,
+            lease_active=bool(self.policy and self.policy.lease_required),
         )
 
     def read_event(self):
@@ -89,7 +91,10 @@ class MappingSessionTests(unittest.TestCase):
             running = session.status()
             self.assertEqual(running.state, "running")
             self.assertEqual(running.driver_state, "running")
-            self.assertTrue(running.lease_active)
+            self.assertFalse(running.lease_active)
+            assert bridge.policy is not None
+            self.assertFalse(bridge.policy.enabled)
+            self.assertFalse(bridge.policy.lease_required)
             session.stop()
 
         self.assertEqual(session.status().state, "stopped")

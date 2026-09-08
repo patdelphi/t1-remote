@@ -402,6 +402,14 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertIn((0x01, 0x01, "COL03"), usages)
         self.assertTrue(policy.lease_required)
 
+    def test_default_interception_policy_can_be_disabled_for_dry_run(self) -> None:
+        policy = build_default_interception_policy(enabled=False, lease_required=False)
+
+        self.assertFalse(policy.enabled)
+        self.assertFalse(policy.lease_required)
+        self.assertEqual(policy.vid, 0x620A)
+        self.assertEqual(policy.pid, 0x0407)
+
 
 if __name__ == "__main__":
     unittest.main()

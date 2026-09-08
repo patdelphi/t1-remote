@@ -185,7 +185,12 @@ def run(config_path: Path, dry_run: bool = False) -> int:
                 stop_requested.set()
 
     try:
-        bridge.open(build_default_interception_policy())
+        bridge.open(
+            build_default_interception_policy(
+                enabled=not dry_run,
+                lease_required=not dry_run,
+            )
+        )
         bridge.start()
         with bridge_lock:
             bridge.heartbeat()

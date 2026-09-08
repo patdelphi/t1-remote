@@ -158,7 +158,12 @@ class T1MappingSession:
                 raise MappingSessionError("已有一个 T1 Mapping 会话正在运行")
             bridge = self._bridge_factory()
             self._bridge = bridge
-            bridge.open(build_default_interception_policy())
+            bridge.open(
+                build_default_interception_policy(
+                    enabled=not self.dry_run,
+                    lease_required=not self.dry_run,
+                )
+            )
             bridge.start()
             with self._bridge_lock:
                 bridge.heartbeat()
