@@ -118,6 +118,34 @@ class MappingRuntimeTests(unittest.TestCase):
         self.assertEqual(command_executor.calls, [("notepad.exe",)])
         self.assertEqual(emitter.outputs, [])
 
+    def test_text_mapping_types_text_and_optional_enter_on_press(self) -> None:
+        emitter = _FakeEmitter()
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "Voice": KeyAction("text", text="Hi", append_enter=True),
+            }
+        )
+        runtime = T1MappingRuntime(
+            emitter=emitter,
+            engine=MappingEngine(config),
+        )
+
+        runtime.process_report("COL02", 2, bytes.fromhex("02 21 02"))
+        runtime.process_report("COL02", 2, bytes.fromhex("02 00 00"))
+
+        self.assertEqual(
+            [(item.virtual_key, item.scan_code, item.flags) for item in emitter.outputs],
+            [
+                (0, 0x48, 0x04),
+                (0, 0x48, 0x06),
+                (0, 0x69, 0x04),
+                (0, 0x69, 0x06),
+                (0x0D, 0, 0),
+                (0x0D, 0, 0x02),
+            ],
+        )
+
     def test_macro_mapping_starts_on_press_and_stops_on_reset(self) -> None:
         emitter = _FakeEmitter()
         macro_executor = _FakeMacroExecutor()

@@ -9,6 +9,7 @@ from t1remote.windows.send_input import (
     build_mapping_output_events,
     build_macro_step_events,
     build_output_events,
+    build_text_output_events,
 )
 
 
@@ -90,6 +91,21 @@ class SendInputTests(unittest.TestCase):
         self.assertEqual(
             [(item.virtual_key, item.flags) for item in up],
             [(0x31, 0x02), (0x10, 0x02), (0x11, 0x02)],
+        )
+
+    def test_text_output_uses_unicode_events_and_optional_enter(self) -> None:
+        outputs = build_text_output_events("中A", append_enter=True)
+
+        self.assertEqual(
+            [(item.virtual_key, item.scan_code, item.flags) for item in outputs],
+            [
+                (0, 0x4E2D, 0x04),
+                (0, 0x4E2D, 0x06),
+                (0, 0x41, 0x04),
+                (0, 0x41, 0x06),
+                (0x0D, 0, 0),
+                (0x0D, 0, 0x02),
+            ],
         )
 
 

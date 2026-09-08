@@ -26,6 +26,7 @@ _ACTION_KINDS = {
     "combo",
     "command",
     "macro",
+    "text",
 }
 _MODIFIER_NAMES = {"ALT", "CTRL", "SHIFT", "WIN"}
 _TRIGGER_KINDS = {"press", "long_press", "double_click", "hold_repeat"}
@@ -163,6 +164,8 @@ class KeyAction:
     argv: tuple[str, ...] = ()
     trigger: TriggerConfig = TriggerConfig()
     macro: tuple[MacroStep, ...] = ()
+    text: str = ""
+    append_enter: bool = False
 
     def __post_init__(self) -> None:
         kind = self.kind.lower()
@@ -170,13 +173,30 @@ class KeyAction:
             raise MappingConfigError(f"不支持的动作类型：{self.kind}")
         if not isinstance(self.trigger, TriggerConfig):
             raise MappingConfigError("trigger 必须是 TriggerConfig")
+        if not isinstance(self.append_enter, bool):
+            raise MappingConfigError("append_enter 必须是布尔值")
         object.__setattr__(self, "kind", kind)
         if kind == "none":
-            if self.key is not None or self.modifiers or self.argv or self.macro:
-                raise MappingConfigError("none 动作不能包含 key、modifiers、argv 或 macro")
+            if (
+                self.key is not None
+                or self.modifiers
+                or self.argv
+                or self.macro
+                or self.text
+                or self.append_enter
+            ):
+                raise MappingConfigError(
+                    "none 动作不能包含 key、modifiers、argv、macro 或 text"
+                )
             return
         if kind == "command":
-            if self.key is not None or self.modifiers or self.macro:
+            if (
+                self.key is not None
+                or self.modifiers
+                or self.macro
+                or self.text
+                or self.append_enter
+            ):
                 raise MappingConfigError("command 动作只能包含 argv")
             normalized_argv = tuple(self.argv)
             if not normalized_argv or any(
@@ -187,15 +207,33 @@ class KeyAction:
             object.__setattr__(self, "argv", normalized_argv)
             return
         if kind == "macro":
-            if self.key is not None or self.modifiers or self.argv:
+            if (
+                self.key is not None
+                or self.modifiers
+                or self.argv
+                or self.text
+                or self.append_enter
+            ):
                 raise MappingConfigError("macro 动作只能包含 steps")
             if not self.macro or any(not isinstance(step, MacroStep) for step in self.macro):
                 raise MappingConfigError("macro 动作至少需要一个有效步骤")
             if self.trigger.kind == "hold_repeat":
                 raise MappingConfigError("macro 暂不支持按住重复触发")
             return
+        if kind == "text":
+            if self.key is not None or self.modifiers or self.argv or self.macro:
+                raise MappingConfigError("text 动作只能包含 text 和 append_enter")
+            if not isinstance(self.text, str) or not self.text:
+                raise MappingConfigError("输入文字动作必须包含非空 text")
+            if len(self.text) > 100:
+                raise MappingConfigError("输入文字最多支持 100 个字符")
+            if self.trigger.kind == "hold_repeat":
+                raise MappingConfigError("输入文字暂不支持按住重复触发")
+            return
         if not isinstance(self.key, str) or not self.key.strip():
             raise MappingConfigError(f"{kind} 动作必须包含非空 key")
+        if self.text or self.append_enter:
+            raise MappingConfigError(f"{kind} 动作不能包含 text 或 append_enter")
         normalized_key = self.key.strip().upper()
         object.__setattr__(self, "key", normalized_key)
         normalized_modifiers = tuple(item.strip().upper() for item in self.modifiers)
@@ -222,6 +260,8 @@ class KeyAction:
         modifiers = raw.get("modifiers", ())
         argv = raw.get("argv", ())
         macro = raw.get("steps", ())
+        text = raw.get("text", "")
+        append_enter = raw.get("append_enter", False)
         trigger = TriggerConfig.from_dict(raw.get("trigger"))
         if not isinstance(modifiers, (list, tuple)) or any(
             not isinstance(item, str) for item in modifiers
@@ -233,6 +273,10 @@ class KeyAction:
             raise MappingConfigError("argv 必须是字符串数组")
         if not isinstance(macro, (list, tuple)):
             raise MappingConfigError("steps 必须是数组")
+        if not isinstance(text, str):
+            raise MappingConfigError("text 必须是字符串")
+        if not isinstance(append_enter, bool):
+            raise MappingConfigError("append_enter 必须是布尔值")
         return cls(
             kind,
             key if isinstance(key, str) else key,
@@ -240,6 +284,8 @@ class KeyAction:
             tuple(argv),
             trigger,
             tuple(MacroStep.from_dict(item) for item in macro),
+            text,
+            append_enter,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -257,6 +303,13 @@ class KeyAction:
                 "type": "macro",
                 "steps": [step.to_dict() for step in self.macro],
             }
+            if self.trigger.kind != "press":
+                data["trigger"] = self.trigger.to_dict()
+            return data
+        if self.kind == "text":
+            data = {"type": "text", "text": self.text}
+            if self.append_enter:
+                data["append_enter"] = True
             if self.trigger.kind != "press":
                 data["trigger"] = self.trigger.to_dict()
             return data

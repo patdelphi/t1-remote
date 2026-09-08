@@ -18,6 +18,7 @@ from t1remote.core.key_mapping import KeyAction, MacroStep, MappingEvent
 
 KEYEVENTF_EXTENDEDKEY = 0x0001
 KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class KeyboardOutput:
 
     virtual_key: int
     flags: int
+    scan_code: int = 0
 
 
 DEFAULT_OUTPUT_BINDINGS: Mapping[str, OutputBinding] = {
@@ -121,6 +123,10 @@ def build_output_events(
 def build_mapping_output_events(event: MappingEvent) -> tuple[KeyboardOutput, ...]:
     """把可配置映射事件转换为键盘、媒体键或快捷键输出。"""
 
+    if event.action.kind == "text":
+        if event.state != "down":
+            return ()
+        return build_text_output_events(event.action.text, event.action.append_enter)
     binding = binding_from_action(event.action)
     if binding is None:
         return ()
@@ -138,6 +144,8 @@ def binding_from_action(action: KeyAction) -> OutputBinding | None:
             raise ValueError(f"不支持的特殊功能键：{action.key}")
         return OutputBinding(virtual_key)
     if action.kind == "command":
+        return None
+    if action.kind == "text":
         return None
     virtual_key = _KEY_VIRTUAL_KEYS.get(action.key or "")
     if virtual_key is None:
@@ -179,6 +187,31 @@ def build_macro_step_events(
         _build_binding_events("down", binding),
         _build_binding_events("up", binding),
     )
+
+
+def build_text_output_events(
+    text: str,
+    append_enter: bool = False,
+) -> tuple[KeyboardOutput, ...]:
+    """把 Unicode 文本转换为 SendInput 的逐字符按下/抬起事件。"""
+
+    outputs: list[KeyboardOutput] = []
+    encoded = text.encode("utf-16-le", "surrogatepass")
+    for offset in range(0, len(encoded), 2):
+        code_unit = int.from_bytes(encoded[offset : offset + 2], "little")
+        outputs.append(KeyboardOutput(0, KEYEVENTF_UNICODE, code_unit))
+        outputs.append(
+            KeyboardOutput(
+                0,
+                KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                code_unit,
+            )
+        )
+    if append_enter:
+        enter = OutputBinding(_KEY_VIRTUAL_KEYS["ENTER"])
+        outputs.extend(_build_binding_events("down", enter))
+        outputs.extend(_build_binding_events("up", enter))
+    return tuple(outputs)
 
 
 def _build_binding_events(
@@ -244,7 +277,7 @@ class WindowsInputEmitter:
         for index, output in enumerate(items):
             inputs[index].type = 1  # INPUT_KEYBOARD
             inputs[index].ki.wVk = output.virtual_key
-            inputs[index].ki.wScan = 0
+            inputs[index].ki.wScan = output.scan_code
             inputs[index].ki.dwFlags = output.flags
             inputs[index].ki.time = 0
             inputs[index].ki.dwExtraInfo = 0
@@ -257,6 +290,7 @@ __all__ = [
     "DEFAULT_OUTPUT_BINDINGS",
     "INPUT",
     "KEYBDINPUT",
+    "KEYEVENTF_UNICODE",
     "KeyboardOutput",
     "KEY_VIRTUAL_KEY_NAMES",
     "OutputBinding",
@@ -267,4 +301,5 @@ __all__ = [
     "build_macro_step_events",
     "build_mapping_output_events",
     "build_output_events",
+    "build_text_output_events",
 ]

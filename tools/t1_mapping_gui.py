@@ -192,13 +192,14 @@ class MappingEditorWindow:
 
         command_frame = ttk.LabelFrame(frame, text="自动化")
         command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
-        ttk.Radiobutton(
-            command_frame,
-            text=ACTION_TYPE_LABELS["command"],
-            value="command",
-            variable=self.kind_var,
-            command=self._refresh_form,
-        ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        for column, kind in enumerate(("command", "text")):
+            ttk.Radiobutton(
+                command_frame,
+                text=ACTION_TYPE_LABELS[kind],
+                value=kind,
+                variable=self.kind_var,
+                command=self._refresh_form,
+            ).grid(row=0, column=column, sticky="w", padx=8, pady=4)
 
         ttk.Label(frame, text="触发方式：").grid(
             row=4, column=0, sticky="w", padx=12, pady=(0, 6)
@@ -277,6 +278,33 @@ class MappingEditorWindow:
         )
         self.arguments_text = tk.Text(self.command_frame, height=8, width=42)
         self.arguments_text.grid(row=1, column=1, sticky="nsew", padx=(8, 0))
+
+        self.text_frame = ttk.Frame(frame)
+        self.text_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=6)
+        self.text_frame.columnconfigure(1, weight=1)
+        ttk.Label(self.text_frame, text="文字（最多100字符）：").grid(
+            row=0, column=0, sticky="w"
+        )
+        self.text_var = tk.StringVar()
+        self.text_entry = ttk.Entry(self.text_frame, textvariable=self.text_var)
+        self.text_entry.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        self.text_entry.configure(
+            validate="key",
+            validatecommand=(self.root.register(self._validate_text_length), "%P"),
+        )
+        self.text_count_label = ttk.Label(
+            self.text_frame,
+            text="0/100",
+            foreground="#7b8794",
+        )
+        self.text_count_label.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(4, 0))
+        self.append_enter_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            self.text_frame,
+            text="输入完成后发送回车",
+            variable=self.append_enter_var,
+        ).grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
+        self.text_var.trace_add("write", self._refresh_text_counter)
 
         self.macro_frame = ttk.Frame(frame)
         self.macro_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=6)
@@ -573,6 +601,8 @@ class MappingEditorWindow:
         for modifier in FORM_MODIFIERS:
             self.modifier_vars[modifier].set(modifier in fields["modifiers"])
         self.program_var.set(fields["program"])
+        self.text_var.set(fields["text"])
+        self.append_enter_var.set(fields["append_enter"])
         self.arguments_text.delete("1.0", "end")
         self.arguments_text.insert("1.0", "\n".join(fields["argument_lines"]))
         self._macro_steps = list(fields["macro_steps"])
@@ -586,6 +616,18 @@ class MappingEditorWindow:
         """根据动作类型切换可见字段。"""
 
         self._refresh_form()
+
+    @staticmethod
+    def _validate_text_length(value: str) -> bool:
+        """限制输入文字动作不超过 100 个 Unicode 字符。"""
+
+        return len(value) <= 100
+
+    def _refresh_text_counter(self, *_args: object) -> None:
+        """刷新输入文字的字符计数。"""
+
+        if hasattr(self, "text_count_label"):
+            self.text_count_label.configure(text=f"{len(self.text_var.get())}/100")
 
     def _on_trigger_changed(self, _event: tk.Event[tk.Misc]) -> None:
         """根据触发方式切换时间参数字段。"""
@@ -629,6 +671,7 @@ class MappingEditorWindow:
             self.modifier_frame,
             self.special_hint,
             self.command_frame,
+            self.text_frame,
             self.macro_frame,
         ):
             widget.grid_remove()
@@ -643,12 +686,14 @@ class MappingEditorWindow:
             self.special_hint.grid()
         elif kind == "command":
             self.command_frame.grid(sticky="nsew")
+        elif kind == "text":
+            self.text_frame.grid(sticky="nsew")
         elif kind == "macro":
             self.macro_frame.grid(sticky="nsew")
             self._on_macro_kind_changed()
             self._refresh_macro_tree()
         trigger_values = tuple(TRIGGER_TYPE_LABELS.values())
-        if kind == "macro":
+        if kind in {"macro", "text"}:
             trigger_values = tuple(
                 TRIGGER_TYPE_LABELS[item]
                 for item in ("press", "long_press", "double_click")
@@ -810,6 +855,8 @@ class MappingEditorWindow:
             modifiers=modifiers,
             program=self.program_var.get(),
             argument_lines=argument_lines,
+            text=self.text_var.get(),
+            append_enter=self.append_enter_var.get(),
             macro_steps=tuple(self._macro_steps)
             if self._current_kind() == "macro"
             else (),
@@ -845,6 +892,9 @@ class MappingEditorWindow:
         action = self._working_actions[self._selected_button or REMOTE_BUTTONS[0]]
         if action.kind == "none":
             preview = "当前按键未映射，不会产生系统输出。"
+        elif action.kind == "text":
+            suffix = "是" if action.append_enter else "否"
+            preview = f"输入文字：{action.text}\n执行后发送回车：{suffix}"
         elif action.kind == "command":
             preview = f"命令 argv：{action.argv}\n\n这里只预览，不会启动程序。"
         elif action.kind == "macro":

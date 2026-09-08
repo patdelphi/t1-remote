@@ -87,6 +87,22 @@ class KeyMappingTests(unittest.TestCase):
         with self.assertRaises(MappingConfigError):
             KeyAction("command")
 
+    def test_text_action_roundtrip_and_limits(self) -> None:
+        action = KeyAction("text", text="你好，T1", append_enter=True)
+        loaded = MappingConfig.from_dict(
+            MappingConfig(
+                mappings={**MappingConfig.default().mappings, "Voice": action}
+            ).to_dict()
+        )
+
+        self.assertEqual(loaded.mappings["Voice"], action)
+        with self.assertRaises(MappingConfigError):
+            KeyAction("text", text="")
+        with self.assertRaises(MappingConfigError):
+            KeyAction("text", text="x" * 101)
+        with self.assertRaises(MappingConfigError):
+            KeyAction("text", text="x", append_enter="yes")
+
     def test_macro_roundtrip_preserves_key_chords_and_delays(self) -> None:
         action = KeyAction(
             "macro",

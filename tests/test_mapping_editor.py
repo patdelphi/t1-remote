@@ -88,6 +88,21 @@ class MappingEditorTests(unittest.TestCase):
             ("notepad.exe", "--new-window"),
         )
 
+    def test_text_form_preserves_text_and_optional_enter(self) -> None:
+        action = build_action_from_form(
+            "text",
+            key="",
+            modifiers=(),
+            program="",
+            argument_lines=(),
+            text="打开设置",
+            append_enter=True,
+        )
+
+        self.assertEqual(action.text, "打开设置")
+        self.assertTrue(action.append_enter)
+        self.assertEqual(action_to_form(action)["text"], "打开设置")
+
     def test_macro_form_supports_key_chords_and_delays(self) -> None:
         steps = (
             MacroStep("key", "C", ("CTRL",), 100),
@@ -121,6 +136,15 @@ class MappingEditorTests(unittest.TestCase):
                 modifiers=(),
                 program="",
                 argument_lines=(),
+            )
+        with self.assertRaises(MappingConfigError):
+            build_action_from_form(
+                "text",
+                key="",
+                modifiers=(),
+                program="",
+                argument_lines=(),
+                text="x" * 101,
             )
 
     def test_summary_is_human_readable(self) -> None:
