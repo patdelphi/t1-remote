@@ -50,3 +50,4 @@ pwsh -File .\tools\build_windows.ps1 -SkipNative
 - `t1-remote-mapping-gui`：映射配置前台；
 - `t1-remote-inspector`：T1 原始报文采集；
 - `t1-remote-mapping-test`：命令行 Mapping 测试。
+- `t1-remote-hid-probe`：只读 HID Collection 能力探测。

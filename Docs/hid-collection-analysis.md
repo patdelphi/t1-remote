@@ -84,6 +84,14 @@ Inspector 会话期间直接读取驱动统计得到：
 
 ## 5. 后续验证顺序
 
+当前可以使用只读探测入口检查 T1 Collection 能力摘要：
+
+```powershell
+python -m tools.t1_hid_probe
+```
+
+工具只输出 Collection、Usage Page、Usage 和报告长度，不输出完整设备路径。当前主机实测返回空列表，说明系统虽然枚举了 `T1-Remote` GATT 服务，但本次会话没有可打开的 T1 HID Collection；这项结果需要在 T1 真机保持连接并完成 HID 子设备枚举后复测。
+
 1. 安装新驱动并重启一次设备栈。
 2. 在 Raw Input 和驱动队列同时运行时，每次只按一个物理键。
 3. 记录设备路径、Collection、Usage Page、Usage、Report ID、原始报告和按下/释放状态。

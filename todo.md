@@ -29,7 +29,7 @@
 ## 阶段 B：T1 遥控区域 HID Inspector
 
 - [ ] 枚举 T1 的全部 Raw Input 路径和设备类型，但本轮只建立遥控区域按键采集流程。
-- [ ] 读取每个 Collection 的 HID Report Descriptor。
+- [x] 提供只读 HID Collection/Report 能力探测入口；完整报告描述符仍需 HID 子设备可枚举后读取。
 - [ ] 只捕获 14 个遥控区域按键的原始 HID Report、Usage Page、Usage、按下/释放状态。
 - [ ] 生成脱敏 JSON 夹具，不保存蓝牙地址和无关设备路径。
 - [ ] 逐个物理按键建立遥控区域映射表，未知键保持可观察但不自动注入。
