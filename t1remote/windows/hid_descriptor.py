@@ -29,6 +29,137 @@ class HidCollectionInfo:
     input_report_length: int
     output_report_length: int
     feature_report_length: int
+    input_button_capabilities: tuple["HidInputButtonCapability", ...] = ()
+
+
+@dataclass(frozen=True)
+class HidInputButtonCapability:
+    """一个输入按钮字段的只读 HIDP 能力摘要。"""
+
+    report_id: int
+    usage_page: int
+    usage_min: int
+    usage_max: int
+    is_range: bool
+    report_count: int
+    link_collection: int
+    is_absolute: bool
+
+
+class _HidpButtonRange(ctypes.Structure):
+    """HIDP_BUTTON_CAPS.Range 的 ctypes 布局。"""
+
+    _fields_ = (
+        ("UsageMin", wintypes.USHORT),
+        ("UsageMax", wintypes.USHORT),
+        ("StringMin", wintypes.USHORT),
+        ("StringMax", wintypes.USHORT),
+        ("DesignatorMin", wintypes.USHORT),
+        ("DesignatorMax", wintypes.USHORT),
+        ("DataIndexMin", wintypes.USHORT),
+        ("DataIndexMax", wintypes.USHORT),
+    )
+
+
+class _HidpButtonNotRange(ctypes.Structure):
+    """HIDP_BUTTON_CAPS.NotRange 的 ctypes 布局。"""
+
+    _fields_ = (
+        ("Usage", wintypes.USHORT),
+        ("Reserved1", wintypes.USHORT),
+        ("StringIndex", wintypes.USHORT),
+        ("Reserved2", wintypes.USHORT),
+        ("DesignatorIndex", wintypes.USHORT),
+        ("Reserved3", wintypes.USHORT),
+        ("DataIndex", wintypes.USHORT),
+        ("Reserved4", wintypes.USHORT),
+    )
+
+
+class _HidpButtonUsageUnion(ctypes.Union):
+    """HIDP_BUTTON_CAPS 尾部 Usage 联合体。"""
+
+    _fields_ = (
+        ("Range", _HidpButtonRange),
+        ("NotRange", _HidpButtonNotRange),
+    )
+
+
+class _HidpButtonCaps(ctypes.Structure):
+    """HIDP_BUTTON_CAPS 的固定布局，用于只读解析。"""
+
+    _fields_ = (
+        ("UsagePage", wintypes.USHORT),
+        ("ReportID", ctypes.c_ubyte),
+        ("IsAlias", ctypes.c_ubyte),
+        ("BitField", wintypes.USHORT),
+        ("LinkCollection", wintypes.USHORT),
+        ("LinkUsage", wintypes.USHORT),
+        ("LinkUsagePage", wintypes.USHORT),
+        ("IsRange", ctypes.c_ubyte),
+        ("IsStringRange", ctypes.c_ubyte),
+        ("IsDesignatorRange", ctypes.c_ubyte),
+        ("IsAbsolute", ctypes.c_ubyte),
+        ("ReportCount", wintypes.USHORT),
+        ("Reserved2", wintypes.USHORT),
+        ("Reserved", wintypes.ULONG * 9),
+        ("Usage", _HidpButtonUsageUnion),
+    )
+
+
+HIDP_INPUT = 0
+
+
+def _read_input_button_capabilities(
+    hid: ctypes.WinDLL,
+    preparsed_data: ctypes.c_void_p,
+    caps: HIDP_CAPS,
+) -> tuple[HidInputButtonCapability, ...]:
+    """读取输入按钮字段；失败时返回空摘要，不影响基础能力探测。"""
+
+    count = int(caps.NumberInputButtonCaps)
+    if count <= 0:
+        return ()
+    hid.HidP_GetButtonCaps.restype = ctypes.c_int32
+    hid.HidP_GetButtonCaps.argtypes = [
+        wintypes.USHORT,
+        ctypes.POINTER(_HidpButtonCaps),
+        ctypes.POINTER(wintypes.USHORT),
+        ctypes.c_void_p,
+    ]
+    values = (_HidpButtonCaps * count)()
+    actual_count = wintypes.USHORT(count)
+    status = int(
+        hid.HidP_GetButtonCaps(
+            HIDP_INPUT,
+            values,
+            ctypes.byref(actual_count),
+            preparsed_data,
+        )
+    )
+    if status < 0:
+        return ()
+    result: list[HidInputButtonCapability] = []
+    for item in values[: actual_count.value]:
+        is_range = bool(item.IsRange)
+        if is_range:
+            usage_min = int(item.Usage.Range.UsageMin)
+            usage_max = int(item.Usage.Range.UsageMax)
+        else:
+            usage_min = usage_max = int(item.Usage.NotRange.Usage)
+        result.append(
+            HidInputButtonCapability(
+                report_id=int(item.ReportID),
+                usage_page=int(item.UsagePage),
+                usage_min=usage_min,
+                usage_max=usage_max,
+                is_range=is_range,
+                report_count=int(item.ReportCount),
+                link_collection=int(item.LinkCollection),
+                is_absolute=bool(item.IsAbsolute),
+            )
+        )
+    return tuple(result)
 
 
 def inspect_hid_collections(
@@ -87,6 +218,11 @@ def inspect_hid_collections(
             caps = HIDP_CAPS()
             if int(hid.HidP_GetCaps(preparsed_data, ctypes.byref(caps))) < 0:
                 continue
+            input_button_capabilities = _read_input_button_capabilities(
+                hid,
+                preparsed_data,
+                caps,
+            )
             infos.append(
                 HidCollectionInfo(
                     collection=collection,
@@ -96,6 +232,7 @@ def inspect_hid_collections(
                     input_report_length=int(caps.InputReportByteLength),
                     output_report_length=int(caps.OutputReportByteLength),
                     feature_report_length=int(caps.FeatureReportByteLength),
+                    input_button_capabilities=input_button_capabilities,
                 )
             )
         finally:
@@ -118,10 +255,28 @@ def summarize_hid_collections(
             "input_report_length": info.input_report_length,
             "output_report_length": info.output_report_length,
             "feature_report_length": info.feature_report_length,
+            "input_button_capabilities": [
+                {
+                    "report_id": capability.report_id,
+                    "usage_page": f"0x{capability.usage_page:02X}",
+                    "usage_min": f"0x{capability.usage_min:02X}",
+                    "usage_max": f"0x{capability.usage_max:02X}",
+                    "is_range": capability.is_range,
+                    "report_count": capability.report_count,
+                    "link_collection": capability.link_collection,
+                    "is_absolute": capability.is_absolute,
+                }
+                for capability in info.input_button_capabilities
+            ],
             "device_family": f"T1-Remote/{info.collection}",
         }
         for info in infos
     ]
 
 
-__all__ = ["HidCollectionInfo", "inspect_hid_collections", "summarize_hid_collections"]
+__all__ = [
+    "HidCollectionInfo",
+    "HidInputButtonCapability",
+    "inspect_hid_collections",
+    "summarize_hid_collections",
+]

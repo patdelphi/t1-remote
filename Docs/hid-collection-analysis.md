@@ -16,6 +16,8 @@
 
 可以运行 `python -m tools.t1_transport_probe` 查看当前 Raw Input 设备的脱敏传输提示。输出中的 `ble-hid` 表示 BLE HID 路径，`usb-hid` 只表示 USB HID 候选，可用于后续检查 2.4GHz 接收器；它不会证明接收器属于 T1，也不会自动加入映射策略。使用 `--t1-only` 可只查看当前 VID/PID 的 T1 设备。
 
+`python -m tools.t1_hid_probe` 现在还会读取可用的 `HidP_GetButtonCaps` 输入字段摘要，包括 Report ID、Usage Page、Usage 范围、ReportCount 和 LinkCollection。字段数组读取失败时仍保留基础报告长度信息，不把不完整摘要当成完整报告描述符。
+
 ## 2. 当前证据
 
 | Collection | 当前确认结果 | 证据来源 | 确认程度 |
