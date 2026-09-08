@@ -44,6 +44,9 @@ class CaptureEvent:
     collection: str
     device_family: str
     raw_data_hex: str
+    state: str = "unknown"
+    usage_page: int | None = None
+    usage: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """转换为 JSON 可序列化对象。"""
@@ -103,6 +106,43 @@ def _report_state_and_signature(event: CaptureEvent) -> tuple[str, str]:
         return "up", f"hid:{report_id:02x}"
 
     return "unknown", f"raw:{event.raw_data_hex}"
+
+
+def capture_metadata(
+    raw_input_type: int,
+    collection: str,
+    raw_data_hex: str,
+) -> tuple[str, int | None, int | None]:
+    """从原始 Windows 输入数据推导状态和 Usage 元数据。
+
+    这里只解析当前 T1 已知的 Raw Input 布局；遇到未知布局时返回
+    ``unknown``，避免用猜测结果污染物理按键夹具。
+    """
+
+    try:
+        raw_data = bytes.fromhex(raw_data_hex)
+    except ValueError:
+        return "unknown", None, None
+
+    normalized_collection = collection.upper()
+    if raw_input_type == 1 and len(raw_data) >= 12:
+        virtual_key = int.from_bytes(raw_data[6:8], "little")
+        message = int.from_bytes(raw_data[8:12], "little")
+        if message in (0x0100, 0x0104):
+            return "down", 0x07, virtual_key
+        if message in (0x0101, 0x0105):
+            return "up", 0x07, virtual_key
+        return "unknown", 0x07, virtual_key
+
+    if raw_input_type == 2 and normalized_collection == "COL02":
+        usage = int.from_bytes(raw_data[1:3], "little") if len(raw_data) >= 3 else 0
+        return ("down" if usage else "up"), 0x0C, usage
+
+    if raw_input_type == 2 and normalized_collection == "COL03":
+        usage = raw_data[1] if len(raw_data) >= 2 else 0
+        return ("down" if usage else "up"), 0x01, usage
+
+    return "unknown", None, None
 
 
 def _duration_ms(start: str | None, end: str | None) -> int | None:
@@ -208,6 +248,33 @@ def build_logical_actions(events: list[CaptureEvent]) -> list[LogicalAction]:
         LogicalAction(action_id=index, **action)
         for index, action in enumerate(mutable_actions, start=1)
     ]
+
+
+def build_capture_coverage(events: list[CaptureEvent]) -> dict[str, Any]:
+    """生成 14 键采集覆盖摘要，不把未确认按键标记为已完成。"""
+
+    required_buttons = tuple(
+        button for button in REMOTE_BUTTONS if button not in DISABLED_CAPTURE_BUTTONS
+    )
+    observed = {
+        event.button for event in events if event.button in required_buttons
+    }
+    paired = {
+        action.button
+        for action in build_logical_actions(events)
+        if action.state == "press_release" and action.button in required_buttons
+    }
+    ordered_observed = [button for button in required_buttons if button in observed]
+    ordered_paired = [button for button in required_buttons if button in paired]
+    missing = [button for button in required_buttons if button not in paired]
+    return {
+        "required_buttons": list(required_buttons),
+        "disabled_buttons": list(DISABLED_CAPTURE_BUTTONS),
+        "observed_buttons": ordered_observed,
+        "paired_press_release_buttons": ordered_paired,
+        "missing_buttons": missing,
+        "complete": not missing,
+    }
 
 
 def is_t1_device_path(device_path: str) -> bool:

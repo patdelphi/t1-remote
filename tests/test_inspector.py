@@ -1,14 +1,17 @@
 """程序说明：验证 Inspector 不会用空采集结果覆盖已有 JSON。"""
 
 from pathlib import Path
+import json
 import tempfile
 import unittest
 
 from tools.t1_inspector import (
     _append_capture_if_nonempty,
+    _build_event,
     _load_capture,
     _write_capture_if_nonempty,
 )
+from t1remote.windows.raw_input import RawInputEvent
 
 
 class InspectorSaveTests(unittest.TestCase):
@@ -60,6 +63,25 @@ class InspectorSaveTests(unittest.TestCase):
             self.assertTrue(saved)
             events = _load_capture(output_path)
             self.assertEqual([event.button for event in events], ["Home", "Power"])
+
+    def test_written_capture_contains_usage_metadata_and_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "capture.json"
+            event = _build_event(
+                RawInputEvent(
+                    r"\\?\hid#vid_620a&pid_0407&col02#fixture",
+                    2,
+                    bytes.fromhex("02 e9 00"),
+                ),
+                "Volume Plus",
+            )
+
+            _write_capture_if_nonempty(output_path, [event])
+            document = json.loads(output_path.read_text(encoding="utf-8-sig"))
+
+            self.assertEqual(document["events"][0]["usage_page"], 0x0C)
+            self.assertEqual(document["events"][0]["usage"], 0xE9)
+            self.assertIn("Volume Plus", document["capture_coverage"]["observed_buttons"])
 
 
 def _sample_capture_event():

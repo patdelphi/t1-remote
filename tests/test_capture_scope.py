@@ -6,7 +6,9 @@ from t1remote.core.capture_scope import (
     DISABLED_CAPTURE_BUTTONS,
     REMOTE_BUTTONS,
     CaptureEvent,
+    build_capture_coverage,
     build_logical_actions,
+    capture_metadata,
     collection_from_device_path,
     is_t1_device_path,
     redacted_device_family,
@@ -119,6 +121,37 @@ class CaptureScopeTests(unittest.TestCase):
         self.assertEqual(actions[0].state, "press_release")
         self.assertEqual(actions[0].packet_count, 2)
         self.assertEqual(actions[0].duration_ms, 107)
+
+    def test_capture_metadata_extracts_known_raw_input_fields(self) -> None:
+        state, usage_page, usage = capture_metadata(2, "COL02", "02 e9 00")
+
+        self.assertEqual((state, usage_page, usage), ("down", 0x0C, 0xE9))
+
+    def test_capture_coverage_requires_a_paired_action_for_each_enabled_button(self) -> None:
+        events = [
+            CaptureEvent(
+                timestamp_utc="2026-09-07T05:13:30.000+00:00",
+                button="Home",
+                raw_input_type=2,
+                collection="COL02",
+                device_family="T1-Remote/COL02",
+                raw_data_hex="02 23 02",
+            ),
+            CaptureEvent(
+                timestamp_utc="2026-09-07T05:13:30.100+00:00",
+                button="Home",
+                raw_input_type=2,
+                collection="COL02",
+                device_family="T1-Remote/COL02",
+                raw_data_hex="02 00 00",
+            ),
+        ]
+
+        coverage = build_capture_coverage(events)
+
+        self.assertEqual(coverage["paired_press_release_buttons"], ["Home"])
+        self.assertIn("Power", coverage["missing_buttons"])
+        self.assertFalse(coverage["complete"])
 
 
 if __name__ == "__main__":

@@ -13,7 +13,9 @@ from t1remote.core.capture_scope import (
     DISABLED_CAPTURE_BUTTONS,
     REMOTE_BUTTONS,
     CaptureEvent,
+    build_capture_coverage,
     build_logical_actions,
+    capture_metadata,
     collection_from_device_path,
     is_t1_device_path,
     redacted_device_family,
@@ -51,6 +53,7 @@ def _write_capture(output_path: Path, events: list[CaptureEvent]) -> None:
         "logical_actions": [
             action.to_dict() for action in build_logical_actions(events)
         ],
+        "capture_coverage": build_capture_coverage(events),
     }
     content = json.dumps(document, ensure_ascii=False, indent=2)
     with output_path.open("w", encoding="utf-8-sig", newline="\r\n") as file:
@@ -83,6 +86,17 @@ def _load_capture(input_path: Path) -> list[CaptureEvent]:
                     collection=str(raw_event["collection"]),
                     device_family=str(raw_event["device_family"]),
                     raw_data_hex=str(raw_event["raw_data_hex"]),
+                    state=str(raw_event.get("state", "unknown")),
+                    usage_page=(
+                        int(raw_event["usage_page"])
+                        if raw_event.get("usage_page") is not None
+                        else None
+                    ),
+                    usage=(
+                        int(raw_event["usage"])
+                        if raw_event.get("usage") is not None
+                        else None
+                    ),
                 )
             )
         except (KeyError, TypeError, ValueError):
@@ -118,13 +132,23 @@ def _append_capture_if_nonempty(
 def _build_event(raw_event: RawInputEvent, button: str) -> CaptureEvent:
     """把底层事件转换为不包含蓝牙地址的采集记录。"""
 
+    collection = collection_from_device_path(raw_event.device_path)
+    raw_data_hex = raw_event.raw_data.hex(" ")
+    state, usage_page, usage = capture_metadata(
+        raw_event.raw_input_type,
+        collection,
+        raw_data_hex,
+    )
     return CaptureEvent(
         timestamp_utc=_utc_now(),
         button=button,
         raw_input_type=raw_event.raw_input_type,
-        collection=collection_from_device_path(raw_event.device_path),
+        collection=collection,
         device_family=redacted_device_family(raw_event.device_path),
-        raw_data_hex=raw_event.raw_data.hex(" "),
+        raw_data_hex=raw_data_hex,
+        state=state,
+        usage_page=usage_page,
+        usage=usage,
     )
 
 
@@ -175,14 +199,7 @@ def main() -> int:
         with state_lock:
             button = current_button or "未标记"
 
-        event = CaptureEvent(
-            timestamp_utc=_utc_now(),
-            button=button,
-            raw_input_type=raw_event.raw_input_type,
-            collection=collection_from_device_path(raw_event.device_path),
-            device_family=redacted_device_family(raw_event.device_path),
-            raw_data_hex=raw_event.raw_data.hex(" "),
-        )
+        event = _build_event(raw_event, button)
         with events_lock:
             events.append(event)
             event_number = len(events)
