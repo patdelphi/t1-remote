@@ -77,3 +77,45 @@ def test_default_hid_queue_is_not_configured_twice() -> None:
 
     assert "queue_config.EvtIoDeviceControl = T1FilterEvtHidDeviceControl;" in default_queue_section
     assert "WdfDeviceConfigureRequestDispatching" not in default_queue_section
+
+
+def test_driver_has_single_session_lease_and_safe_timeout() -> None:
+    """应用崩溃后驱动必须停止吞键，并提供心跳刷新接口。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    protocol = (ROOT / "native" / "t1bridge" / "t1bridge_protocol.h").read_text(
+        encoding="utf-8"
+    )
+
+    assert "IOCTL_T1FILTER_HEARTBEAT" in protocol
+    assert "lease_timeout_ms" in protocol
+    assert "T1BRIDGE_FLAG_LEASE_REQUIRED" in protocol
+    assert "KeQueryInterruptTime" in source
+    assert "lease_expirations" in source
+
+
+def test_driver_tracks_collection_lifecycle_and_request_paths() -> None:
+    """设备重连和普通/内部请求路径必须可诊断。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    header = FILTER_HEADER.read_text(encoding="utf-8")
+
+    assert "EVT_WDF_OBJECT_CONTEXT_CLEANUP" in header
+    assert "EvtCleanupCallback" in source
+    assert "attached_collections" in source
+    assert "device_control_reports" in source
+    assert "internal_device_control_reports" in source
+
+
+def test_driver_supports_descriptor_field_rules() -> None:
+    """Report Descriptor 编译出的字段规则必须有固定 ABI 和边界校验。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    protocol = (ROOT / "native" / "t1bridge" / "t1bridge_protocol.h").read_text(
+        encoding="utf-8"
+    )
+
+    assert "T1BRIDGE_FIELD_RULE" in protocol
+    assert "field_rule_count" in protocol
+    assert "T1FilterValidFieldRule" in source
+    assert "byte_offset" in source

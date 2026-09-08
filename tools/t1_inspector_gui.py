@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import threading
+from time import monotonic
 
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -362,8 +363,13 @@ def run_gui(output_path: Path) -> int:
     def driver_event_loop(client: T1BridgeClient) -> None:
         """轮询驱动事件队列，并把原始报文投递到 Tk 线程。"""
 
+        last_heartbeat = 0.0
         while not driver_stop.is_set():
             try:
+                now = monotonic()
+                if now - last_heartbeat >= 0.5:
+                    client.heartbeat()
+                    last_heartbeat = now
                 event = client.read_event()
             except BridgeError as error:
                 try:
@@ -390,6 +396,7 @@ def run_gui(output_path: Path) -> int:
             InterceptionPolicy(
                 blocked_usages=DRIVER_BLOCKED_USAGES,
                 target_collections=("COL02", "COL03"),
+                lease_required=True,
             )
         )
         driver_client.start()

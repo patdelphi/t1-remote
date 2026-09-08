@@ -27,6 +27,16 @@ typedef struct _T1FILTER_CONTROL_CONTEXT {
     ULONGLONG dropped_events;
     ULONGLONG buffer_errors;
     ULONGLONG dropped_reports;
+    ULONGLONG forwarded_reports;
+    ULONGLONG completion_errors;
+    ULONGLONG lease_expirations;
+    ULONGLONG device_adds;
+    ULONGLONG device_removes;
+    ULONGLONG device_control_reports;
+    ULONGLONG internal_device_control_reports;
+    ULONGLONG lease_deadline_100ns;
+    ULONG policy_generation;
+    ULONG attached_collections;
     NTSTATUS last_error;
     T1BRIDGE_EVENT events[T1FILTER_EVENT_QUEUE_CAPACITY];
 } T1FILTER_CONTROL_CONTEXT, *PT1FILTER_CONTROL_CONTEXT;
@@ -40,6 +50,7 @@ typedef struct _T1FILTER_DEVICE_CONTEXT {
     PT1FILTER_CONTROL_CONTEXT control;
     USHORT collection;
     USHORT usage_page;
+    BOOLEAN registered;
 } T1FILTER_DEVICE_CONTEXT, *PT1FILTER_DEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(
@@ -53,6 +64,7 @@ EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL T1FilterEvtHidDeviceControl;
 EVT_WDF_IO_QUEUE_IO_INTERNAL_DEVICE_CONTROL T1FilterEvtInternalDeviceControl;
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL T1FilterEvtDeviceControl;
 EVT_WDF_REQUEST_COMPLETION_ROUTINE T1FilterEvtReadCompletion;
+EVT_WDF_OBJECT_CONTEXT_CLEANUP T1FilterEvtDeviceCleanup;
 
 NTSTATUS
 T1FilterCreateControlDevice(

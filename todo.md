@@ -43,9 +43,10 @@
 - [ ] 使用 Windows `SendInput` 输出标准键盘、媒体键和快捷键。
 - [x] 定义 Python 到原生拦截桥接 DLL 的固定 ABI 和失败关闭策略。
 - [x] 增加驱动原始事件队列和 `T1Bridge_ReadEvent` 桥接接口。
-- [x] 增加 T1 `COL02` 设备专属 KMDF 过滤驱动源码、INF 和 WDK 项目文件。
+- [x] 增加 ABI v2、会话租约/心跳、诊断统计、事件时间戳、PnP 清理和通用字段规则。
+- [x] 增加 T1 `COL02`/`COL03` 设备专属 KMDF 过滤驱动源码、INF 和 WDK 项目文件。
 - [x] 完成 KMDF HID 过滤驱动 x64 构建，生成开发测试签名的 `.sys/.inf/.cat` 包。
-- [ ] 安装测试证书、启用 Windows 测试签名并在真实 T1 上回归设备级拦截。
+- [ ] 安装测试证书、启用 Windows 测试签名并在真实 T1 上回归设备级拦截（本轮最终包安装后只需重启一次）。
 - [ ] 映射保存即热加载，异常或非法配置失败关闭，不产生粘键。
 - [ ] 提供按键测试、事件计数、最近事件和诊断信息。
 
@@ -76,16 +77,8 @@
 
 需要先取得一轮 T1 每个物理按键的原始 HID 报文，才能确定 `RemoteButton` 和 Usage 映射。语音部分需要另外确认 T1 是否真的传输音频，以及是否完全兼容参考项目的 ATVV 协议。
 
-设备级拦截已经完成 Python/C DLL 接口、原始事件队列、KMDF 驱动源码和 x64 开发构建。当前只完成静态构建、INF 校验和开发签名，尚未安装驱动、启用测试签名或在真实 T1 上验证 Home 等按键是否被阻断。
+设备级拦截的 Python/C DLL 接口、ABI v2、原始事件队列、会话租约、诊断统计、字段规则、KMDF 驱动源码和 x64 开发构建已经完成。当前只剩本轮最终包安装后重启一次，并在真实 T1 上验证设备栈和 Home 等按键是否被阻断。
 
 ## 驱动长期规划（待确认后执行）
 
-详细边界和阶段拆分见 [Docs/driver-capability-roadmap.md](Docs/driver-capability-roadmap.md)。执行顺序暂定为：
-
-1. 先完成 `T1RemoteFilter` 真正挂载和 Home/Volume/Voice 的拦截闭环；
-2. 增加策略租约、PnP/睡眠恢复、事件通知和诊断；
-3. 增加 Report Descriptor 字段规则、多 Usage 和安全重映射；
-4. 验收后移除 HidHide 依赖；
-5. 语音保持独立的 Python/GATT/WASAPI 链路，不并入 HID 驱动。
-
-这部分需要用户确认后再按清单继续实施。
+详细边界和阶段拆分见 [Docs/driver-capability-roadmap.md](Docs/driver-capability-roadmap.md)。驱动侧的会话租约、PnP/睡眠安全边界、诊断、事件时间戳、字段规则和安全重映射已经提前实现；下一轮重点转为真机验收，之后移除 HidHide 依赖。语音保持独立的 Python/GATT/WASAPI 链路，不并入 HID 驱动。

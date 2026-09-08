@@ -146,6 +146,14 @@ int32_t T1Bridge_Start(void* handle) {
     return send_ioctl(session, IOCTL_T1FILTER_START, NULL, 0, NULL, 0);
 }
 
+int32_t T1Bridge_Heartbeat(void* handle) {
+    T1BRIDGE_SESSION* session = session_from_handle(handle);
+    if (session == NULL) {
+        return ERROR_INVALID_HANDLE;
+    }
+    return send_ioctl(session, IOCTL_T1FILTER_HEARTBEAT, NULL, 0, NULL, 0);
+}
+
 int32_t T1Bridge_Stop(void* handle) {
     T1BRIDGE_SESSION* session = session_from_handle(handle);
     if (session == NULL) {

@@ -13,18 +13,28 @@ import os
 from typing import Callable, Iterable
 
 
-BRIDGE_ABI_VERSION = 1
+BRIDGE_ABI_VERSION = 2
 MAX_BLOCKED_USAGES = 32
 MAX_TARGET_COLLECTIONS = 8
+MAX_FIELD_RULES = 32
 MAX_REPORT_BYTES = 64
 T1_VID = 0x620A
 T1_PID = 0x0407
 ERROR_NO_MORE_ITEMS = 259
+DEFAULT_LEASE_TIMEOUT_MS = 3000
+MIN_LEASE_TIMEOUT_MS = 250
+MAX_LEASE_TIMEOUT_MS = 60000
 
 FLAG_ENABLED = 0x0001
 FLAG_DROP_UNMAPPED = 0x0002
 FLAG_REMAP = 0x0004
+FLAG_LEASE_REQUIRED = 0x0008
+FIELD_RULE_FLAG_REMAP = 0x0001
+FIELD_RULE_FLAG_DROP = 0x0002
 CAPABILITY_REPORT_REMAP = 0x00000008
+CAPABILITY_SESSION_LEASE = 0x00000010
+CAPABILITY_DIAGNOSTICS = 0x00000020
+CAPABILITY_DESCRIPTOR_RULES = 0x00000040
 
 _COLLECTION_PATTERN = "COL"
 
@@ -67,6 +77,58 @@ class HidUsage:
             object.__setattr__(self, "collection", normalized)
 
 
+@dataclass(frozen=True)
+class HidFieldRule:
+    """由 Report Descriptor 解析出的一个报文字段规则。"""
+
+    usage_page: int
+    collection: str
+    usage: int
+    byte_offset: int
+    byte_length: int
+    report_id: int = 0
+    mapped_usage: int | None = None
+    remap: bool = True
+    drop: bool = False
+
+    def __post_init__(self) -> None:
+        normalized = self.collection.upper()
+        if not normalized.startswith(_COLLECTION_PATTERN) or not normalized[3:].isdigit():
+            raise ValueError("collection 必须使用 COL01 形式")
+        if not 0 <= self.usage_page <= 0xFFFF or not 0 <= self.usage <= 0xFFFF:
+            raise ValueError("Usage Page 和 Usage 必须在 0x0000-0xFFFF 范围内")
+        if not 0 <= self.report_id <= 0xFF:
+            raise ValueError("report_id 必须在 0x00-0xFF 范围内")
+        if not 0 <= self.byte_offset < MAX_REPORT_BYTES:
+            raise ValueError("byte_offset 超出报告范围")
+        if self.byte_length not in (1, 2):
+            raise ValueError("byte_length 目前只支持 1 或 2 字节")
+        if self.byte_offset + self.byte_length > MAX_REPORT_BYTES:
+            raise ValueError("字段超出最大报告范围")
+        if self.mapped_usage is not None and not 0 <= self.mapped_usage <= 0xFFFF:
+            raise ValueError("mapped_usage 必须在 0x0000-0xFFFF 范围内")
+        object.__setattr__(self, "collection", normalized)
+
+    def to_native(self) -> NativeFieldRule:
+        """转换成驱动使用的固定布局字段规则。"""
+
+        flags = 0
+        if self.remap:
+            flags |= FIELD_RULE_FLAG_REMAP
+        if self.drop:
+            flags |= FIELD_RULE_FLAG_DROP
+        return NativeFieldRule(
+            self.usage_page,
+            _collection_number(self.collection),
+            self.usage,
+            self.mapped_usage or 0,
+            self.report_id,
+            self.byte_offset,
+            self.byte_length,
+            flags,
+        )
+
+
 class NativeHidUsage(ctypes.Structure):
     """与 t1bridge.dll 对齐的 C 结构。"""
 
@@ -76,6 +138,22 @@ class NativeHidUsage(ctypes.Structure):
         ("usage", ctypes.c_uint16),
         ("collection", ctypes.c_uint16),
         ("mapped_usage", ctypes.c_uint16),
+    )
+
+
+class NativeFieldRule(ctypes.Structure):
+    """Report Descriptor 编译出的固定字段规则。"""
+
+    _pack_ = 1
+    _fields_ = (
+        ("usage_page", ctypes.c_uint16),
+        ("collection", ctypes.c_uint16),
+        ("usage", ctypes.c_uint16),
+        ("mapped_usage", ctypes.c_uint16),
+        ("report_id", ctypes.c_uint8),
+        ("byte_offset", ctypes.c_uint8),
+        ("byte_length", ctypes.c_uint8),
+        ("flags", ctypes.c_uint8),
     )
 
 
@@ -93,6 +171,9 @@ class NativeBridgePolicy(ctypes.Structure):
         ("target_collection_count", ctypes.c_uint32),
         ("target_collections", ctypes.c_uint16 * MAX_TARGET_COLLECTIONS),
         ("usages", NativeHidUsage * MAX_BLOCKED_USAGES),
+        ("lease_timeout_ms", ctypes.c_uint32),
+        ("field_rule_count", ctypes.c_uint32),
+        ("field_rules", NativeFieldRule * MAX_FIELD_RULES),
     )
 
 
@@ -106,6 +187,10 @@ class NativeBridgeStatus(ctypes.Structure):
         ("state", ctypes.c_uint32),
         ("last_error", ctypes.c_int32),
         ("dropped_reports", ctypes.c_uint64),
+        ("policy_generation", ctypes.c_uint32),
+        ("attached_collections", ctypes.c_uint32),
+        ("lease_remaining_ms", ctypes.c_uint32),
+        ("lease_active", ctypes.c_uint32),
     )
 
 
@@ -121,6 +206,9 @@ class NativeBridgeCapabilities(ctypes.Structure):
         ("max_target_collections", ctypes.c_uint32),
         ("max_report_bytes", ctypes.c_uint32),
         ("event_queue_capacity", ctypes.c_uint32),
+        ("max_field_rules", ctypes.c_uint32),
+        ("min_lease_timeout_ms", ctypes.c_uint32),
+        ("max_lease_timeout_ms", ctypes.c_uint32),
     )
 
 
@@ -138,6 +226,13 @@ class NativeBridgeStats(ctypes.Structure):
         ("buffer_errors", ctypes.c_uint64),
         ("queue_depth", ctypes.c_uint32),
         ("reserved", ctypes.c_uint32),
+        ("forwarded_reports", ctypes.c_uint64),
+        ("completion_errors", ctypes.c_uint64),
+        ("lease_expirations", ctypes.c_uint64),
+        ("device_adds", ctypes.c_uint64),
+        ("device_removes", ctypes.c_uint64),
+        ("device_control_reports", ctypes.c_uint64),
+        ("internal_device_control_reports", ctypes.c_uint64),
     )
 
 
@@ -149,6 +244,7 @@ class NativeBridgeEvent(ctypes.Structure):
         ("size", ctypes.c_uint32),
         ("abi_version", ctypes.c_uint32),
         ("sequence", ctypes.c_uint64),
+        ("timestamp_100ns", ctypes.c_uint64),
         ("usage_page", ctypes.c_uint16),
         ("usage", ctypes.c_uint16),
         ("collection", ctypes.c_uint16),
@@ -166,6 +262,9 @@ class InterceptionPolicy:
     enabled: bool = True
     drop_unmapped: bool = False
     remap_enabled: bool = True
+    lease_required: bool = False
+    lease_timeout_ms: int = DEFAULT_LEASE_TIMEOUT_MS
+    field_rules: tuple[HidFieldRule, ...] = ()
     vid: int = T1_VID
     pid: int = T1_PID
 
@@ -178,6 +277,8 @@ class InterceptionPolicy:
             raise ValueError(
                 f"target_collections 不能超过 {MAX_TARGET_COLLECTIONS} 项"
             )
+        if len(self.field_rules) > MAX_FIELD_RULES:
+            raise ValueError(f"field_rules 不能超过 {MAX_FIELD_RULES} 项")
         source_keys = {
             (usage.usage_page, usage.usage, usage.collection)
             for usage in self.blocked_usages
@@ -195,6 +296,22 @@ class InterceptionPolicy:
             if normalized not in normalized_collections:
                 normalized_collections.append(normalized)
         object.__setattr__(self, "target_collections", tuple(normalized_collections))
+        if not MIN_LEASE_TIMEOUT_MS <= self.lease_timeout_ms <= MAX_LEASE_TIMEOUT_MS:
+            raise ValueError(
+                f"lease_timeout_ms 必须在 {MIN_LEASE_TIMEOUT_MS}-{MAX_LEASE_TIMEOUT_MS} 范围内"
+            )
+        field_keys = {
+            (
+                rule.usage_page,
+                rule.collection,
+                rule.usage,
+                rule.report_id,
+                rule.byte_offset,
+            )
+            for rule in self.field_rules
+        }
+        if len(field_keys) != len(self.field_rules):
+            raise ValueError("同一个报文字段不允许配置多条规则")
 
     def to_native(self) -> NativeBridgePolicy:
         """转换成固定布局结构，供 ctypes 传给 DLL。"""
@@ -211,8 +328,14 @@ class InterceptionPolicy:
             native.flags |= FLAG_DROP_UNMAPPED
         if self.remap_enabled:
             native.flags |= FLAG_REMAP
+        if self.lease_required:
+            native.flags |= FLAG_LEASE_REQUIRED
         native.usage_count = len(self.blocked_usages)
         native.target_collection_count = len(self.target_collections)
+        native.lease_timeout_ms = self.lease_timeout_ms
+        native.field_rule_count = len(self.field_rules)
+        for index, rule in enumerate(self.field_rules):
+            native.field_rules[index] = rule.to_native()
         for index, collection in enumerate(self.target_collections):
             native.target_collections[index] = _collection_number(collection)
 
@@ -243,6 +366,10 @@ class BridgeStatus:
     last_error: int
     dropped_reports: int
     abi_version: int
+    policy_generation: int = 0
+    attached_collections: int = 0
+    lease_remaining_ms: int = 0
+    lease_active: bool = False
 
     @classmethod
     def from_native(cls, native: NativeBridgeStatus | object) -> "BridgeStatus":
@@ -260,6 +387,10 @@ class BridgeStatus:
             last_error=int(getattr(native, "last_error")),
             dropped_reports=int(getattr(native, "dropped_reports")),
             abi_version=int(getattr(native, "abi_version")),
+            policy_generation=int(getattr(native, "policy_generation", 0)),
+            attached_collections=int(getattr(native, "attached_collections", 0)),
+            lease_remaining_ms=int(getattr(native, "lease_remaining_ms", 0)),
+            lease_active=bool(getattr(native, "lease_active", 0)),
         )
 
 
@@ -273,6 +404,9 @@ class BridgeCapabilities:
     max_report_bytes: int
     event_queue_capacity: int
     abi_version: int
+    max_field_rules: int = 0
+    min_lease_timeout_ms: int = 0
+    max_lease_timeout_ms: int = 0
 
 
 @dataclass(frozen=True)
@@ -286,6 +420,13 @@ class BridgeStats:
     buffer_errors: int
     queue_depth: int
     abi_version: int
+    forwarded_reports: int = 0
+    completion_errors: int = 0
+    lease_expirations: int = 0
+    device_adds: int = 0
+    device_removes: int = 0
+    device_control_reports: int = 0
+    internal_device_control_reports: int = 0
 
 
 @dataclass(frozen=True)
@@ -297,6 +438,7 @@ class DriverInputEvent:
     usage: int
     collection: str
     report: bytes
+    timestamp_100ns: int = 0
 
 
 def _collection_number(collection: str) -> int:
@@ -405,6 +547,11 @@ class T1BridgeClient:
 
         self._call_handle_function("T1Bridge_Start")
 
+    def heartbeat(self) -> None:
+        """刷新驱动会话租约，避免应用失联后继续吞掉系统输入。"""
+
+        self._call_handle_function("T1Bridge_Heartbeat")
+
     def stop(self) -> None:
         """停止驱动过滤会话，但保留打开的桥接句柄。"""
 
@@ -449,6 +596,9 @@ class T1BridgeClient:
             max_report_bytes=int(native.max_report_bytes),
             event_queue_capacity=int(native.event_queue_capacity),
             abi_version=int(native.abi_version),
+            max_field_rules=int(native.max_field_rules),
+            min_lease_timeout_ms=int(native.min_lease_timeout_ms),
+            max_lease_timeout_ms=int(native.max_lease_timeout_ms),
         )
 
     def stats(self) -> BridgeStats:
@@ -474,6 +624,15 @@ class T1BridgeClient:
             buffer_errors=int(native.buffer_errors),
             queue_depth=int(native.queue_depth),
             abi_version=int(native.abi_version),
+            forwarded_reports=int(native.forwarded_reports),
+            completion_errors=int(native.completion_errors),
+            lease_expirations=int(native.lease_expirations),
+            device_adds=int(native.device_adds),
+            device_removes=int(native.device_removes),
+            device_control_reports=int(native.device_control_reports),
+            internal_device_control_reports=int(
+                native.internal_device_control_reports
+            ),
         )
 
     def flush_events(self) -> None:
@@ -511,6 +670,7 @@ class T1BridgeClient:
             usage=int(native_event.usage),
             collection=f"COL{int(native_event.collection):02d}",
             report=bytes(native_event.report[:report_length]),
+            timestamp_100ns=int(native_event.timestamp_100ns),
         )
 
     def close(self) -> None:
@@ -601,6 +761,12 @@ class T1BridgeClient:
 
 __all__ = [
     "CAPABILITY_REPORT_REMAP",
+    "CAPABILITY_SESSION_LEASE",
+    "CAPABILITY_DIAGNOSTICS",
+    "CAPABILITY_DESCRIPTOR_RULES",
+    "DEFAULT_LEASE_TIMEOUT_MS",
+    "FIELD_RULE_FLAG_DROP",
+    "FIELD_RULE_FLAG_REMAP",
     "BridgeCapabilities",
     "BridgeError",
     "BridgeProtocolError",
@@ -608,10 +774,12 @@ __all__ = [
     "BridgeStats",
     "BridgeUnavailable",
     "DriverInputEvent",
+    "HidFieldRule",
     "HidUsage",
     "InterceptionPolicy",
     "NativeBridgeEvent",
     "NativeBridgeCapabilities",
     "NativeBridgeStats",
+    "NativeFieldRule",
     "T1BridgeClient",
 ]

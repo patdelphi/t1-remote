@@ -10,6 +10,7 @@ from t1remote.windows.driver_bridge import (
     BridgeStatus,
     BridgeStats,
     BridgeUnavailable,
+    HidFieldRule,
     HidUsage,
     InterceptionPolicy,
     NativeBridgeCapabilities,
@@ -47,7 +48,7 @@ class _FakeReadEventFunction(_FakeFunction):
         result = super().__call__(*args)
         event = ctypes.cast(args[1], ctypes.POINTER(NativeBridgeEvent)).contents
         event.size = ctypes.sizeof(NativeBridgeEvent)
-        event.abi_version = 1
+        event.abi_version = 2
         event.sequence = 7
         event.usage_page = 0x0C
         event.usage = 0x223
@@ -68,7 +69,7 @@ class _FakeCapabilitiesFunction(_FakeFunction):
             args[1], ctypes.POINTER(NativeBridgeCapabilities)
         ).contents
         output.size = ctypes.sizeof(NativeBridgeCapabilities)
-        output.abi_version = 1
+        output.abi_version = 2
         output.flags = 0x0000000F
         output.max_blocked_usages = 32
         output.max_target_collections = 8
@@ -84,7 +85,7 @@ class _FakeStatsFunction(_FakeFunction):
         result = super().__call__(*args)
         output = ctypes.cast(args[1], ctypes.POINTER(NativeBridgeStats)).contents
         output.size = ctypes.sizeof(NativeBridgeStats)
-        output.abi_version = 1
+        output.abi_version = 2
         output.received_reports = 10
         output.blocked_reports = 3
         output.queued_events = 3
@@ -98,10 +99,11 @@ class _FakeBridgeLibrary:
     """模拟 t1bridge.dll 的最小 ABI。"""
 
     def __init__(self) -> None:
-        self.abi = _FakeFunction(1)
+        self.abi = _FakeFunction(2)
         self.open = _FakeOpenFunction(0)
         self.set_policy = _FakeFunction(0)
         self.start = _FakeFunction(0)
+        self.heartbeat = _FakeFunction(0)
         self.stop = _FakeFunction(0)
         self.close = _FakeFunction(0)
         self.status = _FakeFunction(0)
@@ -113,6 +115,7 @@ class _FakeBridgeLibrary:
         self.T1Bridge_Open = self.open
         self.T1Bridge_SetPolicy = self.set_policy
         self.T1Bridge_Start = self.start
+        self.T1Bridge_Heartbeat = self.heartbeat
         self.T1Bridge_Stop = self.stop
         self.T1Bridge_Close = self.close
         self.T1Bridge_GetStatus = self.status
@@ -141,6 +144,47 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(native.usages[0].usage_page, 0x0C)
         self.assertEqual(native.usages[0].usage, 0x223)
         self.assertEqual(native.usages[0].collection, 2)
+
+    def test_policy_serializes_lease_and_descriptor_rule_settings(self) -> None:
+        policy = InterceptionPolicy(
+            blocked_usages=(HidUsage(0x0C, 0x223),),
+            target_collections=("COL02",),
+            lease_required=True,
+            lease_timeout_ms=5000,
+        )
+
+        native = policy.to_native()
+
+        self.assertEqual(native.abi_version, 2)
+        self.assertEqual(native.lease_timeout_ms, 5000)
+        self.assertEqual(native.field_rule_count, 0)
+        self.assertTrue(native.flags & 0x0008)
+
+    def test_policy_serializes_descriptor_field_rule(self) -> None:
+        policy = InterceptionPolicy(
+            target_collections=("COL02",),
+            field_rules=(
+                HidFieldRule(
+                    0x0C,
+                    "COL02",
+                    0x223,
+                    byte_offset=1,
+                    byte_length=2,
+                    mapped_usage=0x224,
+                ),
+            ),
+        )
+
+        native = policy.to_native()
+
+        self.assertEqual(native.field_rule_count, 1)
+        self.assertEqual(native.field_rules[0].collection, 2)
+        self.assertEqual(native.field_rules[0].byte_offset, 1)
+        self.assertEqual(native.field_rules[0].mapped_usage, 0x224)
+
+    def test_policy_rejects_invalid_lease_timeout(self) -> None:
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(lease_required=True, lease_timeout_ms=99)
 
     def test_policy_serializes_consumer_usage_remapping(self) -> None:
         policy = InterceptionPolicy(
@@ -186,6 +230,7 @@ class DriverBridgeTests(unittest.TestCase):
         client.open(policy)
         client.start()
         client.set_policy(policy)
+        client.heartbeat()
         status = client.status()
         client.stop()
         client.close()
@@ -193,6 +238,7 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertIsInstance(status, BridgeStatus)
         self.assertEqual(len(library.open.calls), 1)
         self.assertEqual(len(library.start.calls), 1)
+        self.assertEqual(len(library.heartbeat.calls), 1)
         self.assertEqual(len(library.set_policy.calls), 1)
         self.assertEqual(len(library.status.calls), 1)
         self.assertEqual(len(library.stop.calls), 1)
@@ -235,7 +281,7 @@ class DriverBridgeTests(unittest.TestCase):
                 (),
                 {
                     "size": ctypes.sizeof(ctypes.c_uint32),
-                    "abi_version": 1,
+                    "abi_version": 2,
                     "state": 2,
                     "last_error": 0,
                     "dropped_reports": 3,
@@ -247,7 +293,7 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(status.dropped_reports, 3)
 
     def test_native_event_layout_is_fixed_size(self) -> None:
-        self.assertEqual(ctypes.sizeof(NativeBridgeEvent), 88)
+        self.assertEqual(ctypes.sizeof(NativeBridgeEvent), 96)
 
     def test_client_reads_original_blocked_event(self) -> None:
         library = _FakeBridgeLibrary()

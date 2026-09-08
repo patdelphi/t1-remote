@@ -5,7 +5,7 @@
 - 日期：2026-09-07
 - 目标设备：T1-Remote
 - 平台：Windows 10/11 x64
-- 当前阶段：桥接 DLL 和 KMDF 过滤驱动已完成构建验证；等待新驱动重启生效与真机拦截回归
+- 当前阶段：ABI v2、桥接 DLL 和 KMDF 过滤驱动已完成构建验证；等待最终安装、一次重启和真机拦截回归
 
 ## 2. 问题定义
 
@@ -57,7 +57,7 @@ T1 HID Collection → HIDClass → Windows 应用
 
 - VID：`0x620A`
 - PID：`0x0407`
-- Collection：先覆盖已发现的 `COL01`、`COL02`、`COL04`、`COL05`
+- Collection：当前过滤 `COL02` Consumer Control 和 `COL03` System Control；键盘、鼠标及 Vendor Defined 保持透传
 
 本项目默认只连接一台 T1，因此不增加蓝牙地址选择逻辑。VID/PID 已经足够排除普通键盘和普通 Consumer Control 设备；Collection 用来限制过滤范围，避免误处理 T1 的其他接口。
 
@@ -73,7 +73,7 @@ HidUsage(
 )
 ```
 
-`collection` 为 0 表示同一 Usage Page/Usage 在目标 T1 Collection 中都适用。策略最多 32 项源 Usage、8 个目标 Collection。每项 Usage 可以带一个同一 Usage Page 内的 `mapped_usage`。固定结构通过 IOCTL 传递，避免 DLL 和 Python 之间引入 JSON 解析依赖。驱动只执行这张运行时策略表，不内置 Home、音量或其他业务键位。
+`collection` 为 0 表示同一 Usage Page/Usage 在目标 T1 Collection 中都适用。策略最多 32 项源 Usage 和 32 项字段规则。每项 Usage 可以带一个同一 Usage Page 内的 `mapped_usage`；字段规则支持 1/2 字节字段的重映射或丢弃。固定结构通过 IOCTL 传递，避免 DLL 和 Python 之间引入 JSON 解析依赖。驱动只执行这张运行时策略表，不内置 Home、音量或其他业务键位。
 
 ### 4.3 已采集事实与待确认项
 
@@ -107,8 +107,9 @@ Power 和 Air Mouse 继续保持禁用采集：Power 避免触发系统电源行
 | `IOCTL_T1FILTER_GET_CAPABILITIES` | 查询驱动支持的运行时能力（包含报文重映射）和固定容量 |
 | `IOCTL_T1FILTER_GET_STATS` | 查询接收、拦截、队列和错误统计 |
 | `IOCTL_T1FILTER_FLUSH_EVENTS` | 清空原始事件队列，不改变当前策略 |
+| `IOCTL_T1FILTER_HEARTBEAT` | 刷新 Python 会话租约；租约过期后自动停止过滤 |
 
-共享 ABI 定义位于 `native/t1bridge/t1bridge_protocol.h`。结构使用固定宽度整数和 1 字节对齐，Python 与 C 端都携带 `size` 和 `abi_version`，发现版本不一致时立即停止。
+共享 ABI v2 定义位于 `native/t1bridge/t1bridge_protocol.h`。结构使用固定宽度整数和 1 字节对齐，Python 与 C 端都携带 `size` 和 `abi_version`，发现版本不一致时立即停止。策略包含会话租约和字段规则；状态包含策略代数、已附着 Collection、租约剩余时间；统计包含透传、完成错误、设备增删和普通/内部请求路径计数。
 
 ### 5.2 报文处理
 
@@ -116,11 +117,12 @@ Power 和 Air Mouse 继续保持禁用采集：Power 避免触发系统电源行
 
 1. 保存原始 IRP 和完成上下文。
 2. 等待下层返回输入报告。
-3. 第一版依据已确认的 T1 `COL02` 报告布局解析 Report ID、16 位 Consumer Usage 和按下/释放状态；扩展到其他 Collection 前仍需接入 Report Descriptor 解析。
-4. 命中策略时把原始报告写入固定长度事件队列；没有 `mapped_usage` 时清零报告，有 `mapped_usage` 时按 Python 下发的目标 Usage 改写当前 Consumer Control 报告，再完成请求。这样 Windows 不会继续解释被拦截的源 Usage。
+3. 先按已确认的 T1 `COL02`/`COL03` 报告布局解析 Report ID、Usage 和按下/释放状态；字段规则为后续 Report Descriptor 解析结果提供稳定的偏移匹配入口。
+4. 命中策略时把原始报告写入固定长度事件队列；没有 `mapped_usage` 时清零报告，有 `mapped_usage` 时按 Python 下发的目标 Usage 改写当前 Consumer Control 或 System Control 报告，再完成请求。这样 Windows 不会继续解释被拦截的源 Usage。
 5. 未命中策略时原样完成 IRP，保证其他设备和未配置功能保持正常。
-6. Python 通过 `IOCTL_T1FILTER_READ_EVENT` 读取原始报告，不依赖 HidHide 或 Raw Input 白名单。
-7. 统计拦截数量、队列溢出和最后一个驱动错误，供 UI 展示。
+6. Python 通过 `IOCTL_T1FILTER_READ_EVENT` 读取带 `KeQueryInterruptTime` 时间戳的原始 T1 事件，不依赖 HidHide 或 Raw Input 白名单。
+7. Python 运行期间每 500ms 发送一次心跳。启用租约时，如果应用崩溃、被强制结束或桥接断开，驱动在超时后自动停止过滤，让 Windows 恢复接收输入。
+8. 统计拦截、透传、队列溢出、完成错误、设备变化、租约过期和普通/内部请求路径，供 UI 和诊断日志展示。
 
 驱动必须处理取消、设备拔出、休眠恢复、挂起 IRP、重复启动和停止竞态。不能在完成回调中执行用户态 IPC，也不能依赖 Python 进程始终在线。
 
@@ -161,9 +163,9 @@ Python 能加载 `t1bridge.dll` 并读取驱动状态，但过滤尚未启动。
 - 当前目标 VID/PID；
 - 已过滤 Usage 数量；
 - 最近错误和丢弃报告计数；
-- 驱动能力、队列深度和报告统计。
+- 驱动能力、队列深度、策略代数、Collection 状态、租约状态和报告统计。
 
-驱动不在场时不能把 Observe 模式标为 Intercept。应用退出或桥接断开前，必须先发送 STOP，再关闭设备句柄。
+驱动不在场时不能把 Observe 模式标为 Intercept。应用退出或桥接断开前，必须先发送 STOP，再关闭设备句柄；即使应用未能正常退出，租约也会在超时后自动停止过滤。
 
 ## 7. 失败策略和安全边界
 
@@ -171,6 +173,7 @@ Python 能加载 `t1bridge.dll` 并读取驱动状态，但过滤尚未启动。
 - 驱动打开失败：不修改系统注册表，不自动安装驱动，显示管理员/UAC 或签名错误。
 - ABI 不匹配：拒绝打开，记录需要的版本和实际版本。
 - 策略非法：拒绝下发，保留上一份有效策略。
+- 心跳中断：租约过期后自动停止过滤，输入回到 Windows；重新启动应用后再下发策略即可恢复。
 - 驱动异常：停止发送新映射，释放按键状态，允许用户回到透传模式。
 - 未确认的 Usage：默认不加入拦截表；验收要求“完全不漏出”时，再将 `drop_unmapped` 设为 true，并先完成整套真机回归。
 - 驱动卸载：先 STOP，再卸载服务；卸载失败保留可回滚状态，不强制删除正在使用的文件。
@@ -178,13 +181,13 @@ Python 能加载 `t1bridge.dll` 并读取驱动状态，但过滤尚未启动。
 ## 8. 已执行的代码变更
 
 - `t1remote/windows/driver_bridge.py`
-  - 定义 `HidUsage`、`InterceptionPolicy`、`BridgeStatus`、`BridgeCapabilities`、`BridgeStats`。
-  - 固定 VID/PID 和最多 32 项 Usage 策略。
-  - 实现 DLL 加载、ABI 校验、Open/SetPolicy/Start/Stop/Status/ReadEvent/Capabilities/Stats/FlushEvents/Close 生命周期。
+  - 定义 `HidUsage`、`HidFieldRule`、`InterceptionPolicy`、`BridgeStatus`、`BridgeCapabilities`、`BridgeStats`。
+  - 固定 VID/PID、最多 32 项 Usage 策略和最多 32 项字段规则。
+  - 实现 DLL 加载、ABI 校验、Open/SetPolicy/Start/Stop/Heartbeat/Status/ReadEvent/Capabilities/Stats/FlushEvents/Close 生命周期。
   - 支持 Python 下发的源 Usage → 目标 Usage 运行时重映射，并拒绝同一源 Usage 的歧义配置。
   - DLL 或驱动缺失时返回 `BridgeUnavailable`，不伪装成已拦截。
 - `native/t1bridge/t1bridge_protocol.h`
-  - 定义 Python、桥接 DLL、过滤驱动共用的 ABI、IOCTL、运行时映射字段、能力和统计结构。
+  - 定义 Python、桥接 DLL、过滤驱动共用的 ABI v2、IOCTL、运行时映射字段、租约、能力和统计结构。
 - `native/t1bridge/t1bridge.c`
   - 使用 Win32 `CreateFileW` 和 `DeviceIoControl` 实现轻量桥接 DLL。
   - 不引入 .NET、Qt、Tauri 或常驻服务。
@@ -193,19 +196,19 @@ Python 能加载 `t1bridge.dll` 并读取驱动状态，但过滤尚未启动。
 - `tests/test_driver_bridge.py`
   - 使用 Python 假 DLL 验证协议、生命周期和原始事件读取，不依赖真实驱动。
 - `native/t1filter/t1filter.c`、`t1filter.h`、`t1filter.inf`
-  - 增加 T1 `COL02` 设备专属 KMDF 下层过滤器源码和安装匹配条件。
-  - 实现按运行时策略拦截、Consumer Usage 改写、原始事件队列、能力查询和运行统计。
+  - 增加 T1 `COL02`/`COL03` 设备专属 KMDF 下层过滤器源码和安装匹配条件。
+  - 实现按运行时策略拦截、Consumer/System Usage 改写、字段规则、原始事件队列、会话租约、PnP 清理、能力查询和运行统计。
 
 ## 9. 尚未执行的部分
 
-当前机器已经具备 Visual Studio C++ Build Tools、MSBuild、WDK 和测试签名环境。用户态 DLL 已完成构建，KMDF 驱动包已完成构建、签名和 Inf2Cat 校验；新版本尚未在本机重启后完成设备栈回归。
+当前机器已经具备 Visual Studio C++ Build Tools、MSBuild、WDK 和测试签名环境。用户态 DLL 已完成构建，KMDF 驱动包已完成构建、签名和 Inf2Cat 校验；本轮 ABI v2 功能已经合入，尚未在本机最终重启后完成设备栈回归。
 
 剩余工作：
 
-1. 安装最新驱动包后重启一次，使设备专属下层过滤器替换当前旧驱动链。
-2. 通过 Python 下发拦截策略，验证 Home 不再打开浏览器。
-3. 验证源 Usage → 目标 Usage 的运行时改写，以及清零拦截后的 Python 业务动作。
-4. 完成普通键盘、其他蓝牙设备、睡眠、重连、管理员窗口和应用退出回归。
+1. 安装本轮最终驱动包后重启一次，使设备专属下层过滤器替换当前旧驱动链。
+2. 通过 Python 下发拦截策略，验证 Home 不再打开浏览器，检查租约和诊断计数。
+3. 验证源 Usage → 目标 Usage 的运行时改写、字段规则，以及清零拦截后的 Python 业务动作。
+4. 完成普通键盘、其他蓝牙设备、睡眠、重连、管理员窗口和应用异常退出回归。
 
 重启完成后，日常改键只修改 Python 配置并调用 `SetPolicy`；不需要重新编译、重装或重启。
 
@@ -224,5 +227,6 @@ Python 能加载 `t1bridge.dll` 并读取驱动状态，但过滤尚未启动。
 - 其他 T1 按键的原始系统行为不泄漏。
 - 普通键盘和其他蓝牙设备不受影响。
 - 驱动停止后 T1 回到透传，驱动启动后只处理 T1。
+- Python 心跳中断后驱动自动停止过滤，输入恢复透传。
 - 应用崩溃、退出和蓝牙断开后没有卡住的键状态。
-- 过滤计数、错误码和当前模式在 UI 中可见。
+- 过滤计数、错误码、策略代数、Collection 状态、租约和当前模式在 UI/诊断接口中可见。
