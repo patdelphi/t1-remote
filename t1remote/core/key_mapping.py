@@ -12,7 +12,7 @@ from pathlib import Path
 import time
 from typing import Any
 
-from t1remote.core.capture_scope import REMOTE_BUTTONS
+from t1remote.core.capture_scope import MAPPABLE_REMOTE_BUTTONS
 from t1remote.core.input_mapping import ButtonEvent
 
 
@@ -335,7 +335,7 @@ class MappingConfig:
             )
         normalized: dict[str, KeyAction] = {}
         for button, action in self.mappings.items():
-            if button not in REMOTE_BUTTONS:
+            if button not in MAPPABLE_REMOTE_BUTTONS:
                 raise MappingConfigError(f"未知遥控按键：{button}")
             if not isinstance(action, KeyAction):
                 raise MappingConfigError(f"按键 {button} 的动作对象无效")
@@ -359,7 +359,6 @@ class MappingConfig:
                 "Mute": KeyAction("media", "VOLUME_MUTE"),
                 "Home": KeyAction("key", "HOME"),
                 "Menu": KeyAction("key", "APPS"),
-                "Air Mouse": KeyAction("none"),
                 "Volume Plus": KeyAction("media", "VOLUME_UP"),
                 "Volume Minus": KeyAction("media", "VOLUME_DOWN"),
             }
@@ -381,6 +380,8 @@ class MappingConfig:
         for button, action in mappings.items():
             if not isinstance(button, str):
                 raise MappingConfigError("映射按键名必须是字符串")
+            if button == "Air Mouse":
+                continue
             result[button] = KeyAction.from_dict(action)
         return cls(mappings=result, version=version)
 
@@ -391,7 +392,7 @@ class MappingConfig:
             "version": self.version,
             "mappings": {
                 button: self.mappings[button].to_dict()
-                for button in REMOTE_BUTTONS
+                for button in MAPPABLE_REMOTE_BUTTONS
                 if button in self.mappings
             },
         }

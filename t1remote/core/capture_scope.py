@@ -29,6 +29,9 @@ REMOTE_BUTTONS: tuple[str, ...] = (
 # Air Mouse 会切换飞鼠模式并产生连续鼠标报文，采集界面暂不允许选择。
 # Power 由驱动层拦截后允许在 Python 采集界面中选择，避免触发 Windows 电源动作。
 DISABLED_CAPTURE_BUTTONS: tuple[str, ...] = ("Air Mouse",)
+MAPPABLE_REMOTE_BUTTONS: tuple[str, ...] = tuple(
+    button for button in REMOTE_BUTTONS if button not in DISABLED_CAPTURE_BUTTONS
+)
 
 T1_VID = "620A"
 T1_PID = "0407"

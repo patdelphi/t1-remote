@@ -27,7 +27,7 @@
 
 第一阶段只采集遥控区域的 14 个实体按键：正面 12 个、侧面音量加减 2 个。具体按键含义必须由真实 HID Report 采集确认，未知 Usage 只记录，不自动转换。键盘面 45 个按键、Fn 组合和空中鼠标连续移动暂不纳入本阶段。
 
-遥控区域按键清单：Power、方向上、方向下、方向左、方向右、OK、Return、Voice、Mute、Home、Menu、`Air Mouse`、Volume Plus、Volume Minus。
+遥控区域按键清单：Power、方向上、方向下、方向左、方向右、OK、Return、Voice、Mute、Home、Menu、`Air Mouse`、Volume Plus、Volume Minus。Air Mouse 只保留在采集和硬件分析范围内，不进入 mapping 配置。
 
 采集数据分为两层：保留每一条原始 Report 用于协议分析，同时将按下/抬起配对为一条逻辑操作用于界面和后续映射。Power 由驱动层拦截后在 Python 采集界面启用；Air Mouse 在采集阶段禁用。
 

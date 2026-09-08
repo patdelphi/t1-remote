@@ -11,7 +11,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from t1remote.core.capture_scope import REMOTE_BUTTONS
+from t1remote.core.capture_scope import MAPPABLE_REMOTE_BUTTONS
 from t1remote.core.input_mapping import button_input_kind
 from t1remote.core.key_mapping import (
     KeyAction,
@@ -101,8 +101,8 @@ class MappingEditorWindow:
         self._build_layout()
         self._refresh_profile_list()
         self._refresh_button_table()
-        if REMOTE_BUTTONS:
-            self._select_button(REMOTE_BUTTONS[0])
+        if MAPPABLE_REMOTE_BUTTONS:
+            self._select_button(MAPPABLE_REMOTE_BUTTONS[0])
 
     def _configure_styles(self) -> None:
         """配置统一的浅色主题和交互状态。"""
@@ -691,7 +691,7 @@ class MappingEditorWindow:
         self._working_actions = dict(config.mappings)
         self._refresh_profile_list()
         self._refresh_button_table()
-        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self._select_button(self._selected_button or MAPPABLE_REMOTE_BUTTONS[0])
         self.status_var.set(f"已加载存档：{selected_path}")
 
     def _save_profile(self) -> None:
@@ -745,11 +745,9 @@ class MappingEditorWindow:
         selected = self._selected_button
         for item in self.button_tree.get_children():
             self.button_tree.delete(item)
-        for button in REMOTE_BUTTONS:
+        for button in MAPPABLE_REMOTE_BUTTONS:
             action = self._working_actions.get(button, KeyAction("none"))
             summary = format_action_summary(action)
-            if button == "Air Mouse":
-                summary = f"{summary}（暂未纳入）"
             self.button_tree.insert(
                 "",
                 "end",
@@ -757,7 +755,7 @@ class MappingEditorWindow:
                 values=(BUTTON_DISPLAY_NAMES.get(button, button), summary),
                 tags=("stripe",) if len(self.button_tree.get_children()) % 2 else (),
             )
-        if selected in REMOTE_BUTTONS:
+        if selected in MAPPABLE_REMOTE_BUTTONS:
             self.button_tree.selection_set(selected)
             self.button_tree.see(selected)
 
@@ -1097,7 +1095,9 @@ class MappingEditorWindow:
 
         if not self._apply_current(show_error=True):
             return
-        action = self._working_actions[self._selected_button or REMOTE_BUTTONS[0]]
+        action = self._working_actions[
+            self._selected_button or MAPPABLE_REMOTE_BUTTONS[0]
+        ]
         if action.kind == "none":
             preview = "当前按键未映射，不会产生系统输出。"
         elif action.kind == "text":
@@ -1134,7 +1134,7 @@ class MappingEditorWindow:
             return
         self._working_actions = dict(MappingConfig.default().mappings)
         self._refresh_button_table()
-        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self._select_button(self._selected_button or MAPPABLE_REMOTE_BUTTONS[0])
         self.status_var.set("已恢复默认映射，点击保存配置后才会写入文件")
 
     def _reload_config(self) -> None:
@@ -1153,7 +1153,7 @@ class MappingEditorWindow:
             return
         self._working_actions = dict(config.mappings)
         self._refresh_button_table()
-        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self._select_button(self._selected_button or MAPPABLE_REMOTE_BUTTONS[0])
         self.status_var.set(f"已重新加载：{self.config_path}")
 
     def _save_config(self) -> None:
@@ -1190,7 +1190,7 @@ class MappingEditorWindow:
             return
         self._working_actions = dict(config.mappings)
         self._refresh_button_table()
-        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self._select_button(self._selected_button or MAPPABLE_REMOTE_BUTTONS[0])
         self.status_var.set(f"已导入（尚未覆盖当前文件）：{selected_path}")
 
     def _export_config(self) -> None:

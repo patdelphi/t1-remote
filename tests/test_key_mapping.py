@@ -37,6 +37,17 @@ class KeyMappingTests(unittest.TestCase):
         self.assertEqual(config.mappings["Volume Plus"].key, "VOLUME_UP")
         self.assertEqual(config.mappings["Power"].kind, "none")
         self.assertEqual(config.mappings["Voice"].kind, "none")
+        self.assertNotIn("Air Mouse", config.mappings)
+
+    def test_legacy_air_mouse_mapping_is_dropped_when_loading(self) -> None:
+        config = MappingConfig.from_dict(
+            {
+                "version": 1,
+                "mappings": {"Air Mouse": {"type": "key", "key": "A"}},
+            }
+        )
+
+        self.assertNotIn("Air Mouse", config.mappings)
 
     def test_config_roundtrip_uses_versioned_json(self) -> None:
         config = MappingConfig(

@@ -43,9 +43,6 @@
       "type": "key",
       "key": "APPS"
     },
-    "Air Mouse": {
-      "type": "none"
-    },
     "Volume Plus": {
       "type": "media",
       "key": "VOLUME_UP"
