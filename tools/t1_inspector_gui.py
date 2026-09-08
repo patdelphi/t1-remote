@@ -15,6 +15,14 @@ from t1remote.core.capture_scope import (
     build_logical_actions,
     is_t1_device_path,
 )
+from t1remote.windows.driver_bridge import (
+    BridgeError,
+    BridgeUnavailable,
+    DriverInputEvent,
+    HidUsage,
+    InterceptionPolicy,
+    T1BridgeClient,
+)
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
 
 
@@ -28,6 +36,16 @@ BUTTON_DISPLAY_NAMES = {
     "Volume Plus": "Volume +",
     "Volume Minus": "Volume -",
 }
+
+DRIVER_BLOCKED_USAGES = (
+    HidUsage(0x0C, 0x223, "COL02"),  # Home
+    HidUsage(0x0C, 0x221, "COL02"),  # Voice
+    HidUsage(0x0C, 0x0E2, "COL02"),  # Mute
+    HidUsage(0x0C, 0x0E9, "COL02"),  # Volume Plus
+    HidUsage(0x0C, 0x0EA, "COL02"),  # Volume Minus
+    HidUsage(0x0C, 0x224, "COL02"),  # Return
+    HidUsage(0x01, 0x081, "COL03"),  # Power / System Power Down
+)
 
 
 def _load_remote_image(root: tk.Tk) -> tk.PhotoImage | None:
@@ -80,6 +98,9 @@ def run_gui(output_path: Path) -> int:
     current_button: str | None = None
     state_lock = threading.Lock()
     events: list[CaptureEvent] = []
+    driver_client: T1BridgeClient | None = None
+    driver_stop = threading.Event()
+    driver_thread: threading.Thread | None = None
 
     content_frame = ttk.Frame(root)
     content_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 10))
@@ -329,6 +350,32 @@ def run_gui(output_path: Path) -> int:
         except RuntimeError:
             pass
 
+    def driver_event_to_raw_event(event: DriverInputEvent) -> RawInputEvent:
+        """把驱动事件转成采集表复用的 Raw Input 事件模型。"""
+
+        return RawInputEvent(
+            device_path=f"HID\\VID_620A&PID_0407&{event.collection}",
+            raw_input_type=2,
+            raw_data=event.report,
+        )
+
+    def driver_event_loop(client: T1BridgeClient) -> None:
+        """轮询驱动事件队列，并把原始报文投递到 Tk 线程。"""
+
+        while not driver_stop.is_set():
+            try:
+                event = client.read_event()
+            except BridgeError as error:
+                try:
+                    root.after(0, on_error, error)
+                except RuntimeError:
+                    pass
+                return
+            if event is None:
+                driver_stop.wait(0.02)
+                continue
+            on_raw_event(driver_event_to_raw_event(event))
+
     listener = RawInputListener(on_event=on_raw_event, on_error=on_error)
     try:
         listener.start()
@@ -336,7 +383,33 @@ def run_gui(output_path: Path) -> int:
         messagebox.showerror("Inspector 启动失败", str(error), parent=root)
         root.destroy()
         return 1
-    status_label.set("状态：监听中，请点击按键标签后操作遥控器")
+
+    try:
+        driver_client = T1BridgeClient()
+        driver_client.open(
+            InterceptionPolicy(
+                blocked_usages=DRIVER_BLOCKED_USAGES,
+                target_collections=("COL02", "COL03"),
+            )
+        )
+        driver_client.start()
+        driver_thread = threading.Thread(
+            target=driver_event_loop,
+            args=(driver_client,),
+            name="t1-driver-events",
+            daemon=True,
+        )
+        driver_thread.start()
+        status_label.set("状态：驱动拦截已启动，请点击按键标签后操作遥控器")
+    except BridgeUnavailable:
+        # 未安装驱动时继续保留 Raw Input 采集模式，方便开发机采集报文。
+        driver_client = None
+        status_label.set("状态：Raw Input 监听中；驱动未安装")
+    except BridgeError as error:
+        if driver_client:
+            driver_client.close()
+        driver_client = None
+        status_label.set(f"状态：驱动未启动：{error}")
 
     ttk.Button(footer, text="保存", command=save_capture).grid(row=0, column=3, padx=4)
     ttk.Button(footer, text="清空记录", command=clear_events).grid(row=0, column=4, padx=4)
@@ -344,6 +417,15 @@ def run_gui(output_path: Path) -> int:
     def on_close() -> None:
         """停止 Raw Input 线程并保存当前结果。"""
 
+        driver_stop.set()
+        if driver_thread:
+            driver_thread.join(timeout=1)
+        if driver_client:
+            try:
+                driver_client.stop()
+            except BridgeError:
+                pass
+            driver_client.close()
         listener.stop()
         try:
             _write_capture_if_nonempty(output_path, events)

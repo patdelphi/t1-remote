@@ -15,6 +15,13 @@ env/
 build/
 dist/
 *.egg-info/
+*.obj
+
+# Windows 原生工程本地构建输出
+native/**/x64/
+native/**/Win32/
+native/**/Debug/
+native/**/Release/
 
 # 本地对话记录不进入公开仓库
 chat_history.md

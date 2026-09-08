@@ -1,0 +1,63 @@
+; 程序说明：把 T1RemoteFilter 安装为 T1 Consumer Control/System Control 的设备专属下层过滤器。
+; 目标硬件 ID 来自本机 T1 COL02 和 COL03 的 DEVPKEY_Device_HardwareIds。
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = HIDClass
+ClassGuid   = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}
+Provider    = %ProviderName%
+PnpLockdown = 1
+DriverVer   = 09/07/2026,1.0.0.0
+CatalogFile = T1RemoteFilter.cat
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+t1filter.sys = 1
+
+[Manufacturer]
+%ProviderName% = Standard, NTamd64.10.0...18362
+
+[Standard.NTamd64.10.0...18362]
+%T1RemoteFilter.DeviceDesc% = T1RemoteFilter_Install, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col02
+%T1RemoteFilter.DeviceDesc% = T1RemoteFilter_Install, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col03
+
+[T1RemoteFilter_Install.NT]
+CopyFiles = T1RemoteFilter_CopyFiles
+
+[T1RemoteFilter_Install.NT.HW]
+AddReg = T1RemoteFilter_Filter_AddReg
+
+[T1RemoteFilter_CopyFiles]
+t1filter.sys
+
+[T1RemoteFilter_Install.NT.Services]
+; 过滤驱动不能声明为设备的关联功能驱动，否则会替换 HIDClass。
+AddService = T1RemoteFilter, 0x00000000, T1RemoteFilter_Service
+
+[T1RemoteFilter_Service]
+DisplayName   = %T1RemoteFilter.SvcDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %13%\t1filter.sys
+
+[T1RemoteFilter_Filter_AddReg]
+; 使用设备级 LowerFilters，确保 HID 子设备重新枚举时过滤器实际挂入栈。
+HKR,,LowerFilters,0x00010008,"T1RemoteFilter"
+
+[T1RemoteFilter_Install.NT.Wdf]
+KmdfService = T1RemoteFilter, T1RemoteFilter_Wdf
+
+[T1RemoteFilter_Wdf]
+KmdfLibraryVersion = 1.33
+
+[Strings]
+ProviderName            = "T1 Remote"
+DiskName                = "T1 Remote Driver Package"
+T1RemoteFilter.DeviceDesc = "T1 Remote HID Filter"
+T1RemoteFilter.SvcDesc  = "T1 Remote HID Filter"

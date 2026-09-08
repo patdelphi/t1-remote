@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 程序说明：T1RemoteFilter 项目文件分组。 -->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{5F1A5C1D-2CC3-4DD4-AD82-A5B415E71D52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{4AA0AFB6-8A4C-4C57-B00A-0E25D3C8B0E7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="安装文件">
+      <UniqueIdentifier>{F4B1F6A7-2DE8-4F52-8C61-86B49A6B6C5C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="t1filter.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="t1filter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\t1bridge\t1bridge_protocol.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="t1filter.inf">
+      <Filter>安装文件</Filter>
+    </Inf>
+  </ItemGroup>
+</Project>
