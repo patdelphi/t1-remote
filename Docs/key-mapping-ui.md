@@ -57,6 +57,17 @@ KeyAction：none / key / combo / special / command / macro
 
 另有“未映射”选项，对应 `none`。它用于保持观察状态，适合 Power、Voice 和尚未确认的按键。
 
+## 输入类型与 mapping 兼容性
+
+当前已确认的输入来源分为两类：
+
+| 输入类型 | 来源 | 可用 mapping |
+| --- | --- | --- |
+| 普通 key | `COL01` Keyboard | 未映射、单键、组合键、HID 特殊功能、命令行、输入文字、宏 |
+| HID | `COL02/COL03` Consumer/System Control | 未映射、单键、组合键、HID 特殊功能、命令行、输入文字、宏 |
+
+mapping 是输出动作，普通 key 和 HID 都能触发这些动作。`Air Mouse` 属于 `COL04` 鼠标集合，当前解码器不处理连续鼠标报文，因此编辑器只保留“未映射”，其他动作选项会灰掉。宏和输入文字仍不支持“按住重复”，这项限制与输入来源无关。
+
 触发方式也写入动作配置：`press` 表示按下即输出，`long_press` 使用毫秒阈值，`double_click` 使用两次点击的最大间隔，`hold_repeat` 使用重复间隔。旧配置没有 `trigger` 字段时按 `press` 处理。
 
 ## 各类型参数规则

@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from t1remote.core.capture_scope import REMOTE_BUTTONS
+from t1remote.core.input_mapping import button_input_kind
 from t1remote.core.key_mapping import (
     KeyAction,
     MacroStep,
@@ -40,6 +41,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "t1-key-mapping.json"
 BUTTON_DISPLAY_NAMES = {"Volume Plus": "Volume +", "Volume Minus": "Volume -"}
 _UI_KIND_BY_ACTION_KIND = {"media": "special", "shortcut": "combo"}
+_ALL_ACTION_KINDS = frozenset(ACTION_TYPE_LABELS)
+_SUPPORTED_ACTION_KINDS = {
+    "keyboard": _ALL_ACTION_KINDS,
+    "hid": _ALL_ACTION_KINDS,
+    "mouse": frozenset({"none"}),
+    "unknown": frozenset({"none"}),
+}
+_INPUT_KIND_LABELS = {
+    "keyboard": "普通 key（COL01）；当前按键支持全部 mapping",
+    "hid": "HID（COL02/COL03）；当前按键支持全部 mapping",
+    "mouse": "鼠标/HID（COL04）；当前仅支持未映射",
+    "unknown": "未知输入类型；当前仅支持未映射",
+}
 
 
 class MappingEditorWindow:
@@ -52,7 +66,9 @@ class MappingEditorWindow:
         self._working_actions: dict[str, KeyAction] = dict(config.mappings)
         self._selected_button: str | None = None
         self._macro_steps: list[MacroStep] = []
+        self.kind_radios: dict[str, ttk.Radiobutton] = {}
         self.profile_var = tk.StringVar(value="当前配置文件")
+        self.input_kind_var = tk.StringVar(value="当前输入类型：")
 
         self.root.title("T1 Remote 按键映射")
         self.root.geometry("1180x780")
@@ -166,40 +182,46 @@ class MappingEditorWindow:
         frame = ttk.LabelFrame(parent, text="动作类型")
         frame.grid(row=0, column=1, sticky="nsew", padx=8)
         frame.columnconfigure(0, weight=1)
-        ttk.Label(frame, text="当前按键的输出方式：").grid(
+        ttk.Label(frame, textvariable=self.input_kind_var, foreground="#52606d").grid(
             row=0, column=0, sticky="w", padx=12, pady=(14, 6)
         )
         normal_frame = ttk.LabelFrame(frame, text="普通键位")
         normal_frame.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
         for row, kind in enumerate(("none", "key", "combo", "macro")):
-            ttk.Radiobutton(
+            radio = ttk.Radiobutton(
                 normal_frame,
                 text=ACTION_TYPE_LABELS[kind],
                 value=kind,
                 variable=self.kind_var,
                 command=self._refresh_form,
-            ).grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=4)
+            )
+            self.kind_radios[kind] = radio
+            radio.grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=4)
 
         special_frame = ttk.LabelFrame(frame, text="媒体与系统功能")
         special_frame.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 8))
-        ttk.Radiobutton(
+        special_radio = ttk.Radiobutton(
             special_frame,
             text="媒体/系统键",
             value="special",
             variable=self.kind_var,
             command=self._refresh_form,
-        ).grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        )
+        self.kind_radios["special"] = special_radio
+        special_radio.grid(row=0, column=0, sticky="w", padx=8, pady=4)
 
         command_frame = ttk.LabelFrame(frame, text="自动化")
         command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
         for column, kind in enumerate(("command", "text")):
-            ttk.Radiobutton(
+            radio = ttk.Radiobutton(
                 command_frame,
                 text=ACTION_TYPE_LABELS[kind],
                 value=kind,
                 variable=self.kind_var,
                 command=self._refresh_form,
-            ).grid(row=0, column=column, sticky="w", padx=8, pady=4)
+            )
+            self.kind_radios[kind] = radio
+            radio.grid(row=0, column=column, sticky="w", padx=8, pady=4)
 
         ttk.Label(frame, text="触发方式：").grid(
             row=4, column=0, sticky="w", padx=12, pady=(0, 6)
@@ -607,6 +629,7 @@ class MappingEditorWindow:
         self.arguments_text.insert("1.0", "\n".join(fields["argument_lines"]))
         self._macro_steps = list(fields["macro_steps"])
         self._refresh_macro_tree()
+        self._refresh_kind_options()
         self._refresh_form()
         self.button_tree.selection_set(button)
         self.button_tree.see(button)
@@ -616,6 +639,19 @@ class MappingEditorWindow:
         """根据动作类型切换可见字段。"""
 
         self._refresh_form()
+
+    def _refresh_kind_options(self) -> None:
+        """按当前物理按键的输入类型启用或禁用动作类型。"""
+
+        input_kind = button_input_kind(self._selected_button or "")
+        supported = _SUPPORTED_ACTION_KINDS.get(input_kind, frozenset({"none"}))
+        self.input_kind_var.set(
+            f"当前输入：{_INPUT_KIND_LABELS.get(input_kind, _INPUT_KIND_LABELS['unknown'])}"
+        )
+        for kind, radio in self.kind_radios.items():
+            radio.configure(state="normal" if kind in supported else "disabled")
+        if self._current_kind() not in supported:
+            self.kind_var.set("none")
 
     @staticmethod
     def _validate_text_length(value: str) -> bool:

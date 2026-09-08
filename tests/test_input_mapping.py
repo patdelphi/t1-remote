@@ -2,7 +2,7 @@
 
 import unittest
 
-from t1remote.core.input_mapping import T1InputDecoder
+from t1remote.core.input_mapping import T1InputDecoder, button_input_kind
 
 
 class InputMappingTests(unittest.TestCase):
@@ -76,6 +76,12 @@ class InputMappingTests(unittest.TestCase):
         self.assertIsNone(event.button)
         self.assertEqual(event.state, "unknown")
         self.assertEqual(event.usage, 0x99)
+
+    def test_button_input_kind_distinguishes_keyboard_hid_and_unsupported_mouse(self) -> None:
+        self.assertEqual(button_input_kind("Arrow Up"), "keyboard")
+        self.assertEqual(button_input_kind("Volume Plus"), "hid")
+        self.assertEqual(button_input_kind("Air Mouse"), "mouse")
+        self.assertEqual(button_input_kind("unknown"), "unknown")
 
 
 if __name__ == "__main__":

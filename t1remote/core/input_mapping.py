@@ -29,6 +29,19 @@ _KEYBOARD_BUTTONS = {
     0x5D: "Menu",
 }
 
+_BUTTON_INPUT_KINDS = {
+    **{button: "keyboard" for button in _KEYBOARD_BUTTONS.values()},
+    **{button: "hid" for button in _CONSUMER_BUTTONS.values()},
+    **{button: "hid" for button in _SYSTEM_BUTTONS.values()},
+    "Air Mouse": "mouse",
+}
+
+
+def button_input_kind(button: str) -> str:
+    """返回已确认物理按键的输入类型：keyboard、hid 或 mouse。"""
+
+    return _BUTTON_INPUT_KINDS.get(button, "unknown")
+
 
 @dataclass(frozen=True)
 class ButtonEvent:
@@ -208,4 +221,4 @@ class T1InputDecoder:
         )
 
 
-__all__ = ["ButtonEvent", "T1InputDecoder"]
+__all__ = ["ButtonEvent", "T1InputDecoder", "button_input_kind"]
