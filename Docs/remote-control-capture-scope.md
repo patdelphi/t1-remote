@@ -61,6 +61,15 @@ Inspector 启动后输入按键编号并回车，再只按对应的遥控区域�
 
 文件中的 `physical_mapping` 是观察表，不会直接覆盖 `config/t1-key-mapping.json`。每个按键会标记为 `confirmed`、`observed`、`missing` 或 `disabled`，同时保留 Collection、Usage、状态和最多 3 条样本报告，便于人工确认后再配置动作。
 
+已有夹具可用以下命令离线验收：
+
+```powershell
+python -m tools.t1_capture_validate "captures\\t1-remote-control.json"
+python -m tools.t1_capture_validate "captures\\t1-remote-control.json" --require-complete
+```
+
+第二条命令在任一已启用按键缺少成对按下/抬起记录时返回退出码 2。
+
 右侧“后续组件预留”区域会实时显示驱动诊断：附着的 Collection、收到/拦截/转发的报告数量和队列深度。按键无记录时先看这里：`收到=0` 表示驱动没有拿到输入报告，`收到>0` 但表格无记录则继续检查 Python 事件处理。
 
 ## 暂定验收标准

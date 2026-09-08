@@ -28,6 +28,7 @@ audio = [
 [project.scripts]
 t1-remote = "tools.t1_app:main"
 t1-remote-inspector = "tools.t1_inspector:main"
+t1-remote-capture-validate = "tools.t1_capture_validate:main"
 t1-remote-mapping-test = "tools.t1_mapping_test:main"
 t1-remote-mapping-gui = "tools.t1_mapping_gui:main"
 t1-remote-hid-probe = "tools.t1_hid_probe:main"
