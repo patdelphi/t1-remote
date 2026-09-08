@@ -26,6 +26,8 @@ python -m tools.t1_mapping_test
 
 按 `Ctrl+C` 退出。程序会释放活动输出键、停止桥接会话并关闭租约。
 
+设备移除或系统睡眠时，运行时会先释放活动映射；系统恢复后重新确认桥接心跳。若桥接无法恢复，程序会停止当前会话并在诊断日志中保留错误。
+
 ## 修改映射
 
 编辑 [config/t1-key-mapping.json](../config/t1-key-mapping.json)。例如把 Home 改成 `Alt+Tab`：

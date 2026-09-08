@@ -14,8 +14,15 @@ import win32gui
 
 
 WM_INPUT = 0x00FF
+WM_INPUT_DEVICE_CHANGE = 0x00FE
+WM_POWERBROADCAST = 0x0218
 WM_CLOSE = 0x0010
 WM_DESTROY = 0x0002
+PBT_APMSUSPEND = 0x0004
+PBT_APMRESUMESUSPEND = 0x0007
+PBT_APMRESUMEAUTOMATIC = 0x0012
+GIDC_REMOVAL = 0x0002
+GIDC_ARRIVAL = 0x0001
 RID_INPUT = 0x10000003
 RIDI_DEVICENAME = 0x20000007
 RIDEV_PAGEONLY = 0x00000020
@@ -82,9 +89,13 @@ class RawInputListener:
         self,
         on_event: Callable[[RawInputEvent], None],
         on_error: Callable[[Exception], None] | None = None,
+        on_device_change: Callable[[int], None] | None = None,
+        on_power_event: Callable[[int], None] | None = None,
     ) -> None:
         self._on_event = on_event
         self._on_error = on_error
+        self._on_device_change = on_device_change
+        self._on_power_event = on_power_event
         self._thread: threading.Thread | None = None
         self._hwnd: int | None = None
         self._window_class_name = f"T1RemoteInspector_{os.getpid()}_{id(self)}"
@@ -187,6 +198,10 @@ class RawInputListener:
         try:
             if message == WM_INPUT:
                 self._handle_input(lparam)
+            elif message == WM_INPUT_DEVICE_CHANGE and self._on_device_change:
+                self._on_device_change(int(wparam))
+            elif message == WM_POWERBROADCAST and self._on_power_event:
+                self._on_power_event(int(wparam))
             elif message == WM_CLOSE:
                 win32gui.DestroyWindow(hwnd)
             elif message == WM_DESTROY:

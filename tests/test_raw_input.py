@@ -3,6 +3,8 @@
 import unittest
 
 from t1remote.windows.raw_input import (
+    WM_INPUT_DEVICE_CHANGE,
+    WM_POWERBROADCAST,
     RIDEV_DEVNOTIFY,
     RIDEV_INPUTSINK,
     RIDEV_PAGEONLY,
@@ -24,6 +26,10 @@ class RawInputRegistrationTests(unittest.TestCase):
         self.assertIn((0x01, 0x06, base_flags), registered)
         self.assertIn((0x0C, 0x00, base_flags | RIDEV_PAGEONLY), registered)
         self.assertIn((0x01, 0x80, base_flags), registered)
+
+    def test_device_and_power_notification_constants_are_declared(self) -> None:
+        self.assertEqual(WM_INPUT_DEVICE_CHANGE, 0x00FE)
+        self.assertEqual(WM_POWERBROADCAST, 0x0218)
 
 
 if __name__ == "__main__":

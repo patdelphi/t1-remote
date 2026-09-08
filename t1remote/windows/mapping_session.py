@@ -25,7 +25,15 @@ from t1remote.windows.driver_bridge import (
     build_default_interception_policy,
 )
 from t1remote.windows.mapping_runtime import MappingRuntimeError, T1MappingRuntime
-from t1remote.windows.raw_input import RawInputEvent, RawInputListener
+from t1remote.windows.raw_input import (
+    GIDC_ARRIVAL,
+    GIDC_REMOVAL,
+    PBT_APMRESUMEAUTOMATIC,
+    PBT_APMRESUMESUSPEND,
+    PBT_APMSUSPEND,
+    RawInputEvent,
+    RawInputListener,
+)
 from t1remote.windows.send_input import KeyboardOutput, WindowsInputEmitter
 from t1remote.windows.single_instance import SingleInstanceGuard
 
@@ -158,6 +166,8 @@ class T1MappingSession:
             self._raw_listener = self._raw_listener_factory(
                 on_event=self._handle_raw_event,
                 on_error=self._report_error,
+                on_device_change=self._handle_device_change,
+                on_power_event=self._handle_power_event,
             )
             self._raw_listener.start()
             self._watcher = MappingConfigWatcher(
@@ -238,6 +248,40 @@ class T1MappingSession:
             self._log_mapping_events(
                 self._runtime.process_report(collection, event.raw_input_type, event.raw_data)
             )
+        except MappingRuntimeError as error:
+            self._report_error(error)
+            self._stop_event.set()
+
+    def _handle_device_change(self, event_code: int) -> None:
+        """设备到达或移除时清理活动按键，避免断连留下粘键。"""
+
+        if event_code == GIDC_REMOVAL:
+            self._reset_runtime("T1 HID 设备移除，已释放活动映射")
+        elif event_code == GIDC_ARRIVAL:
+            self._log("T1 HID 设备重新到达，等待输入报告")
+
+    def _handle_power_event(self, event_code: int) -> None:
+        """睡眠时释放状态，恢复时重新发送一次桥接心跳。"""
+
+        if event_code == PBT_APMSUSPEND:
+            self._reset_runtime("系统进入睡眠，已释放活动映射")
+        elif event_code in (PBT_APMRESUMESUSPEND, PBT_APMRESUMEAUTOMATIC):
+            self._log("系统恢复，正在重新确认 T1 桥接状态")
+            try:
+                if self._bridge:
+                    with self._bridge_lock:
+                        self._bridge.heartbeat()
+                        self._update_driver_status(self._bridge.status())
+            except BridgeError as error:
+                self._report_error(error)
+                self._stop_event.set()
+
+    def _reset_runtime(self, message: str) -> None:
+        if not self._runtime:
+            return
+        try:
+            self._runtime.reset()
+            self._log(message)
         except MappingRuntimeError as error:
             self._report_error(error)
             self._stop_event.set()

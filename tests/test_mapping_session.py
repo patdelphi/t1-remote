@@ -51,9 +51,11 @@ class _FakeBridge:
 class _FakeRawListener:
     last_instance: "_FakeRawListener | None" = None
 
-    def __init__(self, on_event, on_error) -> None:
+    def __init__(self, on_event, on_error, on_device_change=None, on_power_event=None) -> None:
         self.on_event = on_event
         self.on_error = on_error
+        self.on_device_change = on_device_change
+        self.on_power_event = on_power_event
         self.started = False
         self.stopped = False
         _FakeRawListener.last_instance = self
@@ -120,6 +122,33 @@ class MappingSessionTests(unittest.TestCase):
             session.stop()
 
         self.assertEqual(session.status().diagnostics.mapping_events, 2)
+
+    def test_device_removal_releases_active_mapping(self) -> None:
+        bridge = _FakeBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            assert _FakeRawListener.last_instance is not None
+            raw = _FakeRawListener.last_instance
+            raw.on_event(
+                RawInputEvent(
+                    r"\\?\hid#vid_620a&pid_0407&col01#x",
+                    1,
+                    bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00"),
+                )
+            )
+            assert raw.on_device_change is not None
+            raw.on_device_change(2)
+            self.assertEqual(session.status().diagnostics.mapping_events, 2)
+            session.stop()
 
 
 if __name__ == "__main__":
