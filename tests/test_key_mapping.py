@@ -14,6 +14,7 @@ from t1remote.core.key_mapping import (
     MappingEngine,
     load_mapping_config,
     save_mapping_config,
+    TriggerConfig,
 )
 
 
@@ -84,6 +85,98 @@ class KeyMappingTests(unittest.TestCase):
     def test_command_action_requires_nonempty_argv(self) -> None:
         with self.assertRaises(MappingConfigError):
             KeyAction("command")
+
+    def test_trigger_config_roundtrip_and_validation(self) -> None:
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "OK": KeyAction(
+                    "key",
+                    "ENTER",
+                    trigger=TriggerConfig("long_press", threshold_ms=700),
+                ),
+            }
+        )
+
+        loaded = MappingConfig.from_dict(config.to_dict())
+
+        self.assertEqual(
+            loaded.mappings["OK"].trigger,
+            TriggerConfig("long_press", threshold_ms=700),
+        )
+        with self.assertRaises(MappingConfigError):
+            TriggerConfig("hold_repeat", interval_ms=10)
+
+    def test_long_press_only_emits_after_threshold(self) -> None:
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "OK": KeyAction(
+                    "key",
+                    "ENTER",
+                    trigger=TriggerConfig("long_press", threshold_ms=500),
+                ),
+            }
+        )
+        engine = MappingEngine(config)
+
+        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
+        self.assertEqual(engine.tick(now=0.49), ())
+        self.assertEqual(engine.tick(now=0.5)[0].state, "down")
+        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.6)[0].state, "up")
+
+    def test_short_release_does_not_emit_long_press(self) -> None:
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "OK": KeyAction(
+                    "key",
+                    "ENTER",
+                    trigger=TriggerConfig("long_press", threshold_ms=500),
+                ),
+            }
+        )
+        engine = MappingEngine(config)
+
+        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
+        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.2), ())
+
+    def test_double_click_emits_second_click_only(self) -> None:
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "OK": KeyAction(
+                    "key",
+                    "ENTER",
+                    trigger=TriggerConfig("double_click", window_ms=300),
+                ),
+            }
+        )
+        engine = MappingEngine(config)
+
+        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
+        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.1), ())
+        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.2)[0].state, "down")
+        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.3)[0].state, "up")
+
+    def test_hold_repeat_emits_repeated_down_and_final_up(self) -> None:
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "OK": KeyAction(
+                    "key",
+                    "ENTER",
+                    trigger=TriggerConfig("hold_repeat", interval_ms=100),
+                ),
+            }
+        )
+        engine = MappingEngine(config)
+
+        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0)[0].state, "down")
+        self.assertEqual(engine.tick(now=0.09), ())
+        self.assertEqual(engine.tick(now=0.1)[0].state, "down")
+        self.assertEqual(engine.tick(now=0.21)[0].state, "down")
+        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.3)[0].state, "up")
 
     def test_engine_suppresses_duplicate_down_and_orphan_up(self) -> None:
         engine = MappingEngine(MappingConfig.default())

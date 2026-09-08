@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 from t1remote.core.capture_scope import REMOTE_BUTTONS
 from t1remote.core.key_mapping import (
@@ -22,6 +22,7 @@ from t1remote.core.key_mapping import (
 from t1remote.core.mapping_editor import (
     ACTION_TYPE_LABELS,
     FORM_MODIFIERS,
+    TRIGGER_TYPE_LABELS,
     action_to_form,
     build_action_from_form,
     format_action_summary,
@@ -56,6 +57,10 @@ class MappingEditorWindow:
 
         self.status_var = tk.StringVar(value=f"配置文件：{self.config_path}")
         self.kind_var = tk.StringVar()
+        self.trigger_kind_var = tk.StringVar()
+        self.threshold_var = tk.StringVar(value="500")
+        self.window_var = tk.StringVar(value="300")
+        self.interval_var = tk.StringVar(value="100")
         self.key_var = tk.StringVar()
         self.program_var = tk.StringVar()
         self.modifier_vars = {
@@ -136,7 +141,19 @@ class MappingEditorWindow:
         self.kind_combo.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 14))
         self.kind_combo.bind("<<ComboboxSelected>>", self._on_kind_changed)
 
-        ttk.Separator(frame).grid(row=2, column=0, sticky="ew", padx=12, pady=4)
+        ttk.Label(frame, text="触发方式：").grid(
+            row=2, column=0, sticky="w", padx=12, pady=(0, 6)
+        )
+        self.trigger_combo = ttk.Combobox(
+            frame,
+            textvariable=self.trigger_kind_var,
+            values=tuple(TRIGGER_TYPE_LABELS.values()),
+            state="readonly",
+        )
+        self.trigger_combo.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
+        self.trigger_combo.bind("<<ComboboxSelected>>", self._on_trigger_changed)
+
+        ttk.Separator(frame).grid(row=4, column=0, sticky="ew", padx=12, pady=4)
         ttk.Label(
             frame,
             text=(
@@ -146,7 +163,7 @@ class MappingEditorWindow:
             ),
             justify="left",
             foreground="#7b8794",
-        ).grid(row=3, column=0, sticky="nw", padx=12, pady=14)
+        ).grid(row=5, column=0, sticky="nw", padx=12, pady=14)
 
     def _build_detail_panel(self, parent: ttk.Frame) -> None:
         """创建单键、组合键、特殊键和命令行参数面板。"""
@@ -207,6 +224,18 @@ class MappingEditorWindow:
             foreground="#52606d",
         ).grid(row=4, column=0, sticky="w", padx=12, pady=(12, 6))
 
+        self.trigger_frame = ttk.Frame(frame)
+        self.trigger_frame.grid(row=5, column=0, sticky="ew", padx=12, pady=(6, 12))
+        self.trigger_frame.columnconfigure(1, weight=1)
+        self.trigger_value_label = ttk.Label(self.trigger_frame, text="")
+        self.trigger_value_label.grid(row=0, column=0, sticky="w")
+        self.trigger_value_entry = ttk.Entry(
+            self.trigger_frame,
+            textvariable=self.threshold_var,
+            width=12,
+        )
+        self.trigger_value_entry.grid(row=0, column=1, sticky="w", padx=(8, 0))
+
     def _build_footer(self) -> None:
         """创建保存、预览和重载操作。"""
 
@@ -228,8 +257,14 @@ class MappingEditorWindow:
         ttk.Button(footer, text="重新加载", command=self._reload_config).grid(
             row=0, column=4, padx=4
         )
-        ttk.Button(footer, text="保存配置", command=self._save_config).grid(
+        ttk.Button(footer, text="导入", command=self._import_config).grid(
             row=0, column=5, padx=4
+        )
+        ttk.Button(footer, text="导出", command=self._export_config).grid(
+            row=0, column=6, padx=4
+        )
+        ttk.Button(footer, text="保存配置", command=self._save_config).grid(
+            row=0, column=7, padx=4
         )
 
     def _current_kind(self) -> str:
@@ -285,6 +320,12 @@ class MappingEditorWindow:
         fields = action_to_form(action)
         ui_kind = _UI_KIND_BY_ACTION_KIND.get(fields["kind"], fields["kind"])
         self.kind_var.set(ACTION_TYPE_LABELS.get(ui_kind, ACTION_TYPE_LABELS["none"]))
+        self.trigger_kind_var.set(
+            TRIGGER_TYPE_LABELS.get(fields["trigger_kind"], TRIGGER_TYPE_LABELS["press"])
+        )
+        self.threshold_var.set(str(fields["threshold_ms"]))
+        self.window_var.set(str(fields["window_ms"]))
+        self.interval_var.set(str(fields["interval_ms"]))
         self.key_var.set(fields["key"])
         for modifier in FORM_MODIFIERS:
             self.modifier_vars[modifier].set(modifier in fields["modifiers"])
@@ -301,10 +342,43 @@ class MappingEditorWindow:
 
         self._refresh_form()
 
+    def _on_trigger_changed(self, _event: tk.Event[tk.Misc]) -> None:
+        """根据触发方式切换时间参数字段。"""
+
+        self._refresh_trigger_form()
+
+    def _current_trigger_kind(self) -> str:
+        """返回当前界面选择的内部触发类型。"""
+
+        label = self.trigger_kind_var.get()
+        for kind, display_name in TRIGGER_TYPE_LABELS.items():
+            if display_name == label:
+                return kind
+        return "press"
+
+    def _refresh_trigger_form(self) -> None:
+        """显示长按、双击或按住重复所需的时间参数。"""
+
+        trigger_kind = self._current_trigger_kind()
+        if trigger_kind == "press" or self._current_kind() == "none":
+            self.trigger_frame.grid_remove()
+            return
+        self.trigger_frame.grid()
+        if trigger_kind == "long_press":
+            self.trigger_value_label.configure(text="长按阈值（毫秒）：")
+            self.trigger_value_entry.configure(textvariable=self.threshold_var)
+        elif trigger_kind == "double_click":
+            self.trigger_value_label.configure(text="双击间隔（毫秒）：")
+            self.trigger_value_entry.configure(textvariable=self.window_var)
+        else:
+            self.trigger_value_label.configure(text="重复间隔（毫秒）：")
+            self.trigger_value_entry.configure(textvariable=self.interval_var)
+
     def _refresh_form(self) -> None:
         """显示当前动作类型需要的参数控件。"""
 
         kind = self._current_kind()
+        self.trigger_combo.configure(state="disabled" if kind == "none" else "readonly")
         for widget in (self.key_frame, self.modifier_frame, self.special_hint, self.command_frame):
             widget.grid_remove()
         if kind in {"key", "combo"}:
@@ -318,6 +392,7 @@ class MappingEditorWindow:
             self.special_hint.grid()
         elif kind == "command":
             self.command_frame.grid(sticky="nsew")
+        self._refresh_trigger_form()
 
     def _build_current_action(self) -> KeyAction:
         """从当前控件读取并校验一个动作。"""
@@ -334,6 +409,10 @@ class MappingEditorWindow:
             modifiers=modifiers,
             program=self.program_var.get(),
             argument_lines=argument_lines,
+            trigger_kind=self._current_trigger_kind(),
+            threshold_ms=self.threshold_var.get(),
+            window_ms=self.window_var.get(),
+            interval_ms=self.interval_var.get(),
         )
 
     def _apply_current(self, show_error: bool = True) -> bool:
@@ -421,6 +500,61 @@ class MappingEditorWindow:
             messagebox.showerror("配置保存失败", str(error), parent=self.root)
             return
         self.status_var.set(f"已保存：{self.config_path}")
+
+    def _build_working_config(self) -> MappingConfig | None:
+        """校验当前表单并构造待写入配置。"""
+
+        if not self._apply_current(show_error=True):
+            return None
+        try:
+            return MappingConfig(mappings=dict(self._working_actions))
+        except MappingConfigError as error:
+            messagebox.showerror("配置校验失败", str(error), parent=self.root)
+            return None
+
+    def _import_config(self) -> None:
+        """从用户选择的 JSON 文件导入到当前编辑会话。"""
+
+        selected_path = filedialog.askopenfilename(
+            parent=self.root,
+            title="导入 T1 映射配置",
+            initialdir=str(self.config_path.parent),
+            filetypes=(("JSON 配置", "*.json"), ("所有文件", "*.*")),
+        )
+        if not selected_path:
+            return
+        try:
+            config = load_mapping_config(selected_path)
+        except MappingConfigError as error:
+            messagebox.showerror("配置导入失败", str(error), parent=self.root)
+            return
+        self._working_actions = dict(config.mappings)
+        self._refresh_button_table()
+        self._select_button(self._selected_button or REMOTE_BUTTONS[0])
+        self.status_var.set(f"已导入（尚未覆盖当前文件）：{selected_path}")
+
+    def _export_config(self) -> None:
+        """把当前编辑会话导出到用户选择的 JSON 文件。"""
+
+        config = self._build_working_config()
+        if config is None:
+            return
+        selected_path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="导出 T1 映射配置",
+            initialdir=str(self.config_path.parent),
+            initialfile=self.config_path.name,
+            defaultextension=".json",
+            filetypes=(("JSON 配置", "*.json"), ("所有文件", "*.*")),
+        )
+        if not selected_path:
+            return
+        try:
+            save_mapping_config(selected_path, config)
+        except MappingConfigError as error:
+            messagebox.showerror("配置导出失败", str(error), parent=self.root)
+            return
+        self.status_var.set(f"已导出：{selected_path}")
 
 
 def _load_startup_config(config_path: Path) -> MappingConfig:

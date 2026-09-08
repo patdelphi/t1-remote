@@ -106,6 +106,21 @@ class MappingRuntimeTests(unittest.TestCase):
         self.assertEqual(command_executor.calls, [("notepad.exe",)])
         self.assertEqual(emitter.outputs, [])
 
+    def test_runtime_exposes_input_mapping_and_output_diagnostics(self) -> None:
+        emitter = _FakeEmitter()
+        runtime = T1MappingRuntime(emitter=emitter)
+
+        runtime.process_report("COL02", 2, bytes.fromhex("02 e9 00"))
+        runtime.process_report("COL02", 2, bytes.fromhex("02 00 00"))
+
+        diagnostics = runtime.diagnostics
+
+        self.assertEqual(diagnostics.input_events, 2)
+        self.assertEqual(diagnostics.mapping_events, 2)
+        self.assertEqual(diagnostics.output_events, 2)
+        self.assertEqual(diagnostics.errors, 0)
+        self.assertTrue(diagnostics.recent_events)
+
 
 if __name__ == "__main__":
     unittest.main()

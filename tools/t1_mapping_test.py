@@ -17,6 +17,7 @@ from t1remote.core.key_mapping import (
     MappingEngine,
     load_mapping_config,
 )
+from t1remote.core.mapping_watch import MappingConfigWatcher
 from t1remote.windows.driver_bridge import (
     BridgeError,
     T1BridgeClient,
@@ -83,6 +84,23 @@ def _print_mapping_events(events: tuple[object, ...]) -> None:
         print(f"[映射] {event.button} {event.state} -> {event.action.kind}:{event.action.key}")  # type: ignore[attr-defined]
 
 
+def _print_diagnostics(runtime: T1MappingRuntime) -> None:
+    """打印会话计数和最近脱敏事件。"""
+
+    snapshot = runtime.diagnostics
+    print(
+        "[诊断] "
+        f"输入={snapshot.input_events}，忽略={snapshot.ignored_inputs}，"
+        f"映射={snapshot.mapping_events}，输出={snapshot.output_events}，"
+        f"命令={snapshot.command_events}，错误={snapshot.errors}"
+    )
+    for record in snapshot.recent_events[-10:]:
+        print(
+            f"[最近] {record.timestamp_local} {record.result} "
+            f"{record.button or '-'} {record.state} {record.action_kind or '-'}"
+        )
+
+
 def run(config_path: Path, dry_run: bool = False) -> int:
     """启动并运行 Key Mapping 测试会话。"""
 
@@ -100,6 +118,19 @@ def run(config_path: Path, dry_run: bool = False) -> int:
     stop_requested = threading.Event()
     worker_threads: list[threading.Thread] = []
     raw_listener: RawInputListener | None = None
+
+    def reload_mapping_config(replacement: MappingConfig) -> None:
+        """热加载有效配置，并先释放旧配置的活动输出。"""
+
+        releases = runtime.reload(replacement)
+        _print_mapping_events(releases)
+        print(f"[配置] 已热加载：{config_path}")
+
+    config_watcher = MappingConfigWatcher(
+        config_path,
+        on_reload=reload_mapping_config,
+        on_error=lambda error: report_error("配置监视", error),
+    )
 
     def report_error(prefix: str, error: Exception) -> None:
         print(f"[{prefix}错误] {error}")
@@ -124,6 +155,7 @@ def run(config_path: Path, dry_run: bool = False) -> int:
                 with bridge_lock:
                     event = bridge.read_event()
                 if event is None:
+                    _print_mapping_events(runtime.poll())
                     stop_requested.wait(0.03)
                     continue
                 mapped = runtime.process_report(
@@ -167,6 +199,7 @@ def run(config_path: Path, dry_run: bool = False) -> int:
             on_error=lambda error: report_error("Raw Input", error),
         )
         raw_listener.start()
+        config_watcher.start()
         worker_threads = [
             threading.Thread(target=read_driver_events, name="t1-mapping-driver", daemon=True),
             threading.Thread(target=heartbeat, name="t1-mapping-heartbeat", daemon=True),
@@ -188,12 +221,14 @@ def run(config_path: Path, dry_run: bool = False) -> int:
                 raw_listener.stop()
             except Exception as error:
                 report_error("Raw Input 停止", error)
+        config_watcher.stop()
         for thread in worker_threads:
             thread.join(timeout=2)
         try:
             runtime.reset()
         except MappingRuntimeError as error:
             report_error("按键释放", error)
+        _print_diagnostics(runtime)
         try:
             with bridge_lock:
                 if bridge.is_open:

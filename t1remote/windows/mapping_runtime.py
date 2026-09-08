@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Protocol
 
 from t1remote.core.input_mapping import ButtonEvent, T1InputDecoder
 from t1remote.core.key_mapping import MappingConfig, MappingEngine, MappingEvent
+from t1remote.core.mapping_diagnostics import DiagnosticSnapshot, MappingDiagnostics
 from t1remote.windows.command_runner import WindowsCommandExecutor
 from t1remote.windows.send_input import KeyboardOutput, build_mapping_output_events
 
@@ -38,17 +40,26 @@ class T1MappingRuntime:
         decoder: T1InputDecoder | None = None,
         engine: MappingEngine | None = None,
         command_executor: CommandExecutor | None = None,
+        diagnostics: MappingDiagnostics | None = None,
     ) -> None:
         self._emitter = emitter
         self._decoder = decoder or T1InputDecoder()
         self._engine = engine or MappingEngine()
         self._command_executor = command_executor or WindowsCommandExecutor()
+        self._diagnostics = diagnostics or MappingDiagnostics()
+        self._lock = threading.RLock()
 
     @property
     def config(self) -> MappingConfig:
         """返回当前生效的映射配置。"""
 
         return self._engine.config
+
+    @property
+    def diagnostics(self) -> DiagnosticSnapshot:
+        """返回当前运行时诊断快照。"""
+
+        return self._diagnostics.snapshot()
 
     def process_report(
         self,
@@ -61,50 +72,67 @@ class T1MappingRuntime:
     ) -> tuple[MappingEvent, ...]:
         """解码并输出一条 Raw Input 或驱动报告。"""
 
-        input_event = self._decoder.feed(
-            collection,
-            raw_input_type,
-            report,
-            usage_page=usage_page,
-            usage=usage,
-        )
-        return self.process_button_event(input_event)
+        with self._lock:
+            input_event = self._decoder.feed(
+                collection,
+                raw_input_type,
+                report,
+                usage_page=usage_page,
+                usage=usage,
+            )
+            return self.process_button_event(input_event)
 
     def process_button_event(self, event: ButtonEvent) -> tuple[MappingEvent, ...]:
         """处理已经解码的语义按键事件。"""
 
-        mapping_events = self._engine.handle(event)
-        self._emit_mapping_events(mapping_events)
-        return mapping_events
+        with self._lock:
+            self._diagnostics.record_input(event)
+            mapping_events = self._engine.handle(event)
+            self._emit_mapping_events(mapping_events)
+            return mapping_events
+
+    def poll(self, *, now: float | None = None) -> tuple[MappingEvent, ...]:
+        """推进触发计时器，并输出到期的长按或按住重复动作。"""
+
+        with self._lock:
+            mapping_events = self._engine.tick(now=now)
+            self._emit_mapping_events(mapping_events)
+            return mapping_events
 
     def reload(self, config: MappingConfig) -> tuple[MappingEvent, ...]:
         """切换配置并先释放旧配置产生的活动输出。"""
 
-        releases = self._engine.reload(config)
-        self._emit_mapping_events(releases)
-        return releases
+        with self._lock:
+            releases = self._engine.reload(config)
+            self._emit_mapping_events(releases)
+            return releases
 
     def reset(self) -> tuple[MappingEvent, ...]:
         """设备断开或程序退出时释放活动输出并清空解码状态。"""
 
-        releases = self._engine.reset()
-        self._decoder.reset()
-        self._emit_mapping_events(releases)
-        return releases
+        with self._lock:
+            releases = self._engine.reset()
+            self._decoder.reset()
+            self._emit_mapping_events(releases)
+            return releases
 
     def _emit_mapping_events(self, events: tuple[MappingEvent, ...]) -> None:
         """把状态机事件转换并提交给输出器。"""
 
         for event in events:
+            self._diagnostics.record_mapping(event)
             try:
                 if event.action.kind == "command":
                     # 命令是瞬时动作，只在按下时执行，抬起只负责结束状态机。
                     if event.state == "down":
                         self._command_executor.run(event.action.argv)
+                        self._diagnostics.record_command()
                     continue
                 outputs = build_mapping_output_events(event)
                 self._emitter.emit(outputs)
+                self._diagnostics.record_output(len(outputs))
             except (OSError, RuntimeError, ValueError) as exc:
+                self._diagnostics.record_error(exc)
                 raise MappingRuntimeError(
                     f"输出按键动作失败：{event.button}/{event.action.kind}"
                 ) from exc

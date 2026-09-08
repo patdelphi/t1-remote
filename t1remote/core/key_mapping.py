@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import time
 from typing import Any
 
 from t1remote.core.capture_scope import REMOTE_BUTTONS
@@ -18,10 +19,71 @@ from t1remote.core.input_mapping import ButtonEvent
 MAPPING_VERSION = 1
 _ACTION_KINDS = {"none", "key", "media", "special", "shortcut", "combo", "command"}
 _MODIFIER_NAMES = {"ALT", "CTRL", "SHIFT", "WIN"}
+_TRIGGER_KINDS = {"press", "long_press", "double_click", "hold_repeat"}
 
 
 class MappingConfigError(ValueError):
     """映射配置格式、版本或字段内容不合法。"""
+
+
+@dataclass(frozen=True)
+class TriggerConfig:
+    """一个映射动作的触发方式和时间参数。"""
+
+    kind: str = "press"
+    threshold_ms: int = 500
+    window_ms: int = 300
+    interval_ms: int = 100
+
+    def __post_init__(self) -> None:
+        normalized_kind = self.kind.strip().lower()
+        if normalized_kind not in _TRIGGER_KINDS:
+            raise MappingConfigError(f"不支持的触发方式：{self.kind}")
+        object.__setattr__(self, "kind", normalized_kind)
+        for name, value, minimum, maximum in (
+            ("threshold_ms", self.threshold_ms, 100, 5000),
+            ("window_ms", self.window_ms, 100, 2000),
+            ("interval_ms", self.interval_ms, 50, 2000),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise MappingConfigError(f"{name} 必须是整数")
+            if not minimum <= value <= maximum:
+                raise MappingConfigError(
+                    f"{name} 必须在 {minimum}-{maximum} 之间"
+                )
+
+    @classmethod
+    def from_dict(cls, raw: object) -> "TriggerConfig":
+        """从 JSON 对象读取触发参数；缺失时使用单击默认值。"""
+
+        if raw is None:
+            return cls()
+        if not isinstance(raw, dict):
+            raise MappingConfigError("trigger 必须是对象")
+        kind = raw.get("kind", "press")
+        if not isinstance(kind, str):
+            raise MappingConfigError("trigger.kind 必须是字符串")
+        values = {
+            name: raw.get(name, default)
+            for name, default in (
+                ("threshold_ms", 500),
+                ("window_ms", 300),
+                ("interval_ms", 100),
+            )
+        }
+        return cls(kind=kind, **values)
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为稳定的 JSON 对象。"""
+
+        data: dict[str, Any] = {"kind": self.kind}
+        if self.kind == "long_press":
+            data["threshold_ms"] = self.threshold_ms
+        elif self.kind == "double_click":
+            data["window_ms"] = self.window_ms
+        elif self.kind == "hold_repeat":
+            data["interval_ms"] = self.interval_ms
+        return data
 
 
 @dataclass(frozen=True)
@@ -32,11 +94,14 @@ class KeyAction:
     key: str | None = None
     modifiers: tuple[str, ...] = ()
     argv: tuple[str, ...] = ()
+    trigger: TriggerConfig = TriggerConfig()
 
     def __post_init__(self) -> None:
         kind = self.kind.lower()
         if kind not in _ACTION_KINDS:
             raise MappingConfigError(f"不支持的动作类型：{self.kind}")
+        if not isinstance(self.trigger, TriggerConfig):
+            raise MappingConfigError("trigger 必须是 TriggerConfig")
         object.__setattr__(self, "kind", kind)
         if kind == "none":
             if self.key is not None or self.modifiers or self.argv:
@@ -80,6 +145,7 @@ class KeyAction:
         key = raw.get("key")
         modifiers = raw.get("modifiers", ())
         argv = raw.get("argv", ())
+        trigger = TriggerConfig.from_dict(raw.get("trigger"))
         if not isinstance(modifiers, (list, tuple)) or any(
             not isinstance(item, str) for item in modifiers
         ):
@@ -93,6 +159,7 @@ class KeyAction:
             key if isinstance(key, str) else key,
             tuple(modifiers),
             tuple(argv),
+            trigger,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -101,10 +168,15 @@ class KeyAction:
         if self.kind == "none":
             return {"type": "none"}
         if self.kind == "command":
-            return {"type": "command", "argv": list(self.argv)}
+            data: dict[str, Any] = {"type": "command", "argv": list(self.argv)}
+            if self.trigger.kind != "press":
+                data["trigger"] = self.trigger.to_dict()
+            return data
         data: dict[str, Any] = {"type": self.kind, "key": self.key}
         if self.modifiers:
             data["modifiers"] = list(self.modifiers)
+        if self.trigger.kind != "press":
+            data["trigger"] = self.trigger.to_dict()
         return data
 
 
@@ -193,12 +265,30 @@ class MappingEvent:
     action: KeyAction
 
 
+@dataclass
+class _ActiveMapping:
+    """状态机内部保存的一次活动按键。"""
+
+    action: KeyAction
+    emitted: bool
+    deadline: float | None = None
+
+
+@dataclass
+class _PendingDoubleClick:
+    """等待第二次按下的双击候选。"""
+
+    action: KeyAction
+    expires_at: float
+
+
 class MappingEngine:
-    """处理按键按下/抬起并抑制重复事件和孤立释放。"""
+    """处理按键状态、长按、双击和按住重复。"""
 
     def __init__(self, config: MappingConfig | None = None) -> None:
         self._config = config or MappingConfig.default()
-        self._active_buttons: set[str] = set()
+        self._active_buttons: dict[str, _ActiveMapping] = {}
+        self._pending_double_clicks: dict[str, _PendingDoubleClick] = {}
 
     @property
     def config(self) -> MappingConfig:
@@ -206,33 +296,134 @@ class MappingEngine:
 
         return self._config
 
-    def handle(self, event: ButtonEvent) -> tuple[MappingEvent, ...]:
+    def handle(
+        self,
+        event: ButtonEvent,
+        *,
+        now: float | None = None,
+    ) -> tuple[MappingEvent, ...]:
         """处理语义按键事件，未知或未绑定动作直接忽略。"""
 
         if event.button is None or event.state not in ("down", "up"):
             return ()
+        current_time = time.monotonic() if now is None else now
+        pending_events = list(self._expire(current_time))
         action = self._config.mappings.get(event.button)
         if action is None or action.kind == "none":
-            return ()
+            return tuple(pending_events)
         if event.state == "down":
-            if event.button in self._active_buttons:
-                return ()
-            self._active_buttons.add(event.button)
-        elif event.button not in self._active_buttons:
-            return ()
+            pending_events.extend(self._handle_down(event.button, action, current_time))
         else:
-            self._active_buttons.remove(event.button)
-        return (MappingEvent(event.button, event.state, action),)
+            pending_events.extend(self._handle_up(event.button, action, current_time))
+        return tuple(pending_events)
+
+    def tick(self, *, now: float | None = None) -> tuple[MappingEvent, ...]:
+        """推进时间触发长按和按住重复事件。"""
+
+        current_time = time.monotonic() if now is None else now
+        return self._expire(current_time)
+
+    def _handle_down(
+        self,
+        button: str,
+        action: KeyAction,
+        now: float,
+    ) -> tuple[MappingEvent, ...]:
+        if button in self._active_buttons:
+            return ()
+        trigger = action.trigger
+        pending = self._pending_double_clicks.get(button)
+        if trigger.kind != "double_click":
+            self._pending_double_clicks.pop(button, None)
+            pending = None
+        if trigger.kind == "double_click" and pending is not None:
+            if now <= pending.expires_at:
+                self._pending_double_clicks.pop(button, None)
+                self._active_buttons[button] = _ActiveMapping(
+                    action=pending.action,
+                    emitted=True,
+                )
+                return (MappingEvent(button, "down", pending.action),)
+            self._pending_double_clicks.pop(button, None)
+
+        if trigger.kind == "double_click":
+            self._active_buttons[button] = _ActiveMapping(
+                action=action,
+                emitted=False,
+            )
+            return ()
+
+        if trigger.kind == "long_press":
+            self._active_buttons[button] = _ActiveMapping(
+                action=action,
+                emitted=False,
+                deadline=now + trigger.threshold_ms / 1000,
+            )
+            return ()
+        self._active_buttons[button] = _ActiveMapping(
+            action=action,
+            emitted=True,
+            deadline=(
+                now + trigger.interval_ms / 1000
+                if trigger.kind == "hold_repeat"
+                else None
+            ),
+        )
+        return (MappingEvent(button, "down", action),)
+
+    def _handle_up(
+        self,
+        button: str,
+        action: KeyAction,
+        now: float,
+    ) -> tuple[MappingEvent, ...]:
+        active = self._active_buttons.pop(button, None)
+        if active is None:
+            return ()
+        if active.action.trigger.kind == "double_click":
+            if not active.emitted:
+                self._pending_double_clicks[button] = _PendingDoubleClick(
+                    action=active.action,
+                    expires_at=now + active.action.trigger.window_ms / 1000,
+                )
+                return ()
+            return (MappingEvent(button, "up", active.action),)
+        if not active.emitted:
+            # 长按未达到阈值，短按不产生动作。
+            return ()
+        return (MappingEvent(button, "up", active.action),)
+
+    def _expire(self, now: float) -> tuple[MappingEvent, ...]:
+        """处理已到期的长按、重复和双击窗口。"""
+
+        events: list[MappingEvent] = []
+        for button, pending in tuple(self._pending_double_clicks.items()):
+            if now > pending.expires_at:
+                self._pending_double_clicks.pop(button, None)
+        for button, active in tuple(self._active_buttons.items()):
+            trigger = active.action.trigger
+            if active.deadline is None or now < active.deadline:
+                continue
+            if trigger.kind == "long_press" and not active.emitted:
+                active.emitted = True
+                active.deadline = None
+                events.append(MappingEvent(button, "down", active.action))
+            elif trigger.kind == "hold_repeat":
+                # 一次 poll 最多生成一个重复 down，避免应用恢复后瞬间积压大量输入。
+                active.deadline = now + trigger.interval_ms / 1000
+                events.append(MappingEvent(button, "down", active.action))
+        return tuple(events)
 
     def reload(self, config: MappingConfig) -> tuple[MappingEvent, ...]:
         """切换配置并返回旧动作的抬起事件，避免留下粘键。"""
 
         releases = tuple(
-            MappingEvent(button, "up", self._config.mappings[button])
-            for button in sorted(self._active_buttons)
-            if self._config.mappings[button].kind != "none"
+            MappingEvent(button, "up", active.action)
+            for button, active in sorted(self._active_buttons.items())
+            if active.emitted
         )
         self._active_buttons.clear()
+        self._pending_double_clicks.clear()
         self._config = config
         return releases
 
@@ -240,11 +431,12 @@ class MappingEngine:
         """设备断开或应用退出时释放当前活动动作。"""
 
         releases = tuple(
-            MappingEvent(button, "up", self._config.mappings[button])
-            for button in sorted(self._active_buttons)
-            if self._config.mappings[button].kind != "none"
+            MappingEvent(button, "up", active.action)
+            for button, active in sorted(self._active_buttons.items())
+            if active.emitted
         )
         self._active_buttons.clear()
+        self._pending_double_clicks.clear()
         return releases
 
 
@@ -281,6 +473,7 @@ __all__ = [
     "MappingConfigError",
     "MappingEngine",
     "MappingEvent",
+    "TriggerConfig",
     "load_mapping_config",
     "save_mapping_config",
 ]

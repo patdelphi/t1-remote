@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from t1remote.core.key_mapping import KeyAction, MappingConfigError
+from t1remote.core.key_mapping import KeyAction, MappingConfigError, TriggerConfig
 
 
 ACTION_TYPE_LABELS: dict[str, str] = {
@@ -20,6 +20,12 @@ ACTION_TYPE_LABELS: dict[str, str] = {
 }
 
 FORM_MODIFIERS: tuple[str, ...] = ("ALT", "CTRL", "SHIFT", "WIN")
+TRIGGER_TYPE_LABELS: dict[str, str] = {
+    "press": "按下",
+    "long_press": "长按",
+    "double_click": "双击",
+    "hold_repeat": "按住重复",
+}
 
 
 def build_command_argv(
@@ -44,21 +50,43 @@ def build_action_from_form(
     modifiers: Iterable[str],
     program: str,
     argument_lines: Iterable[str],
+    trigger_kind: str = "press",
+    threshold_ms: int | str = 500,
+    window_ms: int | str = 300,
+    interval_ms: int | str = 100,
 ) -> KeyAction:
     """把编辑器表单转换为 KeyAction，并执行统一配置校验。"""
 
     normalized_kind = kind.strip().lower()
     if normalized_kind not in ACTION_TYPE_LABELS:
         raise MappingConfigError(f"不支持的前台动作类型：{kind}")
+    try:
+        trigger = TriggerConfig(
+            kind=trigger_kind,
+            threshold_ms=int(threshold_ms),
+            window_ms=int(window_ms),
+            interval_ms=int(interval_ms),
+        )
+    except (TypeError, ValueError) as error:
+        raise MappingConfigError("触发时间必须是整数") from error
     if normalized_kind == "none":
         return KeyAction("none")
     if normalized_kind == "command":
-        return KeyAction("command", argv=build_command_argv(program, argument_lines))
+        return KeyAction(
+            "command",
+            argv=build_command_argv(program, argument_lines),
+            trigger=trigger,
+        )
     if normalized_kind == "special":
-        return KeyAction("special", key=key)
+        return KeyAction("special", key=key, trigger=trigger)
     if normalized_kind == "combo":
-        return KeyAction("combo", key=key, modifiers=tuple(modifiers))
-    return KeyAction("key", key=key)
+        return KeyAction(
+            "combo",
+            key=key,
+            modifiers=tuple(modifiers),
+            trigger=trigger,
+        )
+    return KeyAction("key", key=key, trigger=trigger)
 
 
 def action_to_form(action: KeyAction) -> dict[str, Any]:
@@ -72,6 +100,10 @@ def action_to_form(action: KeyAction) -> dict[str, Any]:
         "modifiers": tuple(action.modifiers),
         "program": program,
         "argument_lines": tuple(argument_lines),
+        "trigger_kind": action.trigger.kind,
+        "threshold_ms": action.trigger.threshold_ms,
+        "window_ms": action.trigger.window_ms,
+        "interval_ms": action.trigger.interval_ms,
     }
 
 
@@ -93,6 +125,7 @@ def format_action_summary(action: KeyAction) -> str:
 __all__ = [
     "ACTION_TYPE_LABELS",
     "FORM_MODIFIERS",
+    "TRIGGER_TYPE_LABELS",
     "action_to_form",
     "build_action_from_form",
     "build_command_argv",

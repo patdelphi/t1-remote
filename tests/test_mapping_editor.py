@@ -54,6 +54,22 @@ class MappingEditorTests(unittest.TestCase):
         self.assertEqual(special.key, "MEDIA_PLAY_PAUSE")
         self.assertEqual(none, KeyAction("none"))
 
+    def test_trigger_fields_are_preserved_by_form_conversion(self) -> None:
+        action = build_action_from_form(
+            "key",
+            key="ENTER",
+            modifiers=(),
+            program="",
+            argument_lines=(),
+            trigger_kind="long_press",
+            threshold_ms="750",
+        )
+
+        fields = action_to_form(action)
+
+        self.assertEqual(action.trigger.kind, "long_press")
+        self.assertEqual(fields["threshold_ms"], 750)
+
     def test_command_form_uses_one_argument_per_line(self) -> None:
         action = build_action_from_form(
             "command",
