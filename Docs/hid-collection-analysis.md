@@ -12,6 +12,10 @@
 
 这些 Collection 属于同一个 T1 BLE HID 父设备，Windows 为每个 Top-Level Collection 建立独立的 HID 子设备实例。
 
+## 传输候选探测
+
+可以运行 `python -m tools.t1_transport_probe` 查看当前 Raw Input 设备的脱敏传输提示。输出中的 `ble-hid` 表示 BLE HID 路径，`usb-hid` 只表示 USB HID 候选，可用于后续检查 2.4GHz 接收器；它不会证明接收器属于 T1，也不会自动加入映射策略。使用 `--t1-only` 可只查看当前 VID/PID 的 T1 设备。
+
 ## 2. 当前证据
 
 | Collection | 当前确认结果 | 证据来源 | 确认程度 |

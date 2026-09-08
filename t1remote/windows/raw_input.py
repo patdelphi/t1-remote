@@ -13,6 +13,7 @@ import win32api
 import win32gui
 
 from t1remote.core.capture_scope import (
+    classify_hid_transport,
     collection_from_device_path,
     is_t1_device_path,
     redacted_device_family,
@@ -217,6 +218,7 @@ def summarize_raw_input_devices(
             "device_type": type_names.get(device.raw_input_type, "unknown"),
             "collection": collection_from_device_path(device.device_path),
             "device_family": redacted_device_family(device.device_path),
+            "transport_hint": classify_hid_transport(device.device_path),
             "path_resolved": bool(device.device_path),
         }
         if device.name_error is not None:

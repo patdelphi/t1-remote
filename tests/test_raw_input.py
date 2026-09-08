@@ -46,6 +46,7 @@ class RawInputRegistrationTests(unittest.TestCase):
 
         self.assertEqual(devices[0]["collection"], "COL02")
         self.assertEqual(devices[0]["device_family"], "T1-Remote/COL02")
+        self.assertEqual(devices[0]["transport_hint"], "hid-unknown")
         self.assertNotIn("secret-address", str(devices))
         self.assertNotIn("123", str(devices))
 

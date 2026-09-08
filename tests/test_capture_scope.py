@@ -10,6 +10,7 @@ from t1remote.core.capture_scope import (
     build_logical_actions,
     capture_metadata,
     collection_from_device_path,
+    classify_hid_transport,
     is_t1_device_path,
     redacted_device_family,
     validate_button_number,
@@ -59,6 +60,17 @@ class CaptureScopeTests(unittest.TestCase):
         )
 
         self.assertEqual(collection_from_device_path(device_path), "COL02")
+
+    def test_classifies_hid_transport_without_exposing_device_path(self) -> None:
+        self.assertEqual(
+            classify_hid_transport(r"\\?\HID#{00001812-0000-1000-8000-00805f9b34fb}_Dev"),
+            "ble-hid",
+        )
+        self.assertEqual(
+            classify_hid_transport(r"\\?\USB#VID_620A&PID_0407#receiver"),
+            "usb-hid",
+        )
+        self.assertEqual(classify_hid_transport(r"HID#generic"), "hid-unknown")
 
     def test_button_number_validation(self) -> None:
         self.assertEqual(validate_button_number(1), "Power")

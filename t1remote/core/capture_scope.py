@@ -301,6 +301,22 @@ def collection_from_device_path(device_path: str) -> str:
     return f"COL{match.group(1)}".upper() if match else "UNKNOWN"
 
 
+def classify_hid_transport(device_path: str) -> str:
+    """根据 HID 接口路径给出脱敏的传输类型提示。"""
+
+    normalized = (device_path or "").upper()
+    if (
+        "BTHLEDEVICE" in normalized
+        or "00001812-0000-1000-8000-00805F9B34FB" in normalized
+    ):
+        return "ble-hid"
+    if "\\USB#" in normalized or normalized.startswith("USB#"):
+        return "usb-hid"
+    if "HID#" in normalized or normalized.startswith("HID#"):
+        return "hid-unknown"
+    return "unknown"
+
+
 def redacted_device_family(device_path: str) -> str:
     """返回不包含蓝牙地址和完整设备路径的设备归属信息。"""
 
