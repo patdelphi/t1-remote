@@ -87,6 +87,16 @@ python -m tools.t1_raw_input_probe --all
 
 默认命令只输出 T1；`--all` 输出当前用户会话登记的全部设备，但始终只输出设备类型、Collection 和脱敏归属。当前主机实测默认结果为空，`--all` 可以看到 26 条其他 Raw Input 设备，没有 `VID_620A/PID_0407`。这说明本次会话的 Raw Input 设备清单中没有 T1，问题早于按键报文解析；需要先恢复 T1 HID 子设备或重新建立用户会话，再复测 HID 接口和驱动队列。
 
+### 3.6 COL02/COL03 驱动事件采集
+
+Power、Home、Return、Voice、Mute 和音量键由过滤驱动队列提供，不能依赖 Raw Input Inspector。使用以下命令采集驱动事件：
+
+```powershell
+python -m tools.t1_driver_inspector --output captures/t1-driver-control-YYYYMMDD.json
+```
+
+该工具通过 `T1Bridge_ReadEvent` 读取事件，记录 Collection、Usage Page、Usage、原始报告、序号、驱动时间戳和按下/释放状态；设备路径和蓝牙地址不会写入夹具。每个实体键仍需人工单独按下并核对报告，空会话不会创建夹具文件。
+
 ## 4. 当前不能直接下结论的内容
 
 - `COL05` 不能直接认定为 Air Mouse、麦克风或其他具体功能；目前只确认它是 Vendor Defined HID。
