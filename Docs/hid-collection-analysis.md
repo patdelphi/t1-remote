@@ -20,6 +20,8 @@
 
 在 HID 接口可打开时，探测还会通过只读 `IOCTL_HID_GET_REPORT_DESCRIPTOR` 保存报告描述符长度和十六进制内容；接口不可用或设备未枚举时字段为空，不会伪造描述符。
 
+报告描述符还会经过纯 Python 解析器转换为字段规则：输入/输出/Feature 类型、Report ID、Usage、位偏移、位宽、数量、Flags 和 Collection 路径。解析失败时只保留原始描述符，不生成猜测字段。
+
 ## 2. 当前证据
 
 | Collection | 当前确认结果 | 证据来源 | 确认程度 |

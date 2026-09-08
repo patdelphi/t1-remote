@@ -9,6 +9,11 @@ import os
 from typing import Any, Iterable
 
 from t1remote.core.capture_scope import collection_from_device_path, is_t1_device_path
+from t1remote.core.hid_report_descriptor import (
+    HidReportField,
+    HidReportDescriptorError,
+    parse_hid_report_descriptor,
+)
 from t1remote.windows.hid_input import HIDP_CAPS, enumerate_hid_paths
 
 
@@ -33,6 +38,7 @@ class HidCollectionInfo:
     feature_report_length: int
     input_button_capabilities: tuple["HidInputButtonCapability", ...] = ()
     report_descriptor: bytes = b""
+    report_fields: tuple[HidReportField, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -261,6 +267,10 @@ def inspect_hid_collections(
                 caps,
             )
             report_descriptor = _read_report_descriptor(kernel32, int(handle))
+            try:
+                report_fields = parse_hid_report_descriptor(report_descriptor)
+            except (HidReportDescriptorError, TypeError):
+                report_fields = ()
             infos.append(
                 HidCollectionInfo(
                     collection=collection,
@@ -272,6 +282,7 @@ def inspect_hid_collections(
                     feature_report_length=int(caps.FeatureReportByteLength),
                     input_button_capabilities=input_button_capabilities,
                     report_descriptor=report_descriptor,
+                    report_fields=report_fields.fields if report_descriptor else (),
                 )
             )
         finally:
@@ -286,33 +297,42 @@ def summarize_hid_collections(
 ) -> list[dict[str, Any]]:
     """转换为不包含完整设备路径的 JSON 摘要。"""
 
-    return [
-        {
-            "collection": info.collection or collection_from_device_path(info.device_path),
-            "usage_page": f"0x{info.usage_page:02X}",
-            "usage": f"0x{info.usage:02X}",
-            "input_report_length": info.input_report_length,
-            "output_report_length": info.output_report_length,
-            "feature_report_length": info.feature_report_length,
-            "report_descriptor_length": len(info.report_descriptor),
-            "report_descriptor_hex": info.report_descriptor.hex(" "),
-            "input_button_capabilities": [
-                {
-                    "report_id": capability.report_id,
-                    "usage_page": f"0x{capability.usage_page:02X}",
-                    "usage_min": f"0x{capability.usage_min:02X}",
-                    "usage_max": f"0x{capability.usage_max:02X}",
-                    "is_range": capability.is_range,
-                    "report_count": capability.report_count,
-                    "link_collection": capability.link_collection,
-                    "is_absolute": capability.is_absolute,
-                }
-                for capability in info.input_button_capabilities
-            ],
-            "device_family": f"T1-Remote/{info.collection}",
-        }
-        for info in infos
-    ]
+    summaries: list[dict[str, Any]] = []
+    for info in infos:
+        report_fields = info.report_fields
+        if not report_fields and info.report_descriptor:
+            try:
+                report_fields = parse_hid_report_descriptor(info.report_descriptor).fields
+            except (HidReportDescriptorError, TypeError):
+                report_fields = ()
+        summaries.append(
+            {
+                "collection": info.collection or collection_from_device_path(info.device_path),
+                "usage_page": f"0x{info.usage_page:02X}",
+                "usage": f"0x{info.usage:02X}",
+                "input_report_length": info.input_report_length,
+                "output_report_length": info.output_report_length,
+                "feature_report_length": info.feature_report_length,
+                "report_descriptor_length": len(info.report_descriptor),
+                "report_descriptor_hex": info.report_descriptor.hex(" "),
+                "report_fields": [field.to_dict() for field in report_fields],
+                "input_button_capabilities": [
+                    {
+                        "report_id": capability.report_id,
+                        "usage_page": f"0x{capability.usage_page:02X}",
+                        "usage_min": f"0x{capability.usage_min:02X}",
+                        "usage_max": f"0x{capability.usage_max:02X}",
+                        "is_range": capability.is_range,
+                        "report_count": capability.report_count,
+                        "link_collection": capability.link_collection,
+                        "is_absolute": capability.is_absolute,
+                    }
+                    for capability in info.input_button_capabilities
+                ],
+                "device_family": f"T1-Remote/{info.collection}",
+            }
+        )
+    return summaries
 
 
 __all__ = [

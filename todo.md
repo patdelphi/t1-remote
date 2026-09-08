@@ -82,6 +82,7 @@
 - [x] 已增加 Raw Input 传输候选探测，区分 BLE HID、USB HID 和未知 HID；2.4GHz 接收器是否属于 T1 仍需现场确认。
 - [x] 已扩展 HID 只读探测，读取可用的输入按钮字段能力；完整 Report Descriptor 和逐键硬件夹具仍需现场确认。
 - [x] 已增加只读 Report Descriptor 获取；当前会话没有可打开的 T1 HID 子接口时仍无法生成真实描述符。
+- [x] 已增加纯 Python Report Descriptor 字段解析，输出位偏移和 Collection 路径；真实 T1 字段仍需现场描述符验证。
 - [x] 已增加物理按键观察映射表，保留 Collection、Usage、状态和样本报告；不会自动覆盖动作配置。
 - [x] 已增加采集夹具离线验收命令，可输出覆盖报告并按需强制 13 个启用按键全部完成。
 - [ ] 以上组件尚未宣称与 T1 `AB5E0001` 报文兼容；T1 真实 GATT 特征和端到端音频输出仍需设备证据。
