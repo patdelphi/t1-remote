@@ -258,7 +258,7 @@ class InterceptionPolicy:
     """只允许 T1 VID/PID 的 HID 过滤策略。"""
 
     blocked_usages: tuple[HidUsage, ...] = ()
-    target_collections: tuple[str, ...] = ("COL01", "COL02", "COL04", "COL05")
+    target_collections: tuple[str, ...] = ("COL02", "COL03")
     enabled: bool = True
     drop_unmapped: bool = False
     remap_enabled: bool = True
@@ -356,6 +356,30 @@ class InterceptionPolicy:
                 usage.mapped_usage or 0,
             )
         return native
+
+
+def build_default_interception_policy(
+    *, lease_required: bool = True
+) -> InterceptionPolicy:
+    """构造当前已确认遥控键的安全拦截策略。"""
+
+    blocked_usages = (
+        HidUsage(0x0C, 0x221, "COL02"),  # Voice
+        HidUsage(0x0C, 0x223, "COL02"),  # Home
+        HidUsage(0x0C, 0x224, "COL02"),  # Return
+        HidUsage(0x0C, 0xE2, "COL02"),  # Mute
+        HidUsage(0x0C, 0xE9, "COL02"),  # Volume Plus
+        HidUsage(0x0C, 0xEA, "COL02"),  # Volume Minus
+        HidUsage(0x01, 0x01, "COL03"),  # Power
+    )
+    return InterceptionPolicy(
+        blocked_usages=blocked_usages,
+        target_collections=("COL02", "COL03"),
+        enabled=True,
+        drop_unmapped=False,
+        remap_enabled=False,
+        lease_required=lease_required,
+    )
 
 
 @dataclass(frozen=True)
@@ -793,6 +817,7 @@ __all__ = [
     "BridgeProtocolError",
     "BridgeStatus",
     "BridgeStats",
+    "build_default_interception_policy",
     "BridgeUnavailable",
     "DriverInputEvent",
     "HidFieldRule",

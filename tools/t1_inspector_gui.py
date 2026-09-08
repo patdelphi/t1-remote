@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 import threading
 
 import tkinter as tk
@@ -24,6 +26,9 @@ PRODUCT_IMAGE_PATH = (
     Path(__file__).resolve().parents[1]
     / "assets"
     / "t1-remote-front-clean-v2.png"
+)
+MAPPING_CONFIG_PATH = (
+    Path(__file__).resolve().parents[1] / "config" / "t1-key-mapping.json"
 )
 
 BUTTON_DISPLAY_NAMES = {
@@ -238,6 +243,29 @@ def run_gui(output_path: Path) -> int:
         textvariable=driver_stats_label,
         foreground="#52606d",
     ).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
+
+    def launch_mapping_editor() -> None:
+        """在独立进程中打开映射编辑器，避免创建第二个 Tk 主循环。"""
+
+        try:
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.t1_mapping_gui",
+                    "--config",
+                    str(MAPPING_CONFIG_PATH),
+                ],
+                shell=False,
+            )
+        except OSError as error:
+            messagebox.showerror("映射编辑器启动失败", str(error), parent=root)
+
+    ttk.Button(
+        future_frame,
+        text="打开按键映射编辑器",
+        command=launch_mapping_editor,
+    ).grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
     footer = ttk.Frame(operation_frame)
     footer.grid(row=3, column=0, sticky="ew", padx=8, pady=(0, 10))

@@ -79,6 +79,20 @@
 
 设备级拦截的 Python/C DLL 接口、ABI v2、原始事件队列、会话租约、诊断统计、字段规则、KMDF 驱动源码和 x64 开发构建已经完成。当前只剩本轮最终包安装后重启一次，并在真实 T1 上验证设备栈和 Home 等按键是否被阻断。
 
+## 2026-09-08 本轮执行进度
+
+- [x] 管理员环境已启用 Windows 测试签名；T1 驱动包已存在并应用到 `COL02/COL03`，两个设备状态均为 `Started`。
+- [x] 真实桥接 DLL 已启动默认策略并完成心跳；ABI v2、`COL02/COL03` 附着和租约状态正常，当前队列无丢失。
+- [x] 已确认的 7 个 Consumer/System Usage 已固化为默认拦截策略；Power、Home、Return、Voice、Mute、音量加减均保留按下/抬起语义。
+- [x] 新增纯 Python 输入解码和 `SendInput` 输出封装；Power、Voice、未知 Usage 默认不注入。
+- [x] 完成 Key Mapping MVP：版本化 JSON 配置、键盘单键、组合键、HID 特殊功能键、命令行动作、按下/抬起状态机、热加载释放旧动作和运行时输出协调器。
+- [x] 提供 `tools/t1_mapping_test.py` 和 `config/t1-key-mapping.json`，可以开始真实遥控器 Key Mapping 测试。
+- [x] 完成 Tkinter Key Mapping 配置前台：物理按键选择、四类动作参数表单、动作预览、默认恢复、重载和安全保存；Inspector 已提供启动入口。
+- [x] `python -m pytest -q`：66 项通过。
+- [x] UI 表单转换测试加入后，`python -m pytest -q`：71 项通过。
+- [ ] 仍需使用真实遥控器逐键确认 Windows 默认动作是否全部被阻断；本项需要硬件操作，代码和驱动链路已准备完成。
+- [ ] 增加长按、双击、按住重复和配置文件监视。
+
 ## 驱动长期规划（待确认后执行）
 
 详细边界和阶段拆分见 [Docs/driver-capability-roadmap.md](Docs/driver-capability-roadmap.md)。驱动侧的会话租约、PnP/睡眠安全边界、诊断、事件时间戳、字段规则和安全重映射已经提前实现；下一轮重点转为真机验收，之后移除 HidHide 依赖。语音保持独立的 Python/GATT/WASAPI 链路，不并入 HID 驱动。

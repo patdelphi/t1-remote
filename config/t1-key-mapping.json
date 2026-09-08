@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "mappings": {
+    "Power": {
+      "type": "none"
+    },
+    "Arrow Up": {
+      "type": "key",
+      "key": "UP"
+    },
+    "Arrow Down": {
+      "type": "key",
+      "key": "DOWN"
+    },
+    "Arrow Left": {
+      "type": "key",
+      "key": "LEFT"
+    },
+    "Arrow Right": {
+      "type": "key",
+      "key": "RIGHT"
+    },
+    "OK": {
+      "type": "key",
+      "key": "ENTER"
+    },
+    "Return": {
+      "type": "key",
+      "key": "ESC"
+    },
+    "Voice": {
+      "type": "none"
+    },
+    "Mute": {
+      "type": "media",
+      "key": "VOLUME_MUTE"
+    },
+    "Home": {
+      "type": "key",
+      "key": "HOME"
+    },
+    "Menu": {
+      "type": "key",
+      "key": "APPS"
+    },
+    "Air Mouse": {
+      "type": "none"
+    },
+    "Volume Plus": {
+      "type": "media",
+      "key": "VOLUME_UP"
+    },
+    "Volume Minus": {
+      "type": "media",
+      "key": "VOLUME_DOWN"
+    }
+  }
+}

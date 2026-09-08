@@ -10,6 +10,7 @@ from t1remote.windows.driver_bridge import (
     BridgeStatus,
     BridgeStats,
     BridgeUnavailable,
+    build_default_interception_policy,
     format_bridge_diagnostics,
     HidFieldRule,
     HidUsage,
@@ -386,6 +387,20 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(len(library.stats.calls), 1)
         self.assertEqual(len(library.flush_events.calls), 1)
         client.close()
+
+    def test_default_policy_targets_installed_filter_collections(self) -> None:
+        policy = InterceptionPolicy()
+
+        self.assertEqual(policy.target_collections, ("COL02", "COL03"))
+
+    def test_default_interception_policy_covers_confirmed_remote_buttons(self) -> None:
+        policy = build_default_interception_policy()
+        usages = {(item.usage_page, item.usage, item.collection) for item in policy.blocked_usages}
+
+        self.assertEqual(len(usages), 7)
+        self.assertIn((0x0C, 0x223, "COL02"), usages)
+        self.assertIn((0x01, 0x01, "COL03"), usages)
+        self.assertTrue(policy.lease_required)
 
 
 if __name__ == "__main__":
