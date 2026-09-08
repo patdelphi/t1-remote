@@ -51,3 +51,9 @@ pwsh -File .\tools\build_windows.ps1 -SkipNative
 - `t1-remote-inspector`：T1 原始报文采集；
 - `t1-remote-mapping-test`：命令行 Mapping 测试。
 - `t1-remote-hid-probe`：只读 HID Collection 能力探测。
+- `t1-remote-raw-input-probe`：只读 Raw Input 设备清单。
+- `t1-remote-transport-probe`：BLE/USB/未知 HID 传输候选清单。
+- `t1-remote-capture-validate`：离线验收遥控区域 JSON 夹具。
+- `t1-remote-gatt-probe`：只读 GATT 服务和特征探测。
+- `t1-remote-gatt-capture`：限定时长采集脱敏 GATT 通知帧。
+- `t1-remote-audio-devices`：只读音频输出端点清单。
