@@ -34,6 +34,7 @@ t1-remote-hid-probe = "tools.t1_hid_probe:main"
 t1-remote-raw-input-probe = "tools.t1_raw_input_probe:main"
 t1-remote-driver-inspector = "tools.t1_driver_inspector:main"
 t1-remote-gatt-probe = "tools.t1_gatt_probe:main"
+t1-remote-audio-devices = "tools.t1_audio_devices:main"
 
 [tool.setuptools.packages.find]
 include = ["t1remote*", "tools*"]

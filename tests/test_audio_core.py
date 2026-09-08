@@ -13,7 +13,10 @@ from t1remote.core.audio_buffer import PcmFormat, PcmFrameQueue
 from t1remote.core.audio_pipeline import ImaPcmPipeline, samples_to_pcm16le
 from t1remote.core.ima_adpcm import ImaAdpcmDecoder, decode_ima_adpcm
 from t1remote.core.pcm_sink import PcmSinkError, WaveFilePcmSink
-from t1remote.core.sounddevice_sink import SoundDevicePcmSink
+from t1remote.core.sounddevice_sink import (
+    SoundDevicePcmSink,
+    enumerate_output_devices,
+)
 
 
 class ImaAdpcmTests(unittest.TestCase):
@@ -140,6 +143,22 @@ class PcmFrameQueueTests(unittest.TestCase):
         self.assertEqual(created[0]["samplerate"], 16000)
         self.assertEqual(instances[0].writes, [b"\x00\x00"])
         self.assertTrue(instances[0].closed)
+
+    def test_enumerates_only_output_devices(self) -> None:
+        devices = enumerate_output_devices(
+            query_devices=lambda: [
+                {"name": "input", "max_output_channels": 0},
+                {
+                    "name": "speaker",
+                    "max_output_channels": 2,
+                    "default_samplerate": 48000,
+                },
+            ]
+        )
+
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0].index, 1)
+        self.assertEqual(devices[0].name, "speaker")
 
 
 if __name__ == "__main__":

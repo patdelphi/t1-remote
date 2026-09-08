@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable
 
 from t1remote.core.audio_buffer import PcmFormat
 from t1remote.core.pcm_sink import PcmSinkError
@@ -81,4 +82,63 @@ class SoundDevicePcmSink:
         self.close()
 
 
-__all__ = ["SoundDevicePcmSink"]
+@dataclass(frozen=True)
+class AudioOutputDevice:
+    """一个可输出音频设备的脱敏摘要。"""
+
+    index: int
+    name: str
+    max_output_channels: int
+    default_samplerate: float
+
+
+def summarize_output_devices(devices: Iterable[Any]) -> tuple[AudioOutputDevice, ...]:
+    """从 sounddevice 设备记录中筛选可输出端点。"""
+
+    summaries: list[AudioOutputDevice] = []
+    for index, device in enumerate(devices):
+        if not isinstance(device, dict):
+            continue
+        try:
+            channels = int(device.get("max_output_channels", 0))
+            if channels <= 0:
+                continue
+            summaries.append(
+                AudioOutputDevice(
+                    index=index,
+                    name=str(device.get("name", f"output-{index}")),
+                    max_output_channels=channels,
+                    default_samplerate=float(device.get("default_samplerate", 0)),
+                )
+            )
+        except (TypeError, ValueError):
+            continue
+    return tuple(summaries)
+
+
+def enumerate_output_devices(
+    *,
+    query_devices: Callable[[], Iterable[Any]] | None = None,
+) -> tuple[AudioOutputDevice, ...]:
+    """只读枚举 sounddevice 输出端点；依赖按需加载。"""
+
+    if query_devices is None:
+        try:
+            import sounddevice
+        except ImportError as error:
+            raise PcmSinkError(
+                "未安装可选依赖 sounddevice，不能枚举音频设备"
+            ) from error
+        query_devices = sounddevice.query_devices
+    try:
+        return summarize_output_devices(query_devices())
+    except Exception as error:
+        raise PcmSinkError("枚举 sounddevice 音频设备失败") from error
+
+
+__all__ = [
+    "AudioOutputDevice",
+    "SoundDevicePcmSink",
+    "enumerate_output_devices",
+    "summarize_output_devices",
+]

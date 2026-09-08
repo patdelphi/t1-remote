@@ -11,12 +11,14 @@
 - `t1remote.core.gatt_audio_pipeline.GattAudioProcessor`：把当前 GATT generation 的通知交给可注入帧适配器，再连接到 PCM 管线。
 - `t1remote.core.pcm_sink.WaveFilePcmSink`：把 PCM16LE 保存为新的 WAV 文件，供离线听感和波形校验。
 - `t1remote.core.sounddevice_sink.SoundDevicePcmSink`：通过可选 `sounddevice` 播放 PCM16LE，供输出端点验证。
+- `tools.t1_audio_devices`：只读枚举可输出端点，不连接设备。
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
 - `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
 
 核心解码、队列和状态机不依赖 `bleak`、WinRT 或 WASAPI，便于在没有设备协议样本时进行确定性测试。
 
 GATT 探测命令需要显式安装项目的可选 `ble` extra；当前开发环境没有自动安装该依赖。
+音频端点枚举和播放需要项目的可选 `audio` extra；当前开发环境没有自动安装该依赖。
 
 ## 未宣称兼容的部分
 
