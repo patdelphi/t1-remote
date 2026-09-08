@@ -5,10 +5,14 @@ from __future__ import annotations
 import threading
 import time
 import unittest
+import wave
+from pathlib import Path
+import tempfile
 
 from t1remote.core.audio_buffer import PcmFormat, PcmFrameQueue
 from t1remote.core.audio_pipeline import ImaPcmPipeline, samples_to_pcm16le
 from t1remote.core.ima_adpcm import ImaAdpcmDecoder, decode_ima_adpcm
+from t1remote.core.pcm_sink import PcmSinkError, WaveFilePcmSink
 
 
 class ImaAdpcmTests(unittest.TestCase):
@@ -87,6 +91,19 @@ class PcmFrameQueueTests(unittest.TestCase):
         self.assertEqual(pcm, samples_to_pcm16le((11, 41)))
         self.assertEqual(queue.pop(), pcm)
         self.assertEqual(pipeline.stats.decoded_samples, 2)
+
+    def test_wave_sink_writes_pcm16le_without_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.wav"
+            with WaveFilePcmSink(path, PcmFormat(16000, 1)) as sink:
+                sink.write(b"\x0b\x00\x29\x00")
+
+            with wave.open(str(path), "rb") as audio:
+                self.assertEqual(audio.getframerate(), 16000)
+                self.assertEqual(audio.getnchannels(), 1)
+                self.assertEqual(audio.readframes(2), b"\x0b\x00\x29\x00")
+            with self.assertRaises(PcmSinkError):
+                WaveFilePcmSink(path, PcmFormat(16000, 1))
 
 
 if __name__ == "__main__":
