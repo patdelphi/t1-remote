@@ -35,6 +35,12 @@ class GattAudioProcessor:
         self._payload_adapter = payload_adapter or _identity_payload
 
     @property
+    def session(self) -> GattAudioSession:
+        """返回控制器需要协调的 GATT 会话对象。"""
+
+        return self._session
+
+    @property
     def snapshot(self) -> GattAudioPipelineSnapshot:
         """返回当前会话和音频管线统计。"""
 

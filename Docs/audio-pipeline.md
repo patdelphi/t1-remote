@@ -15,6 +15,7 @@
 - `tools.t1_audio_devices`：只读枚举可输出端点，不连接设备。
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
 - `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
+- `t1remote.windows.gatt_audio.GattAudioController`：串联传输、目标服务发现、通知订阅和 PCM 管线；开始流式接收前要求调用方显式确认私有协议协商。
 
 核心解码、队列和状态机不依赖 `bleak`、WinRT 或 WASAPI，便于在没有设备协议样本时进行确定性测试。
 
