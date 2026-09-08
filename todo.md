@@ -69,7 +69,7 @@
 
 - [x] 已实现协议无关的 IMA-DVI ADPCM 解码器、PCM 格式校验和有界 PCM 队列。
 - [x] 已实现 ADPCM 到 PCM16LE 的纯 Python 管线，输入帧头仍由未来 T1 适配器负责剥离。
-- [x] 已增加不覆盖已有文件的 WAV PCM 离线输出端点；WASAPI/虚拟麦克风仍未接入。
+- [x] 已增加不覆盖已有文件的 WAV PCM 离线输出端点；WASAPI 输出端点已单独实现，虚拟麦克风仍未接入。
 - [x] 已增加可选 sounddevice PCM 输出端点；未自动安装依赖，不宣称虚拟麦克风已完成。
 - [x] 已增加基于 sounddevice WASAPI host 设置的 PCM 输出端点；仍不创建虚拟麦克风。
 - [x] 已增加 PCM 队列到音频端点的后台输出泵，支持排空、统计和失败关闭。
