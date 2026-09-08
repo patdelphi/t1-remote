@@ -30,7 +30,7 @@ KeyAction：none / key / combo / special / command
 
 ## 前台信息架构
 
-映射编辑器以独立 Tkinter 窗口运行，Inspector 通过“打开按键映射”按钮启动它。这样采集窗口和配置窗口不会共享两个 Tk 主循环，也不会在采集时误改配置。
+主前台 `tools/t1_app.py` 负责启动/停止 Mapping 会话，显示驱动状态、租约、事件计数、最近事件和日志。Windows 通知区域图标负责隐藏、恢复和退出；映射编辑器与 Inspector 以独立 Tkinter 进程运行，避免多个 Tk 主循环共享同一个窗口，也避免采集时误改配置。
 
 界面分成三块：
 
