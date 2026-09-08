@@ -16,6 +16,8 @@ GENERIC_READ = 0x80000000
 FILE_SHARE_READ = 0x00000001
 FILE_SHARE_WRITE = 0x00000002
 OPEN_EXISTING = 3
+IOCTL_HID_GET_REPORT_DESCRIPTOR = 0x000B0007
+MAX_REPORT_DESCRIPTOR_BYTES = 4096
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,7 @@ class HidCollectionInfo:
     output_report_length: int
     feature_report_length: int
     input_button_capabilities: tuple["HidInputButtonCapability", ...] = ()
+    report_descriptor: bytes = b""
 
 
 @dataclass(frozen=True)
@@ -162,6 +165,40 @@ def _read_input_button_capabilities(
     return tuple(result)
 
 
+def _read_report_descriptor(
+    kernel32: ctypes.WinDLL,
+    handle: int,
+) -> bytes:
+    """通过只读 HID IOCTL 取得报告描述符；当前接口失败时返回空字节串。"""
+
+    kernel32.DeviceIoControl.restype = wintypes.BOOL
+    kernel32.DeviceIoControl.argtypes = [
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        ctypes.c_void_p,
+    ]
+    buffer = ctypes.create_string_buffer(MAX_REPORT_DESCRIPTOR_BYTES)
+    bytes_returned = wintypes.DWORD(0)
+    if not kernel32.DeviceIoControl(
+        ctypes.c_void_p(handle),
+        IOCTL_HID_GET_REPORT_DESCRIPTOR,
+        None,
+        0,
+        buffer,
+        MAX_REPORT_DESCRIPTOR_BYTES,
+        ctypes.byref(bytes_returned),
+        None,
+    ):
+        return b""
+    size = min(int(bytes_returned.value), MAX_REPORT_DESCRIPTOR_BYTES)
+    return bytes(buffer.raw[:size])
+
+
 def inspect_hid_collections(
     target_collections: Iterable[str] = ("COL01", "COL02", "COL03", "COL04", "COL05"),
 ) -> tuple[HidCollectionInfo, ...]:
@@ -223,6 +260,7 @@ def inspect_hid_collections(
                 preparsed_data,
                 caps,
             )
+            report_descriptor = _read_report_descriptor(kernel32, int(handle))
             infos.append(
                 HidCollectionInfo(
                     collection=collection,
@@ -233,6 +271,7 @@ def inspect_hid_collections(
                     output_report_length=int(caps.OutputReportByteLength),
                     feature_report_length=int(caps.FeatureReportByteLength),
                     input_button_capabilities=input_button_capabilities,
+                    report_descriptor=report_descriptor,
                 )
             )
         finally:
@@ -255,6 +294,8 @@ def summarize_hid_collections(
             "input_report_length": info.input_report_length,
             "output_report_length": info.output_report_length,
             "feature_report_length": info.feature_report_length,
+            "report_descriptor_length": len(info.report_descriptor),
+            "report_descriptor_hex": info.report_descriptor.hex(" "),
             "input_button_capabilities": [
                 {
                     "report_id": capability.report_id,

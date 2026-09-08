@@ -41,6 +41,7 @@ class HidDescriptorTests(unittest.TestCase):
                 input_report_length=3,
                 output_report_length=0,
                 feature_report_length=0,
+                report_descriptor=b"\x05\x0c\x09\x01",
                 input_button_capabilities=(
                     HidInputButtonCapability(
                         report_id=2,
@@ -61,6 +62,7 @@ class HidDescriptorTests(unittest.TestCase):
         self.assertEqual(summary[0]["input_button_capabilities"][0]["report_id"], 2)
         self.assertEqual(summary[0]["input_button_capabilities"][0]["usage_min"], "0xE9")
         self.assertEqual(summary[0]["input_button_capabilities"][0]["usage_max"], "0xEA")
+        self.assertEqual(summary[0]["report_descriptor_hex"], "05 0c 09 01")
 
 
 if __name__ == "__main__":

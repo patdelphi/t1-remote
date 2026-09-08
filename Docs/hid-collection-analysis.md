@@ -18,6 +18,8 @@
 
 `python -m tools.t1_hid_probe` 现在还会读取可用的 `HidP_GetButtonCaps` 输入字段摘要，包括 Report ID、Usage Page、Usage 范围、ReportCount 和 LinkCollection。字段数组读取失败时仍保留基础报告长度信息，不把不完整摘要当成完整报告描述符。
 
+在 HID 接口可打开时，探测还会通过只读 `IOCTL_HID_GET_REPORT_DESCRIPTOR` 保存报告描述符长度和十六进制内容；接口不可用或设备未枚举时字段为空，不会伪造描述符。
+
 ## 2. 当前证据
 
 | Collection | 当前确认结果 | 证据来源 | 确认程度 |
