@@ -16,6 +16,7 @@
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
 - `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
 - `t1remote.windows.gatt_audio.GattAudioController`：串联传输、目标服务发现、通知订阅和 PCM 管线；开始流式接收前要求调用方显式确认私有协议协商。
+- `tools.t1_gatt_capture`：在显式指定 notify 特征后采集限定时长的脱敏通知帧夹具；不发送私有协商命令，也不覆盖已有输出文件。
 
 核心解码、队列和状态机不依赖 `bleak`、WinRT 或 WASAPI，便于在没有设备协议样本时进行确定性测试。
 
@@ -32,7 +33,7 @@ GATT 探测命令需要显式安装项目的可选 `ble` extra；当前开发环
 ## 接入顺序
 
 1. 通过 GATT 适配器发现并记录目标服务和特征 UUID。
-2. 保存脱敏的能力协商和通知帧夹具。
+2. 使用 `python -m tools.t1_gatt_capture <address> --characteristic <uuid> --output <path>` 保存脱敏通知帧夹具；能力协商命令仍需另行取得协议证据。
 3. 根据夹具实现帧解析器，把有效音频样本送入 `ImaAdpcmDecoder` 或明确的其他解码器。
 4. 将解码后的 PCM 写入 `PcmFrameQueue`，再接入可选音频端点。
 5. 断连时递增 GATT session generation，丢弃旧通知并排空或丢弃队列。
