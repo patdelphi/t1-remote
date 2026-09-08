@@ -7,6 +7,7 @@ import time
 import unittest
 
 from t1remote.core.audio_buffer import PcmFormat, PcmFrameQueue
+from t1remote.core.audio_pipeline import ImaPcmPipeline, samples_to_pcm16le
 from t1remote.core.ima_adpcm import ImaAdpcmDecoder, decode_ima_adpcm
 
 
@@ -76,6 +77,16 @@ class PcmFrameQueueTests(unittest.TestCase):
 
     def test_pcm_format_reports_interleaved_frame_size(self) -> None:
         self.assertEqual(PcmFormat(16000, 2, 2).bytes_per_sample_frame, 4)
+
+    def test_pipeline_decodes_and_queues_pcm16le(self) -> None:
+        queue = PcmFrameQueue()
+        pipeline = ImaPcmPipeline(queue)
+
+        pcm = pipeline.feed(b"\x77")
+
+        self.assertEqual(pcm, samples_to_pcm16le((11, 41)))
+        self.assertEqual(queue.pop(), pcm)
+        self.assertEqual(pipeline.stats.decoded_samples, 2)
 
 
 if __name__ == "__main__":

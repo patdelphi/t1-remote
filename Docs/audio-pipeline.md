@@ -7,6 +7,7 @@
 - `t1remote.core.ima_adpcm.ImaAdpcmDecoder`：标准 IMA-DVI ADPCM nibble 解码，支持增量状态、采样值钳位和标准 WAV IMA block 头部。
 - `t1remote.core.audio_buffer.PcmFrameQueue`：固定容量、线程安全的 PCM chunk 队列，满载时丢弃最旧 chunk，并提供丢弃计数。
 - `t1remote.core.audio_buffer.PcmFormat`：采样率、声道数和采样宽度校验。
+- `t1remote.core.audio_pipeline.ImaPcmPipeline`：把已剥离私有帧头的 ADPCM 载荷转换为 PCM16LE 并送入队列。
 - `t1remote.core.gatt_session.GattAudioSession`：连接、服务发现、能力协商、流式接收、排空、断开、错误和旧回调 generation 隔离。
 - `t1remote.windows.gatt.BleakGattAdapter`：可选 Bleak 传输边界和只读服务/特征摘要；`tools.t1_gatt_probe` 不执行特征写入。
 
