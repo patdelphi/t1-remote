@@ -38,7 +38,7 @@ pwsh -File .\tools\build_windows.ps1 -SourceBundleOnly
 pwsh -File .\tools\build_windows.ps1 -SkipNative
 ```
 
-每次构建使用新的时间戳目录，不覆盖已有包。输出目录包含 `SHA256SUMS.txt`，安装或交付前应核对校验值。
+每次构建使用新的时间戳目录，不覆盖已有包，同时生成同名 ZIP 压缩包。输出目录包含 `SHA256SUMS.txt`，安装或交付前应核对目录文件和 ZIP 的校验值。
 
 ## 安装边界
 

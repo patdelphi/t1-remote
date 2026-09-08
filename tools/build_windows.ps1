@@ -73,5 +73,12 @@ Get-ChildItem -File -Recurse $packageRoot |
     ForEach-Object { "$($_.Hash)  $($_.Path.Substring($packageRoot.Length + 1))" } |
     Set-Content -Encoding utf8 $hashPath
 
+$archivePath = Join-Path (Split-Path -Parent $packageRoot) "$packageName.zip"
+Compress-Archive -Path (Join-Path $packageRoot "*") -DestinationPath $archivePath
+Get-FileHash -Algorithm SHA256 $archivePath |
+    ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($archivePath))" } |
+    Add-Content -Encoding utf8 $hashPath
+
 Write-Host "已生成包：$packageRoot"
+Write-Host "压缩包：$archivePath"
 Write-Host "校验文件：$hashPath"
