@@ -1,10 +1,12 @@
 """程序说明：验证语义按键到 Windows 键盘输出事件的转换。"""
 
+import ctypes
 import unittest
 
 from t1remote.core.input_mapping import ButtonEvent
 from t1remote.core.key_mapping import KeyAction, MacroStep, MappingEvent
 from t1remote.windows.send_input import (
+    INPUT,
     binding_from_action,
     build_mapping_output_events,
     build_macro_step_events,
@@ -24,6 +26,12 @@ def button_event(button: str | None, state: str) -> ButtonEvent:
 
 
 class SendInputTests(unittest.TestCase):
+    def test_input_structure_matches_windows_abi_size(self) -> None:
+        """SendInput 的 cbSize 必须匹配完整 INPUT 联合体布局。"""
+
+        expected_size = 40 if ctypes.sizeof(ctypes.c_void_p) == 8 else 28
+        self.assertEqual(ctypes.sizeof(INPUT), expected_size)
+
     def test_arrow_press_and_release_become_keyboard_events(self) -> None:
         pressed = build_output_events(button_event("Arrow Up", "down"))
         released = build_output_events(button_event("Arrow Up", "up"))

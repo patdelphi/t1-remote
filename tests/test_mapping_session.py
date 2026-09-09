@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 import tempfile
+import time
 import unittest
+from unittest.mock import patch
 
-from t1remote.core.key_mapping import MappingConfig, save_mapping_config
-from t1remote.windows.driver_bridge import BridgeStatus
+from t1remote.core.key_mapping import KeyAction, MappingConfig, save_mapping_config
+from t1remote.windows.driver_bridge import BridgeStatus, DriverInputEvent
 from t1remote.windows.mapping_session import T1MappingSession
 from t1remote.windows.raw_input import RawInputEvent
 
@@ -50,6 +52,51 @@ class _FakeBridge:
         self.closed = True
 
 
+class _ReconnectBridge(_FakeBridge):
+    """模拟蓝牙重连后设备重新附着但过滤租约已停止。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.driver_state = "stopped"
+        self.attached_collections = 0x06
+        self.lease_active = False
+        self.start_calls = 0
+
+    def start(self) -> None:
+        self.start_calls += 1
+        self.driver_state = "running"
+        self.lease_active = bool(self.policy and self.policy.lease_required)
+
+    def status(self) -> BridgeStatus:
+        return BridgeStatus(
+            state=self.driver_state,
+            last_error=0,
+            dropped_reports=0,
+            abi_version=2,
+            attached_collections=self.attached_collections,
+            lease_active=self.lease_active,
+        )
+
+
+class _EventBridge(_FakeBridge):
+    """只返回一条驱动事件，用于触发会话运行时错误路径。"""
+
+    def __init__(self, event: DriverInputEvent) -> None:
+        super().__init__()
+        self._event = event
+
+    def read_event(self):
+        event, self._event = self._event, None
+        return event
+
+
+class _FailingEmitter:
+    """模拟 SendInput 失败，验证会话不会继续显示 running。"""
+
+    def emit(self, _outputs) -> None:
+        raise RuntimeError("SendInput 测试失败")
+
+
 class _FakeRawListener:
     last_instance: "_FakeRawListener | None" = None
 
@@ -70,6 +117,63 @@ class _FakeRawListener:
 
 
 class MappingSessionTests(unittest.TestCase):
+    def test_heartbeat_restarts_filter_after_device_reconnect(self) -> None:
+        bridge = _ReconnectBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=False,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            try:
+                # 模拟设备重连：集合已附着，但原租约对应的过滤状态已经停止。
+                bridge.driver_state = "stopped"
+                bridge.lease_active = False
+                deadline = time.monotonic() + 2
+                while bridge.start_calls < 2 and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertGreaterEqual(bridge.start_calls, 2)
+                self.assertEqual(session.status().driver_state, "running")
+                self.assertTrue(session.status().lease_active)
+            finally:
+                session.stop()
+
+    def test_output_failure_marks_session_as_error_and_stops_processing(self) -> None:
+        bridge = _EventBridge(
+            DriverInputEvent(
+                sequence=1,
+                usage_page=0x0C,
+                usage=0x0E9,
+                collection="COL02",
+                report=bytes.fromhex("02 e9 00"),
+            )
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            with patch(
+                "t1remote.windows.mapping_session.WindowsInputEmitter",
+                _FailingEmitter,
+            ):
+                session = T1MappingSession(
+                    path,
+                    dry_run=False,
+                    bridge_factory=lambda: bridge,
+                    raw_listener_factory=_FakeRawListener,
+                    instance_name=f"T1RemoteTestSession-{id(bridge)}",
+                )
+                session.start()
+                deadline = time.monotonic() + 2
+                while session.status().state == "running" and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertEqual(session.status().state, "error")
+                session.stop()
+
     def test_start_stop_and_status(self) -> None:
         bridge = _FakeBridge()
         logs: list[str] = []
@@ -153,6 +257,35 @@ class MappingSessionTests(unittest.TestCase):
             assert raw.on_device_change is not None
             raw.on_device_change(2)
             self.assertEqual(session.status().diagnostics.mapping_events, 2)
+
+    def test_manual_reload_applies_latest_mapping_config(self) -> None:
+        bridge = _FakeBridge()
+        logs: list[str] = []
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                on_log=logs.append,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+
+            replacement = MappingConfig(
+                mappings={
+                    **MappingConfig.default().mappings,
+                    "OK": KeyAction("key", "SPACE"),
+                }
+            )
+            save_mapping_config(path, replacement)
+            session.reload_config()
+
+            assert session._runtime is not None
+            self.assertEqual(session._runtime.config.mappings["OK"].key, "SPACE")
+            self.assertTrue(any("映射配置已重新加载" in message for message in logs))
             session.stop()
 
 

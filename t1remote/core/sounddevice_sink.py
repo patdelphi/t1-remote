@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 
 from t1remote.core.audio_buffer import PcmFormat
 from t1remote.core.pcm_sink import PcmSinkError
@@ -130,9 +130,57 @@ class AudioOutputDevice:
     name: str
     max_output_channels: int
     default_samplerate: float
+    hostapi_index: int | None = None
+    hostapi_name: str | None = None
 
 
-def summarize_output_devices(devices: Iterable[Any]) -> tuple[AudioOutputDevice, ...]:
+@dataclass(frozen=True)
+class AudioInputDevice:
+    """一个可被目标应用选择为麦克风的脱敏输入端点摘要。"""
+
+    index: int
+    name: str
+    max_input_channels: int
+    default_samplerate: float
+    hostapi_index: int | None = None
+    hostapi_name: str | None = None
+
+
+def _hostapi_fields(
+    device: Mapping[str, Any],
+    hostapi_names: Mapping[int, str] | None,
+) -> tuple[int | None, str | None]:
+    """读取 sounddevice 设备的 Host API 编号和名称。"""
+
+    try:
+        index = int(device["hostapi"])
+    except (KeyError, TypeError, ValueError):
+        return None, None
+    return index, (hostapi_names or {}).get(index)
+
+
+def _summarize_hostapis(
+    query_hostapis: Callable[[], Iterable[Any]] | None,
+) -> dict[int, str]:
+    """把 Host API 列表转换为稳定的编号到名称映射。"""
+
+    if query_hostapis is None:
+        return {}
+    try:
+        values: dict[int, str] = {}
+        for index, hostapi in enumerate(query_hostapis()):
+            if isinstance(hostapi, dict) and hostapi.get("name"):
+                values[index] = str(hostapi["name"])
+        return values
+    except Exception:
+        return {}
+
+
+def summarize_output_devices(
+    devices: Iterable[Any],
+    *,
+    hostapi_names: Mapping[int, str] | None = None,
+) -> tuple[AudioOutputDevice, ...]:
     """从 sounddevice 设备记录中筛选可输出端点。"""
 
     summaries: list[AudioOutputDevice] = []
@@ -143,12 +191,15 @@ def summarize_output_devices(devices: Iterable[Any]) -> tuple[AudioOutputDevice,
             channels = int(device.get("max_output_channels", 0))
             if channels <= 0:
                 continue
+            hostapi_index, hostapi_name = _hostapi_fields(device, hostapi_names)
             summaries.append(
                 AudioOutputDevice(
                     index=index,
                     name=str(device.get("name", f"output-{index}")),
                     max_output_channels=channels,
                     default_samplerate=float(device.get("default_samplerate", 0)),
+                    hostapi_index=hostapi_index,
+                    hostapi_name=hostapi_name,
                 )
             )
         except (TypeError, ValueError):
@@ -159,6 +210,7 @@ def summarize_output_devices(devices: Iterable[Any]) -> tuple[AudioOutputDevice,
 def enumerate_output_devices(
     *,
     query_devices: Callable[[], Iterable[Any]] | None = None,
+    query_hostapis: Callable[[], Iterable[Any]] | None = None,
 ) -> tuple[AudioOutputDevice, ...]:
     """只读枚举 sounddevice 输出端点；依赖按需加载。"""
 
@@ -170,16 +222,77 @@ def enumerate_output_devices(
                 "未安装可选依赖 sounddevice，不能枚举音频设备"
             ) from error
         query_devices = sounddevice.query_devices
+        if query_hostapis is None:
+            query_hostapis = sounddevice.query_hostapis
+    hostapi_names = _summarize_hostapis(query_hostapis)
     try:
-        return summarize_output_devices(query_devices())
+        return summarize_output_devices(query_devices(), hostapi_names=hostapi_names)
+    except Exception as error:
+        raise PcmSinkError("枚举 sounddevice 音频设备失败") from error
+
+
+def summarize_input_devices(
+    devices: Iterable[Any],
+    *,
+    hostapi_names: Mapping[int, str] | None = None,
+) -> tuple[AudioInputDevice, ...]:
+    """从 sounddevice 设备记录中筛选可输入端点。"""
+
+    summaries: list[AudioInputDevice] = []
+    for index, device in enumerate(devices):
+        if not isinstance(device, dict):
+            continue
+        try:
+            channels = int(device.get("max_input_channels", 0))
+            if channels <= 0:
+                continue
+            hostapi_index, hostapi_name = _hostapi_fields(device, hostapi_names)
+            summaries.append(
+                AudioInputDevice(
+                    index=index,
+                    name=str(device.get("name", f"input-{index}")),
+                    max_input_channels=channels,
+                    default_samplerate=float(device.get("default_samplerate", 0)),
+                    hostapi_index=hostapi_index,
+                    hostapi_name=hostapi_name,
+                )
+            )
+        except (TypeError, ValueError):
+            continue
+    return tuple(summaries)
+
+
+def enumerate_input_devices(
+    *,
+    query_devices: Callable[[], Iterable[Any]] | None = None,
+    query_hostapis: Callable[[], Iterable[Any]] | None = None,
+) -> tuple[AudioInputDevice, ...]:
+    """只读枚举 sounddevice 输入端点；依赖按需加载。"""
+
+    if query_devices is None:
+        try:
+            import sounddevice
+        except ImportError as error:
+            raise PcmSinkError(
+                "未安装可选依赖 sounddevice，不能枚举音频设备"
+            ) from error
+        query_devices = sounddevice.query_devices
+        if query_hostapis is None:
+            query_hostapis = sounddevice.query_hostapis
+    hostapi_names = _summarize_hostapis(query_hostapis)
+    try:
+        return summarize_input_devices(query_devices(), hostapi_names=hostapi_names)
     except Exception as error:
         raise PcmSinkError("枚举 sounddevice 音频设备失败") from error
 
 
 __all__ = [
+    "AudioInputDevice",
     "AudioOutputDevice",
     "SoundDevicePcmSink",
     "WasapiPcmSink",
+    "enumerate_input_devices",
     "enumerate_output_devices",
+    "summarize_input_devices",
     "summarize_output_devices",
 ]

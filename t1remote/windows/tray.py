@@ -31,6 +31,7 @@ class TrayIcon:
         title: str,
         on_show: Callable[[], None],
         on_exit: Callable[[], None],
+        icon_path: str | os.PathLike[str] | None = None,
     ) -> None:
         normalized_title = title.strip()
         if not normalized_title:
@@ -38,8 +39,11 @@ class TrayIcon:
         self.title = normalized_title
         self._on_show = on_show
         self._on_exit = on_exit
+        self.icon_path = os.fspath(icon_path) if icon_path else None
         self._thread: threading.Thread | None = None
         self._hwnd: int | None = None
+        self._icon_handle: int | None = None
+        self._owns_icon = False
         self._ready = threading.Event()
         self._stop_requested = threading.Event()
         self._startup_error: Exception | None = None
@@ -112,7 +116,20 @@ class TrayIcon:
                 window_class.hInstance,
                 None,
             )
-            icon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
+            if self.icon_path:
+                try:
+                    self._icon_handle = win32gui.LoadImage(
+                        0,
+                        self.icon_path,
+                        win32con.IMAGE_ICON,
+                        16,
+                        16,
+                        win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE,
+                    )
+                    self._owns_icon = bool(self._icon_handle)
+                except Exception:
+                    self._icon_handle = None
+            icon = self._icon_handle or win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
             win32gui.Shell_NotifyIcon(
                 NIM_ADD,
                 (
@@ -135,9 +152,13 @@ class TrayIcon:
 
                 if self._hwnd:
                     win32gui.Shell_NotifyIcon(NIM_DELETE, (self._hwnd, 0))
+                if self._owns_icon and self._icon_handle:
+                    win32gui.DestroyIcon(self._icon_handle)
             except Exception:
                 pass
             self._hwnd = None
+            self._icon_handle = None
+            self._owns_icon = False
 
     def _window_proc(self, hwnd: int, message: int, wparam: int, lparam: int) -> int:
         import win32gui

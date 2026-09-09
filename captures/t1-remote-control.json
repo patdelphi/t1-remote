@@ -13,7 +13,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T08:40:22.643+00:00",
@@ -21,7 +24,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T08:40:24.191+00:00",
@@ -29,7 +35,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T08:40:24.364+00:00",
@@ -37,7 +46,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T08:40:24.815+00:00",
@@ -45,7 +57,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T08:40:24.915+00:00",
@@ -53,7 +68,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.448+00:00",
@@ -61,7 +79,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.462+00:00",
@@ -69,7 +90,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.490+00:00",
@@ -77,7 +101,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.491+00:00",
@@ -85,7 +112,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.495+00:00",
@@ -93,7 +123,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.497+00:00",
@@ -101,7 +134,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.602+00:00",
@@ -109,7 +145,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.604+00:00",
@@ -117,7 +156,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.607+00:00",
@@ -125,7 +167,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.608+00:00",
@@ -133,7 +178,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.608+00:00",
@@ -141,7 +189,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fc ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fc ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.609+00:00",
@@ -149,7 +200,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fa ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 fa ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.609+00:00",
@@ -157,7 +211,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 f9 ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 f9 ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.610+00:00",
@@ -165,7 +222,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff f7 ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff f7 ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.611+00:00",
@@ -173,7 +233,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff f8 ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff f8 ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.613+00:00",
@@ -181,7 +244,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff f9 ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff f9 ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.614+00:00",
@@ -189,7 +255,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.617+00:00",
@@ -197,7 +266,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.680+00:00",
@@ -205,7 +277,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.733+00:00",
@@ -213,7 +288,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.734+00:00",
@@ -221,7 +299,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.735+00:00",
@@ -229,7 +310,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.736+00:00",
@@ -237,7 +321,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.787+00:00",
@@ -245,7 +332,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.788+00:00",
@@ -253,7 +343,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.789+00:00",
@@ -261,7 +354,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 02 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.789+00:00",
@@ -269,7 +365,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 02 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 02 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.791+00:00",
@@ -277,7 +376,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 01 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 01 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:21.793+00:00",
@@ -285,7 +387,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.101+00:00",
@@ -293,7 +398,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.103+00:00",
@@ -301,7 +409,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.168+00:00",
@@ -309,7 +420,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.171+00:00",
@@ -317,7 +431,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.173+00:00",
@@ -325,7 +442,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.174+00:00",
@@ -333,7 +453,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.471+00:00",
@@ -341,7 +464,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.530+00:00",
@@ -349,7 +475,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.531+00:00",
@@ -357,7 +486,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.532+00:00",
@@ -365,7 +497,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.533+00:00",
@@ -373,7 +508,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.534+00:00",
@@ -381,7 +519,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.597+00:00",
@@ -389,7 +530,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.599+00:00",
@@ -397,7 +541,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.658+00:00",
@@ -405,7 +552,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.659+00:00",
@@ -413,7 +563,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.660+00:00",
@@ -421,7 +574,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fd ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.661+00:00",
@@ -429,7 +585,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.665+00:00",
@@ -437,7 +596,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.719+00:00",
@@ -445,7 +607,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.720+00:00",
@@ -453,7 +618,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.762+00:00",
@@ -461,7 +629,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.807+00:00",
@@ -469,7 +640,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.858+00:00",
@@ -477,7 +651,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:22.859+00:00",
@@ -485,7 +662,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.001+00:00",
@@ -493,7 +673,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.054+00:00",
@@ -501,7 +684,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.101+00:00",
@@ -509,7 +695,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.249+00:00",
@@ -517,7 +706,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 00 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.298+00:00",
@@ -525,7 +717,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.348+00:00",
@@ -533,7 +728,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.350+00:00",
@@ -541,7 +739,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 00 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.351+00:00",
@@ -549,7 +750,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 01 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 01 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.397+00:00",
@@ -557,7 +761,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.398+00:00",
@@ -565,7 +772,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.443+00:00",
@@ -573,7 +783,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.445+00:00",
@@ -581,7 +794,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.497+00:00",
@@ -589,7 +805,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.499+00:00",
@@ -597,7 +816,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.501+00:00",
@@ -605,7 +827,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.551+00:00",
@@ -613,7 +838,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.553+00:00",
@@ -621,7 +849,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.554+00:00",
@@ -629,7 +860,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 04 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 04 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.599+00:00",
@@ -637,7 +871,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.601+00:00",
@@ -645,7 +882,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.643+00:00",
@@ -653,7 +893,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 f9 ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.690+00:00",
@@ -661,7 +904,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.692+00:00",
@@ -669,7 +915,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fa ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.738+00:00",
@@ -677,7 +926,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.740+00:00",
@@ -685,7 +937,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fb ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.743+00:00",
@@ -693,7 +948,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.746+00:00",
@@ -701,7 +959,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.747+00:00",
@@ -709,7 +970,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.750+00:00",
@@ -717,7 +981,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 07 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.805+00:00",
@@ -725,7 +992,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fe ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.807+00:00",
@@ -733,7 +1003,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.860+00:00",
@@ -741,7 +1014,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.864+00:00",
@@ -749,7 +1025,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.866+00:00",
@@ -757,7 +1036,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.930+00:00",
@@ -765,7 +1047,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.933+00:00",
@@ -773,7 +1058,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff 04 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:23.974+00:00",
@@ -781,7 +1069,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:24.021+00:00",
@@ -789,7 +1080,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 08 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 08 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:24.064+00:00",
@@ -797,7 +1091,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 07 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:24.108+00:00",
@@ -805,7 +1102,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 06 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fd ff ff ff 06 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:06:24.171+00:00",
@@ -813,7 +1113,10 @@
       "raw_input_type": 0,
       "collection": "COL04",
       "device_family": "T1-Remote/COL04",
-      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 05 00 00 00 00 00 00 00"
+      "raw_data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 fc ff ff ff 05 00 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:09:59.787+00:00",
@@ -821,7 +1124,10 @@
       "raw_input_type": 2,
       "collection": "COL03",
       "device_family": "T1-Remote/COL03",
-      "raw_data_hex": "03 01"
+      "raw_data_hex": "03 01",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:09:59.895+00:00",
@@ -829,7 +1135,10 @@
       "raw_input_type": 2,
       "collection": "COL03",
       "device_family": "T1-Remote/COL03",
-      "raw_data_hex": "03 00"
+      "raw_data_hex": "03 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:03.343+00:00",
@@ -837,7 +1146,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 e9 00"
+      "raw_data_hex": "02 e9 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:03.478+00:00",
@@ -845,7 +1157,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:04.958+00:00",
@@ -853,7 +1168,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 ea 00"
+      "raw_data_hex": "02 ea 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:05.118+00:00",
@@ -861,7 +1179,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:07.393+00:00",
@@ -869,7 +1190,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 21 02"
+      "raw_data_hex": "02 21 02",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:07.492+00:00",
@@ -877,7 +1201,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:08.986+00:00",
@@ -885,7 +1212,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 23 02"
+      "raw_data_hex": "02 23 02",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:09.166+00:00",
@@ -893,7 +1223,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:10.491+00:00",
@@ -901,7 +1234,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:10.666+00:00",
@@ -909,7 +1245,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:14.236+00:00",
@@ -917,7 +1256,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 24 02"
+      "raw_data_hex": "02 24 02",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:14.351+00:00",
@@ -925,7 +1267,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:15.299+00:00",
@@ -933,7 +1278,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 e2 00"
+      "raw_data_hex": "02 e2 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:15.547+00:00",
@@ -941,7 +1289,10 @@
       "raw_input_type": 2,
       "collection": "COL02",
       "device_family": "T1-Remote/COL02",
-      "raw_data_hex": "02 00 00"
+      "raw_data_hex": "02 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:17.394+00:00",
@@ -949,7 +1300,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:17.532+00:00",
@@ -957,7 +1311,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:19.785+00:00",
@@ -965,7 +1322,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:19.909+00:00",
@@ -973,7 +1333,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:20.783+00:00",
@@ -981,7 +1344,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:20.961+00:00",
@@ -989,7 +1355,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:21.790+00:00",
@@ -997,7 +1366,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:21.969+00:00",
@@ -1005,7 +1377,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:23.641+00:00",
@@ -1013,7 +1388,10 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00"
+      "raw_data_hex": "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
     },
     {
       "timestamp_utc": "2026-09-08T09:10:23.816+00:00",
@@ -1021,7 +1399,296 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "device_family": "T1-Remote/COL01",
-      "raw_data_hex": "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00"
+      "raw_data_hex": "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00",
+      "state": "unknown",
+      "usage_page": null,
+      "usage": null
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:23.104+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 23 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 547
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:23.233+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:26.114+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 93
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:26.239+00:00",
+      "button": "Menu",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 93
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:28.492+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 21 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 545
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:28.561+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:35.975+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e9 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 233
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:36.133+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:37.872+00:00",
+      "button": "Volume Minus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 ea 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 234
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:38.074+00:00",
+      "button": "Volume Minus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:40.701+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 01",
+      "state": "down",
+      "usage_page": 1,
+      "usage": 1
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:40.865+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 00",
+      "state": "up",
+      "usage_page": 1,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:42.597+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 24 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 548
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:42.755+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:45.112+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e2 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 226
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:45.252+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:50.058+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 37
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:50.220+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 37
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:51.186+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 39
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:51.400+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 39
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:52.652+00:00",
+      "button": "OK",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 13
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:52.824+00:00",
+      "button": "OK",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 13
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:54.178+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 38
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:54.361+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 38
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:55.135+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00",
+      "state": "down",
+      "usage_page": 7,
+      "usage": 40
+    },
+    {
+      "timestamp_utc": "2026-09-09T03:07:55.298+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "device_family": "T1-Remote/COL01",
+      "raw_data_hex": "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 7,
+      "usage": 40
     }
   ],
   "logical_actions": [
@@ -2705,6 +3372,607 @@
       "raw_input_type": 1,
       "collection": "COL01",
       "signature": "keyboard:0027"
+    },
+    {
+      "action_id": 112,
+      "button": "Home",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:23.104+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:23.233+00:00",
+      "duration_ms": 129,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        128,
+        129
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2302"
+    },
+    {
+      "action_id": 113,
+      "button": "Menu",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:26.114+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:26.239+00:00",
+      "duration_ms": 125,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        130,
+        131
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:005d"
+    },
+    {
+      "action_id": 114,
+      "button": "Voice",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:28.492+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:28.561+00:00",
+      "duration_ms": 69,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        132,
+        133
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2102"
+    },
+    {
+      "action_id": 115,
+      "button": "Volume Plus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:35.975+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:36.133+00:00",
+      "duration_ms": 158,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        134,
+        135
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e900"
+    },
+    {
+      "action_id": 116,
+      "button": "Volume Minus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:37.872+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:38.074+00:00",
+      "duration_ms": 202,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        136,
+        137
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:ea00"
+    },
+    {
+      "action_id": 117,
+      "button": "Power",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:40.701+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:40.865+00:00",
+      "duration_ms": 164,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        138,
+        139
+      ],
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "signature": "hid:03:01"
+    },
+    {
+      "action_id": 118,
+      "button": "Return",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:42.597+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:42.755+00:00",
+      "duration_ms": 158,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        140,
+        141
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2402"
+    },
+    {
+      "action_id": 119,
+      "button": "Mute",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:45.112+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:45.252+00:00",
+      "duration_ms": 140,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        142,
+        143
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e200"
+    },
+    {
+      "action_id": 120,
+      "button": "Arrow Left",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:50.058+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:50.220+00:00",
+      "duration_ms": 162,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        144,
+        145
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0025"
+    },
+    {
+      "action_id": 121,
+      "button": "Arrow Right",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:51.186+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:51.400+00:00",
+      "duration_ms": 214,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        146,
+        147
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0027"
+    },
+    {
+      "action_id": 122,
+      "button": "OK",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:52.652+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:52.824+00:00",
+      "duration_ms": 172,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        148,
+        149
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:000d"
+    },
+    {
+      "action_id": 123,
+      "button": "Arrow Up",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:54.178+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:54.361+00:00",
+      "duration_ms": 183,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        150,
+        151
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0026"
+    },
+    {
+      "action_id": 124,
+      "button": "Arrow Down",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-09T03:07:55.135+00:00",
+      "up_timestamp_utc": "2026-09-09T03:07:55.298+00:00",
+      "duration_ms": 163,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        152,
+        153
+      ],
+      "raw_input_type": 1,
+      "collection": "COL01",
+      "signature": "keyboard:0028"
+    }
+  ],
+  "capture_coverage": {
+    "required_buttons": [
+      "Power",
+      "Arrow Up",
+      "Arrow Down",
+      "Arrow Left",
+      "Arrow Right",
+      "OK",
+      "Return",
+      "Voice",
+      "Mute",
+      "Home",
+      "Menu",
+      "Volume Plus",
+      "Volume Minus"
+    ],
+    "disabled_buttons": [
+      "Air Mouse"
+    ],
+    "observed_buttons": [
+      "Power",
+      "Arrow Up",
+      "Arrow Down",
+      "Arrow Left",
+      "Arrow Right",
+      "OK",
+      "Return",
+      "Voice",
+      "Mute",
+      "Home",
+      "Menu",
+      "Volume Plus",
+      "Volume Minus"
+    ],
+    "paired_press_release_buttons": [
+      "Power",
+      "Arrow Up",
+      "Arrow Down",
+      "Arrow Left",
+      "Arrow Right",
+      "OK",
+      "Return",
+      "Voice",
+      "Mute",
+      "Home",
+      "Menu",
+      "Volume Plus",
+      "Volume Minus"
+    ],
+    "missing_buttons": [],
+    "complete": true
+  },
+  "physical_mapping": [
+    {
+      "button": "Power",
+      "status": "confirmed",
+      "collections": [
+        "COL03"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x01",
+          "usage": "0x1"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "03 01",
+        "03 00"
+      ]
+    },
+    {
+      "button": "Arrow Up",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0x26"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00",
+        "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Arrow Down",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0x28"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00",
+        "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Arrow Left",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0x25"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00",
+        "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Arrow Right",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0x27"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00",
+        "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "OK",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0xD"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00",
+        "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Return",
+      "status": "confirmed",
+      "collections": [
+        "COL02"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0x224"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "02 24 02",
+        "02 00 00"
+      ]
+    },
+    {
+      "button": "Voice",
+      "status": "confirmed",
+      "collections": [
+        "COL02"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0x221"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "02 21 02",
+        "02 00 00"
+      ]
+    },
+    {
+      "button": "Mute",
+      "status": "confirmed",
+      "collections": [
+        "COL02",
+        "COL04"
+      ],
+      "raw_input_types": [
+        0,
+        2
+      ],
+      "states": [
+        "down",
+        "unknown",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0xE2"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00",
+        "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00",
+        "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 fe ff ff ff 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Home",
+      "status": "confirmed",
+      "collections": [
+        "COL02"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0x223"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "02 23 02",
+        "02 00 00"
+      ]
+    },
+    {
+      "button": "Menu",
+      "status": "confirmed",
+      "collections": [
+        "COL01"
+      ],
+      "raw_input_types": [
+        1
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x07",
+          "usage": "0x5D"
+        }
+      ],
+      "paired_actions": 5,
+      "sample_reports": [
+        "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
+        "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+      ]
+    },
+    {
+      "button": "Air Mouse",
+      "status": "disabled",
+      "collections": [],
+      "raw_input_types": [],
+      "states": [],
+      "usages": [],
+      "paired_actions": 0,
+      "sample_reports": []
+    },
+    {
+      "button": "Volume Plus",
+      "status": "confirmed",
+      "collections": [
+        "COL02"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0xE9"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "02 e9 00",
+        "02 00 00"
+      ]
+    },
+    {
+      "button": "Volume Minus",
+      "status": "confirmed",
+      "collections": [
+        "COL02"
+      ],
+      "raw_input_types": [
+        2
+      ],
+      "states": [
+        "down",
+        "up"
+      ],
+      "usages": [
+        {
+          "usage_page": "0x0C",
+          "usage": "0xEA"
+        }
+      ],
+      "paired_actions": 2,
+      "sample_reports": [
+        "02 ea 00",
+        "02 00 00"
+      ]
     }
   ]
 }

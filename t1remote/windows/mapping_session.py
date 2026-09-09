@@ -197,8 +197,10 @@ class T1MappingSession:
             for thread in self._worker_threads:
                 thread.start()
             with self._state_lock:
-                self._state = "running"
-                self._message = "运行中"
+                # 工作线程可能在这里之前就发现输出故障；不能把 error 覆盖成 running。
+                if self._state == "starting":
+                    self._state = "running"
+                    self._message = "运行中"
             self._log("T1 Mapping 会话已启动")
         except Exception as error:
             self._report_error(error)
@@ -223,6 +225,19 @@ class T1MappingSession:
             self._state = "stopped"
             self._message = "已停止"
         self._log("T1 Mapping 会话已停止")
+
+    def reload_config(self) -> None:
+        """手动读取当前配置并切换运行时映射。"""
+
+        with self._state_lock:
+            if self._state != "running" or self._runtime is None:
+                raise MappingSessionError("Mapping 会话未运行，无法重新加载配置")
+            runtime = self._runtime
+
+        # 复用运行时的 reload 逻辑，先释放旧动作，避免留下粘键或正在执行的宏。
+        config = load_mapping_config(self.config_path)
+        runtime.reload(config)
+        self._log(f"映射配置已重新加载：{self.config_path}")
 
     def status(self) -> MappingSessionStatus:
         """返回前台可安全读取的会话快照。"""
@@ -254,8 +269,7 @@ class T1MappingSession:
                 self._runtime.process_report(collection, event.raw_input_type, event.raw_data)
             )
         except MappingRuntimeError as error:
-            self._report_error(error)
-            self._stop_event.set()
+            self._fail_from_worker(error)
 
     def _handle_device_change(self, event_code: int) -> None:
         """设备到达或移除时清理活动按键，避免断连留下粘键。"""
@@ -278,8 +292,7 @@ class T1MappingSession:
                         self._bridge.heartbeat()
                         self._update_driver_status(self._bridge.status())
             except BridgeError as error:
-                self._report_error(error)
-                self._stop_event.set()
+                self._fail_from_worker(error)
 
     def _reset_runtime(self, message: str) -> None:
         if not self._runtime:
@@ -312,8 +325,27 @@ class T1MappingSession:
                     )
                 )
             except (BridgeError, MappingRuntimeError) as error:
-                self._report_error(error)
-                self._stop_event.set()
+                self._fail_from_worker(error)
+
+    def _fail_from_worker(self, error: Exception) -> None:
+        """标记运行时故障并异步释放驱动，避免界面继续显示 running。"""
+
+        with self._state_lock:
+            if self._state in {"stopped", "stopping", "error"}:
+                return
+            self._state = "error"
+            self._message = str(error)
+        self._report_error(error)
+        threading.Thread(
+            target=self._cleanup_after_worker_failure,
+            name="t1-mapping-failure-cleanup",
+            daemon=True,
+        ).start()
+
+    def _cleanup_after_worker_failure(self) -> None:
+        """在独立线程中清理故障会话，避免从 Raw Input 线程自连接。"""
+
+        self._cleanup()
 
     def _heartbeat_loop(self) -> None:
         while not self._stop_event.wait(1.0):
@@ -322,10 +354,20 @@ class T1MappingSession:
                     return
                 with self._bridge_lock:
                     self._bridge.heartbeat()
-                    self._update_driver_status(self._bridge.status())
+                    status = self._bridge.status()
+                    # 蓝牙 HID 重连后，设备可能已经重新附着，但旧租约对应的
+                    # 过滤状态仍为 stopped；重新 start 才能让 Mapping 继续收报告。
+                    if (
+                        not self.dry_run
+                        and getattr(status, "state", "") == "stopped"
+                        and int(getattr(status, "attached_collections", 0)) != 0
+                    ):
+                        self._bridge.start()
+                        status = self._bridge.status()
+                        self._log("T1 HID 已重连，Mapping 过滤器已自动恢复")
+                    self._update_driver_status(status)
             except BridgeError as error:
-                self._report_error(error)
-                self._stop_event.set()
+                self._fail_from_worker(error)
 
     def _log_mapping_events(self, events: tuple[object, ...]) -> None:
         for event in events:

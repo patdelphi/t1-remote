@@ -1,8 +1,11 @@
-{
+﻿{
   "version": 1,
   "mappings": {
     "Power": {
-      "type": "none"
+      "type": "command",
+      "argv": [
+        "C:\\Program Files (x86)\\Yinxiang Biji\\印象笔记\\Evernote.exe"
+      ]
     },
     "Arrow Up": {
       "type": "key",
@@ -25,8 +28,16 @@
       "key": "ENTER"
     },
     "Return": {
-      "type": "key",
-      "key": "ESC"
+      "type": "combo",
+      "key": "D",
+      "modifiers": [
+        "CTRL",
+        "SHIFT"
+      ],
+      "trigger": {
+        "kind": "long_press",
+        "threshold_ms": 500
+      }
     },
     "Voice": {
       "type": "none"
@@ -36,8 +47,8 @@
       "key": "VOLUME_MUTE"
     },
     "Home": {
-      "type": "key",
-      "key": "HOME"
+      "type": "text",
+      "text": "的发生的发烧的方式的发生地方"
     },
     "Menu": {
       "type": "key",
@@ -52,4 +63,4 @@
       "key": "VOLUME_DOWN"
     }
   }
-}
+}

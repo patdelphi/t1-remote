@@ -245,10 +245,44 @@ class KEYBDINPUT(ctypes.Structure):
     )
 
 
-class INPUT(ctypes.Structure):
-    """只声明 SendInput 所需的键盘输入联合体布局。"""
+class MOUSEINPUT(ctypes.Structure):
+    """Win32 INPUT 联合体中的 MOUSEINPUT 分支，用于保持 ABI 大小。"""
 
-    _fields_ = (("type", wintypes.DWORD), ("ki", KEYBDINPUT))
+    _fields_ = (
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    )
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    """Win32 INPUT 联合体中的 HARDWAREINPUT 分支。"""
+
+    _fields_ = (
+        ("uMsg", wintypes.DWORD),
+        ("wParamL", wintypes.WORD),
+        ("wParamH", wintypes.WORD),
+    )
+
+
+class INPUT_UNION(ctypes.Union):
+    """Win32 INPUT 的输入联合体。"""
+
+    _fields_ = (
+        ("mi", MOUSEINPUT),
+        ("ki", KEYBDINPUT),
+        ("hi", HARDWAREINPUT),
+    )
+
+
+class INPUT(ctypes.Structure):
+    """完整声明 Win32 INPUT 布局，保证 SendInput 的 cbSize 正确。"""
+
+    _anonymous_ = ("u",)
+    _fields_ = (("type", wintypes.DWORD), ("u", INPUT_UNION))
 
 
 class WindowsInputEmitter:

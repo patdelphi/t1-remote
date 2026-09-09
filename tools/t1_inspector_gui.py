@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-import subprocess
-import sys
 import threading
+from typing import Callable
 
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -27,10 +26,6 @@ PRODUCT_IMAGE_PATH = (
     / "assets"
     / "t1-remote-front-clean-v2.png"
 )
-MAPPING_CONFIG_PATH = (
-    Path(__file__).resolve().parents[1] / "config" / "t1-key-mapping.json"
-)
-
 BUTTON_DISPLAY_NAMES = {
     "Volume Plus": "Volume +",
     "Volume Minus": "Volume -",
@@ -53,8 +48,11 @@ def _load_remote_image(root: tk.Tk) -> tk.PhotoImage | None:
         return None
 
 
-def run_gui(output_path: Path) -> int:
-    """运行以产品图为中心的 Tkinter 遥控区域采集窗口。"""
+def build_capture_tab(
+    parent: tk.Misc,
+    output_path: Path,
+) -> Callable[[], None]:
+    """在现有 Tk 窗口中创建采集页，并返回清理回调。"""
 
     # 延迟导入，避免 --help 或命令行模式强制依赖 GUI 模块。
     from tools.t1_inspector import (
@@ -62,21 +60,40 @@ def run_gui(output_path: Path) -> int:
         _build_event,
     )
 
-    root = tk.Tk()
-    root.title("T1 Remote 遥控区域报文 Inspector")
+    root = parent.winfo_toplevel()
     # 采用横向工作台：左侧操作遥控器，右侧查看记录并执行保存操作。
-    root.geometry("1520x860")
-    root.minsize(1280, 760)
-    root.columnconfigure(0, weight=1)
-    root.rowconfigure(2, weight=1)
+    parent.columnconfigure(0, weight=1)
+    parent.rowconfigure(2, weight=1)
+    style = ttk.Style(root)
+    style.configure(
+        "CaptureKey.TButton",
+        padding=(12, 8),
+        font=("Segoe UI", 10),
+        foreground="#172033",
+        background="#FFFFFF",
+    )
+    style.configure(
+        "CaptureKeySelected.TButton",
+        padding=(12, 8),
+        font=("Segoe UI", 10, "bold"),
+        foreground="#1D4ED8",
+        background="#DCE9FF",
+    )
+    style.configure(
+        "CaptureKeyDisabled.TButton",
+        padding=(12, 8),
+        font=("Segoe UI", 10),
+        foreground="#98A2B3",
+        background="#F2F4F7",
+    )
 
     ttk.Label(
-        root,
+        parent,
         text="T1 Remote 遥控区域报文采集",
         font=("Segoe UI", 16, "bold"),
     ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 2))
     ttk.Label(
-        root,
+        parent,
         text="左侧按产品图操作遥控器，右侧查看与保存报文；T1 输入报文全部记录，当前标签仅用于标注。",
     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
 
@@ -91,13 +108,17 @@ def run_gui(output_path: Path) -> int:
     hid_listener: HidInputListener | None = None
     hid_active = False
 
-    content_frame = ttk.Frame(root)
+    content_frame = ttk.Frame(parent)
     content_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 10))
     content_frame.columnconfigure(0, weight=3, minsize=700)
     content_frame.columnconfigure(1, weight=2, minsize=520)
     content_frame.rowconfigure(0, weight=1)
 
-    visual_frame = ttk.LabelFrame(content_frame, text="遥控区域按键")
+    visual_frame = ttk.LabelFrame(
+        content_frame,
+        text="遥控区域按键",
+        style="Card.TLabelframe",
+    )
     visual_frame.grid(row=0, column=0, sticky="nsew")
     visual_frame.columnconfigure(0, weight=1)
     visual_frame.rowconfigure(0, weight=1)
@@ -155,18 +176,21 @@ def run_gui(output_path: Path) -> int:
         status_label.set("状态：监听中，只按当前选择的遥控键")
         for name, widget in button_widgets.items():
             if name in DISABLED_CAPTURE_BUTTONS:
-                widget.configure(text=f"{name}（禁用）")
+                widget.configure(style="CaptureKeyDisabled.TButton")
             else:
-                display_name = BUTTON_DISPLAY_NAMES.get(name, name)
                 widget.configure(
-                    text=(f"✓ {display_name}" if name == button else display_name)
+                    style=(
+                        "CaptureKeySelected.TButton"
+                        if name == button
+                        else "CaptureKey.TButton"
+                    )
                 )
 
     for button in REMOTE_BUTTONS:
         widget = ttk.Button(
             canvas,
             text=(
-                f"{button}（禁用）"
+                f"{BUTTON_DISPLAY_NAMES.get(button, button)}（禁用）"
                 if button in DISABLED_CAPTURE_BUTTONS
                 else BUTTON_DISPLAY_NAMES.get(button, button)
             ),
@@ -175,13 +199,23 @@ def run_gui(output_path: Path) -> int:
                 if button in DISABLED_CAPTURE_BUTTONS
                 else lambda selected=button: select_button(selected)
             ),
-            width=17,
+            width=18,
+            style=(
+                "CaptureKeyDisabled.TButton"
+                if button in DISABLED_CAPTURE_BUTTONS
+                else "CaptureKey.TButton"
+            ),
         )
         if button in DISABLED_CAPTURE_BUTTONS:
             # Air Mouse 会切换飞鼠模式；Power 已由驱动层拦截，可安全采集。
             widget.state(["disabled"])
         button_widgets[button] = widget
-        button_items[button] = canvas.create_window(0, 0, window=widget)
+        button_items[button] = canvas.create_window(
+            0,
+            0,
+            window=widget,
+            anchor="center",
+        )
 
     def reposition_items(_event: tk.Event[tk.Misc] | None = None) -> None:
         """窗口缩放时重新计算产品图和周围按键位置。"""
@@ -197,7 +231,11 @@ def run_gui(output_path: Path) -> int:
 
     canvas.bind("<Configure>", reposition_items)
 
-    operation_frame = ttk.LabelFrame(content_frame, text="记录与操作")
+    operation_frame = ttk.LabelFrame(
+        content_frame,
+        text="记录与操作",
+        style="Card.TLabelframe",
+    )
     operation_frame.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
     operation_frame.columnconfigure(0, weight=1)
     operation_frame.rowconfigure(1, weight=1)
@@ -206,7 +244,11 @@ def run_gui(output_path: Path) -> int:
         row=0, column=0, sticky="w", padx=10, pady=(8, 4)
     )
 
-    event_frame = ttk.LabelFrame(operation_frame, text="采集事件")
+    event_frame = ttk.LabelFrame(
+        operation_frame,
+        text="采集事件",
+        style="Card.TLabelframe",
+    )
     event_frame.grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
     event_frame.columnconfigure(0, weight=1)
     event_frame.rowconfigure(0, weight=1)
@@ -229,8 +271,12 @@ def run_gui(output_path: Path) -> int:
     scrollbar.grid(row=0, column=1, sticky="ns")
     tree.configure(yscrollcommand=scrollbar.set)
 
-    # 预留后续组件位置，避免以后新增设备状态或映射配置时再次改变主布局。
-    future_frame = ttk.LabelFrame(operation_frame, text="后续组件预留")
+    # 保留设备状态，Mapping 设置和服务通过主窗口 Tab 直接访问。
+    future_frame = ttk.LabelFrame(
+        operation_frame,
+        text="设备状态",
+        style="Card.TLabelframe",
+    )
     future_frame.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
     future_frame.columnconfigure(0, weight=1)
     ttk.Label(
@@ -243,36 +289,6 @@ def run_gui(output_path: Path) -> int:
         textvariable=driver_stats_label,
         foreground="#52606d",
     ).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
-
-    def launch_mapping_editor() -> None:
-        """在独立进程中打开映射编辑器，避免创建第二个 Tk 主循环。"""
-
-        try:
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "tools.t1_mapping_gui",
-                    "--config",
-                    str(MAPPING_CONFIG_PATH),
-                ],
-                shell=False,
-            )
-        except OSError as error:
-            messagebox.showerror("映射编辑器启动失败", str(error), parent=root)
-
-    ttk.Button(
-        future_frame,
-        text="打开按键映射编辑器",
-        command=launch_mapping_editor,
-    ).grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
-
-    footer = ttk.Frame(operation_frame)
-    footer.grid(row=3, column=0, sticky="ew", padx=8, pady=(0, 10))
-    footer.columnconfigure(0, weight=1)
-    ttk.Label(footer, textvariable=status_label).grid(row=0, column=0, sticky="w")
-    ttk.Label(footer, textvariable=count_label).grid(row=0, column=1, padx=12)
-    ttk.Label(footer, text=f"输出：{output_path}").grid(row=0, column=2, padx=12)
 
     def save_capture() -> None:
         """保存当前内存中的脱敏采集结果。"""
@@ -305,6 +321,23 @@ def run_gui(output_path: Path) -> int:
             tree.delete(item)
         count_label.set("原始包：0 | 逻辑操作：0")
         status_label.set("状态：记录已清空")
+
+    # 保存和清空是采集页的核心操作，单独占一行，避免输出路径过长时被挤出窗口。
+    action_bar = ttk.Frame(operation_frame)
+    action_bar.grid(row=3, column=0, sticky="w", padx=8, pady=(0, 8))
+    ttk.Button(action_bar, text="保存", command=save_capture).pack(
+        side="left", padx=(0, 6)
+    )
+    ttk.Button(action_bar, text="清空记录", command=clear_events).pack(side="left")
+
+    footer = ttk.Frame(operation_frame)
+    footer.grid(row=4, column=0, sticky="ew", padx=8, pady=(0, 10))
+    footer.columnconfigure(2, weight=1)
+    ttk.Label(footer, textvariable=status_label).grid(row=0, column=0, sticky="w")
+    ttk.Label(footer, textvariable=count_label).grid(row=0, column=1, padx=12)
+    ttk.Label(footer, text=f"输出：{output_path}").grid(
+        row=0, column=2, sticky="w", padx=12
+    )
 
     def refresh_action_table() -> None:
         """把原始包配对后的逻辑操作显示在窗口中。"""
@@ -405,8 +438,7 @@ def run_gui(output_path: Path) -> int:
         listener.start()
     except Exception as error:
         messagebox.showerror("Inspector 启动失败", str(error), parent=root)
-        root.destroy()
-        return 1
+        raise RuntimeError("Inspector 启动失败") from error
 
     # Inspector 是采集工具，不在采集阶段启用桥接拦截，避免改变 Home、Power 等按键行为。
     driver_stats_label.set("驱动统计：采集模式未启用拦截")
@@ -429,10 +461,7 @@ def run_gui(output_path: Path) -> int:
         hid_active = False
         hid_error_callback(error)
 
-    ttk.Button(footer, text="保存", command=save_capture).grid(row=0, column=3, padx=4)
-    ttk.Button(footer, text="清空记录", command=clear_events).grid(row=0, column=4, padx=4)
-
-    def on_close() -> None:
+    def cleanup() -> None:
         """停止 Raw Input 线程并保存当前结果。"""
 
         nonlocal hid_active
@@ -445,6 +474,27 @@ def run_gui(output_path: Path) -> int:
                 hid_error_callback(error)
         listener.stop()
         save_capture()
+
+    return cleanup
+
+
+def run_gui(output_path: Path) -> int:
+    """运行以产品图为中心的 Tkinter 遥控区域采集窗口。"""
+
+    root = tk.Tk()
+    root.title("T1 Remote 遥控区域报文 Inspector")
+    root.geometry("1520x860")
+    root.minsize(1280, 760)
+    try:
+        cleanup = build_capture_tab(root, output_path)
+    except Exception:
+        root.destroy()
+        raise
+
+    def on_close() -> None:
+        """停止采集并关闭独立窗口。"""
+
+        cleanup()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)

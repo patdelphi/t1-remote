@@ -1,0 +1,11 @@
+﻿{
+  "format_version": 1,
+  "scope": "remote_control_14_keys",
+  "source": "T1Bridge_ReadEvent",
+  "device": {
+    "name": "T1-Remote",
+    "vid": "620A",
+    "pid": "0407"
+  },
+  "events": []
+}

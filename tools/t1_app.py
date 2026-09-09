@@ -1,20 +1,27 @@
 """程序说明：提供 T1 Remote Mapping 的启动、状态和诊断前台。
 
-主窗口不直接处理 HID 报文，设备生命周期交给 T1MappingSession。界面只负责
-启动/停止会话、显示诊断快照和打开配置/采集工具，避免 Tk 控件被后台线程直接访问。
+主窗口不直接处理 HID 报文，设备生命周期交给 T1MappingSession。界面负责
+承载捕获、Mapping 设置和 Mapping 服务三个页面，避免多个 Tk 主循环共享同一个窗口。
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import subprocess
-import sys
 import threading
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
+from tools.t1_inspector_gui import build_capture_tab
+from tools.t1_mapping_gui import create_mapping_editor_tab
 from t1remote.windows.mapping_session import T1MappingSession
+from t1remote.windows.app_icon import (
+    APP_USER_MODEL_ID,
+    destroy_icon_handles,
+    load_icon_handles,
+    set_process_app_user_model_id,
+    set_window_icons,
+)
 from t1remote.windows.single_instance import SingleInstanceGuard
 from t1remote.windows.tray import TrayIcon
 
@@ -22,6 +29,8 @@ from t1remote.windows.tray import TrayIcon
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "t1-key-mapping.json"
 DEFAULT_CAPTURE_PATH = PROJECT_ROOT / "captures" / "t1-remote-control.json"
+APP_ICON_PATH = PROJECT_ROOT / "assets" / "t1-remote-icon.ico"
+MAIN_TAB_LABELS = ("捕获", "Mapping 设置", "Mapping 服务")
 
 
 class MappingMonitorApp:
@@ -33,7 +42,13 @@ class MappingMonitorApp:
         self._session: T1MappingSession | None = None
         self.tray: TrayIcon | None = None
         self._session_lock = threading.Lock()
-        self._dry_run_var = tk.BooleanVar(value=True)
+        self._capture_cleanup = None
+        self._mapping_editor = None
+        self._main_notebook: ttk.Notebook | None = None
+        self._tab_by_name: dict[str, ttk.Frame] = {}
+        self._native_icon_handles: tuple[int, ...] = ()
+        # Dry-run 只用于测试，正式启动时默认关闭，避免误以为已经执行真实映射。
+        self._dry_run_var = tk.BooleanVar(value=False)
         self._status_var = tk.StringVar(value="状态：未启动")
         self._driver_var = tk.StringVar(value="驱动：未连接")
         self._lease_var = tk.StringVar(value="租约：无")
@@ -41,26 +56,151 @@ class MappingMonitorApp:
         self._counter_var = tk.StringVar(value="输入 0 | 忽略 0 | 映射 0 | 输出 0 | 错误 0")
 
         self.root.title("T1 Remote Mapping")
-        self.root.geometry("1120x720")
-        self.root.minsize(900, 600)
+        try:
+            self.root.iconbitmap(str(APP_ICON_PATH))
+            self._native_icon_handles = load_icon_handles(APP_ICON_PATH)
+            set_window_icons(self.root.winfo_id(), self._native_icon_handles)
+        except (OSError, tk.TclError):
+            # 图标文件缺失或当前 Tk 不支持 ICO 时，保留默认窗口图标，不影响主程序。
+            pass
+        self.root.geometry("1520x900")
+        self.root.minsize(1280, 760)
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(2, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        self._configure_app_styles()
         self._build_layout()
         self._refresh_status()
 
+    def _configure_app_styles(self) -> None:
+        """配置三个主页面共享的浅色卡片样式和较大字号。"""
+
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+        style.configure("TFrame", background="#FFFFFF")
+        style.configure("Root.TFrame", background="#F4F7FB")
+        style.configure(
+            "TLabel",
+            background="#FFFFFF",
+            foreground="#172033",
+            font=("Segoe UI", 11),
+        )
+        style.configure(
+            "Root.TLabel",
+            background="#F4F7FB",
+            foreground="#172033",
+            font=("Segoe UI", 11),
+        )
+        style.configure(
+            "TButton",
+            background="#FFFFFF",
+            foreground="#172033",
+            bordercolor="#D8E0EB",
+            padding=(14, 8),
+            font=("Segoe UI", 10),
+        )
+        style.map(
+            "TButton",
+            background=[("active", "#EEF4FF"), ("pressed", "#E0EAFF")],
+        )
+        style.configure(
+            "TCheckbutton",
+            background="#FFFFFF",
+            foreground="#172033",
+            padding=4,
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "TRadiobutton",
+            background="#FFFFFF",
+            foreground="#172033",
+            padding=4,
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "Card.TLabelframe",
+            background="#FFFFFF",
+            bordercolor="#D8E0EB",
+            relief="solid",
+            borderwidth=1,
+            padding=10,
+        )
+        style.configure(
+            "Card.TLabelframe.Label",
+            background="#FFFFFF",
+            foreground="#172033",
+            font=("Segoe UI", 11, "bold"),
+        )
+        style.configure(
+            "Treeview",
+            background="#FFFFFF",
+            fieldbackground="#FFFFFF",
+            foreground="#172033",
+            rowheight=36,
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "Treeview.Heading",
+            background="#EEF2F7",
+            foreground="#475467",
+            padding=(8, 9),
+            font=("Segoe UI", 10, "bold"),
+        )
+
     def _build_layout(self) -> None:
-        """创建状态栏、操作栏和诊断/日志页。"""
+        """创建捕获、Mapping 设置和 Mapping 服务三个主页面。"""
+
+        notebook = ttk.Notebook(self.root)
+        notebook.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+        self._main_notebook = notebook
+
+        capture_tab = ttk.Frame(notebook, style="Root.TFrame")
+        mapping_tab = ttk.Frame(notebook, style="Root.TFrame")
+        service_tab = ttk.Frame(notebook, style="Root.TFrame")
+        self._tab_by_name = dict(zip(MAIN_TAB_LABELS, (capture_tab, mapping_tab, service_tab)))
+        for label, tab in zip(MAIN_TAB_LABELS, (capture_tab, mapping_tab, service_tab)):
+            notebook.add(tab, text=label)
+
+        self._build_service_layout(service_tab)
+        try:
+            self._capture_cleanup = build_capture_tab(
+                capture_tab,
+                DEFAULT_CAPTURE_PATH,
+            )
+        except Exception as error:
+            self._append_log(f"捕获页启动失败：{error}")
+            ttk.Label(
+                capture_tab,
+                text=f"捕获页启动失败：{error}",
+                foreground="#B42318",
+            ).pack(anchor="w", padx=20, pady=20)
+
+        self._mapping_editor = create_mapping_editor_tab(
+            mapping_tab,
+            self.config_path,
+        )
+        if self._mapping_editor is None:
+            ttk.Label(
+                mapping_tab,
+                text="Mapping 设置页加载失败，请查看 Mapping 服务页日志。",
+                foreground="#B42318",
+            ).pack(anchor="w", padx=20, pady=20)
+
+    def _build_service_layout(self, parent: ttk.Frame) -> None:
+        """创建 Mapping 服务页的状态栏、操作栏和诊断/日志页。"""
+
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(4, weight=1)
 
         ttk.Label(
-            self.root,
+            parent,
             text="T1 Remote Mapping",
             font=("Segoe UI", 16, "bold"),
         ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 2))
-        ttk.Label(self.root, textvariable=self._config_var, foreground="#52606d").grid(
+        ttk.Label(parent, textvariable=self._config_var, foreground="#52606d").grid(
             row=1, column=0, sticky="w", padx=16, pady=(0, 8)
         )
 
-        toolbar = ttk.Frame(self.root)
+        toolbar = ttk.Frame(parent)
         toolbar.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 8))
         ttk.Button(toolbar, text="启动 Mapping", command=self.start_session).pack(
             side="left", padx=(0, 6)
@@ -68,27 +208,23 @@ class MappingMonitorApp:
         ttk.Button(toolbar, text="停止 Mapping", command=self.stop_session).pack(
             side="left", padx=6
         )
+        ttk.Button(toolbar, text="重新加载配置", command=self.reload_config).pack(
+            side="left", padx=6
+        )
         ttk.Checkbutton(
             toolbar,
             text="Dry-run（不调用 SendInput/命令）",
             variable=self._dry_run_var,
         ).pack(side="left", padx=12)
-        ttk.Button(toolbar, text="打开映射编辑器", command=self.open_mapping_editor).pack(
-            side="left", padx=6
-        )
-        ttk.Button(toolbar, text="打开 Inspector", command=self.open_inspector).pack(
-            side="left", padx=6
-        )
-
-        status_frame = ttk.Frame(self.root)
+        status_frame = ttk.Frame(parent)
         status_frame.grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 8))
         ttk.Label(status_frame, textvariable=self._status_var).pack(side="left")
         ttk.Label(status_frame, textvariable=self._driver_var).pack(side="left", padx=18)
         ttk.Label(status_frame, textvariable=self._lease_var).pack(side="left")
 
-        notebook = ttk.Notebook(self.root)
+        notebook = ttk.Notebook(parent)
         notebook.grid(row=4, column=0, sticky="nsew", padx=16, pady=(0, 14))
-        self.root.rowconfigure(4, weight=1)
+        parent.rowconfigure(4, weight=1)
         diagnostics_tab = ttk.Frame(notebook)
         log_tab = ttk.Frame(notebook)
         notebook.add(diagnostics_tab, text="诊断")
@@ -129,6 +265,15 @@ class MappingMonitorApp:
         log_scrollbar.grid(row=0, column=1, sticky="ns", padx=(0, 8), pady=8)
         self.log_text.configure(yscrollcommand=log_scrollbar.set)
 
+    def _select_tab(self, name: str) -> None:
+        """切换到指定主功能页。"""
+
+        if self._main_notebook is None:
+            return
+        tab = self._tab_by_name.get(name)
+        if tab is not None:
+            self._main_notebook.select(tab)
+
     def start_session(self) -> None:
         """在后台线程启动设备会话，避免阻塞 Tk 主循环。"""
 
@@ -159,15 +304,41 @@ class MappingMonitorApp:
             return
         threading.Thread(target=session.stop, name="t1-mapping-stop", daemon=True).start()
 
-    def open_mapping_editor(self) -> None:
-        """打开独立的 JSON 映射编辑器。"""
+    def reload_config(self) -> None:
+        """在后台线程手动重新加载当前映射配置。"""
 
-        self._open_module("tools.t1_mapping_gui", self.config_path)
+        with self._session_lock:
+            session = self._session
+        if not session:
+            self._append_log("重新加载失败：Mapping 会话尚未启动")
+            return
+        if session.status().state != "running":
+            self._append_log("重新加载失败：Mapping 会话当前未运行")
+            return
+        threading.Thread(
+            target=self._reload_config_worker,
+            args=(session,),
+            name="t1-mapping-reload",
+            daemon=True,
+        ).start()
+
+    def _reload_config_worker(self, session: T1MappingSession) -> None:
+        """执行配置重载并把异常投递到 Tk 主线程。"""
+
+        try:
+            session.reload_config()
+        except Exception as error:
+            self._queue_error(error)
+
+    def open_mapping_editor(self) -> None:
+        """兼容旧调用：切换到 Mapping 设置页。"""
+
+        self._select_tab("Mapping 设置")
 
     def open_inspector(self) -> None:
-        """打开独立的 T1 Raw Input Inspector。"""
+        """兼容旧调用：切换到捕获页。"""
 
-        self._open_module("tools.t1_inspector", "--output", DEFAULT_CAPTURE_PATH)
+        self._select_tab("捕获")
 
     def minimize_to_tray(self) -> None:
         """关闭窗口时隐藏到托盘；没有托盘时直接退出。"""
@@ -184,15 +355,6 @@ class MappingMonitorApp:
         self.root.deiconify()
         self.root.lift()
         self.root.focus_force()
-
-    def _open_module(self, module: str, *arguments: object) -> None:
-        try:
-            subprocess.Popen(
-                [sys.executable, "-m", module, *(str(argument) for argument in arguments)],
-                shell=False,
-            )
-        except OSError as error:
-            messagebox.showerror("启动工具失败", str(error), parent=self.root)
 
     def _refresh_status(self) -> None:
         """定时刷新会话状态和最近事件表。"""
@@ -247,13 +409,18 @@ class MappingMonitorApp:
         self.log_text.configure(state="disabled")
 
     def close(self) -> None:
-        """关闭窗口前停止活动会话。"""
+        """关闭窗口前停止活动会话并清理捕获监听器。"""
 
         with self._session_lock:
             session = self._session
         if session and session.status().state not in {"stopped", "error"}:
             session.stop()
+        if self._capture_cleanup:
+            self._capture_cleanup()
+            self._capture_cleanup = None
         self.root.destroy()
+        destroy_icon_handles(self._native_icon_handles)
+        self._native_icon_handles = ()
 
 
 def run_app(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
@@ -263,6 +430,11 @@ def run_app(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
     if not guard.acquire():
         print("已有一个 T1 Remote 主前台正在运行")
         return 1
+    try:
+        set_process_app_user_model_id(APP_USER_MODEL_ID)
+    except OSError:
+        # 任务栏分组标识设置失败时仍允许主窗口启动。
+        pass
     root = tk.Tk()
     tray: TrayIcon | None = None
     try:
@@ -271,6 +443,7 @@ def run_app(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
             "T1 Remote",
             on_show=lambda: root.after(0, app.show_window),
             on_exit=lambda: root.after(0, app.close),
+            icon_path=APP_ICON_PATH,
         )
         try:
             tray.start()

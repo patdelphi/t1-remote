@@ -67,8 +67,17 @@ UI_DANGER = "#B42318"
 class MappingEditorWindow:
     """管理映射编辑器窗口状态和交互。"""
 
-    def __init__(self, root: tk.Tk, config_path: Path, config: MappingConfig) -> None:
+    def __init__(
+        self,
+        root: tk.Tk,
+        config_path: Path,
+        config: MappingConfig,
+        *,
+        container: tk.Misc | None = None,
+    ) -> None:
         self.root = root
+        self.container = container or root
+        self.embedded = container is not None
         self.config_path = config_path
         self.profile_dir = config_path.parent / "profiles"
         self._working_actions: dict[str, KeyAction] = dict(config.mappings)
@@ -78,13 +87,15 @@ class MappingEditorWindow:
         self.profile_var = tk.StringVar(value="当前配置文件")
         self.input_kind_var = tk.StringVar(value="当前输入类型：")
 
-        self.root.title("T1 Remote 按键映射")
-        self.root.geometry("1280x820")
-        self.root.minsize(1080, 720)
+        if not self.embedded:
+            self.root.title("T1 Remote 按键映射")
+            self.root.geometry("1280x820")
+            self.root.minsize(1080, 720)
         self._configure_styles()
-        self.root.configure(background=UI_BACKGROUND)
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(3, weight=1)
+        if not self.embedded:
+            self.container.configure(background=UI_BACKGROUND)
+        self.container.columnconfigure(0, weight=1)
+        self.container.rowconfigure(3, weight=1)
 
         self.status_var = tk.StringVar(value=f"配置文件：{self.config_path}")
         self.kind_var = tk.StringVar()
@@ -115,13 +126,13 @@ class MappingEditorWindow:
             "TLabel",
             background=UI_SURFACE,
             foreground=UI_TEXT,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 11),
         )
         style.configure(
             "Root.TLabel",
             background=UI_BACKGROUND,
             foreground=UI_TEXT,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 11),
         )
         style.configure(
             "Title.TLabel",
@@ -133,7 +144,7 @@ class MappingEditorWindow:
             "Subtitle.TLabel",
             background=UI_BACKGROUND,
             foreground=UI_MUTED,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 11),
         )
         style.configure(
             "Card.TLabelframe",
@@ -147,7 +158,7 @@ class MappingEditorWindow:
             "Card.TLabelframe.Label",
             background=UI_SURFACE,
             foreground=UI_TEXT,
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 11, "bold"),
         )
         style.configure(
             "TButton",
@@ -156,8 +167,8 @@ class MappingEditorWindow:
             bordercolor=UI_BORDER,
             lightcolor=UI_SURFACE,
             darkcolor=UI_BORDER,
-            padding=(12, 7),
-            font=("Segoe UI", 9),
+            padding=(14, 8),
+            font=("Segoe UI", 10),
         )
         style.map(
             "TButton",
@@ -171,8 +182,8 @@ class MappingEditorWindow:
             bordercolor=UI_ACCENT,
             lightcolor=UI_ACCENT,
             darkcolor=UI_ACCENT_HOVER,
-            padding=(14, 7),
-            font=("Segoe UI", 9, "bold"),
+            padding=(16, 9),
+            font=("Segoe UI", 10, "bold"),
         )
         style.map(
             "Accent.TButton",
@@ -182,13 +193,14 @@ class MappingEditorWindow:
         style.configure(
             "Danger.TButton",
             foreground=UI_DANGER,
-            padding=(12, 7),
+            padding=(14, 8),
+            font=("Segoe UI", 10),
         )
         style.configure(
             "Muted.TLabel",
             background=UI_SURFACE,
             foreground=UI_MUTED,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 10),
         )
         style.configure(
             "TEntry",
@@ -198,6 +210,7 @@ class MappingEditorWindow:
             lightcolor=UI_BORDER,
             darkcolor=UI_BORDER,
             padding=7,
+            font=("Segoe UI", 11),
         )
         style.configure(
             "TCombobox",
@@ -207,18 +220,21 @@ class MappingEditorWindow:
             lightcolor=UI_BORDER,
             darkcolor=UI_BORDER,
             padding=6,
+            font=("Segoe UI", 11),
         )
         style.configure(
             "TCheckbutton",
             background=UI_SURFACE,
             foreground=UI_TEXT,
             padding=3,
+            font=("Segoe UI", 10),
         )
         style.configure(
             "TRadiobutton",
             background=UI_SURFACE,
             foreground=UI_TEXT,
             padding=4,
+            font=("Segoe UI", 10),
         )
         style.map(
             "TRadiobutton",
@@ -232,8 +248,8 @@ class MappingEditorWindow:
             foreground=UI_TEXT,
             bordercolor=UI_BORDER,
             borderwidth=1,
-            rowheight=31,
-            font=("Segoe UI", 9),
+            rowheight=36,
+            font=("Segoe UI", 10),
         )
         style.map(
             "Treeview",
@@ -245,8 +261,8 @@ class MappingEditorWindow:
             background="#EEF2F7",
             foreground="#475467",
             relief="flat",
-            padding=(8, 8),
-            font=("Segoe UI", 9, "bold"),
+            padding=(8, 9),
+            font=("Segoe UI", 10, "bold"),
         )
         style.map("Treeview.Heading", background=[("active", "#E5EBF4")])
         style.configure("TSeparator", background=UI_BORDER)
@@ -255,19 +271,19 @@ class MappingEditorWindow:
         """创建三栏编辑布局和底部操作栏。"""
 
         ttk.Label(
-            self.root,
+            self.container,
             text="T1 Remote 按键映射",
             style="Title.TLabel",
         ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 3))
         ttk.Label(
-            self.root,
+            self.container,
             text="为遥控器按键配置输出动作。先选左侧按键，再在中间选择 mapping 类型。",
             style="Subtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", padx=24, pady=(0, 14))
 
         self._build_profile_toolbar()
 
-        content = ttk.Frame(self.root, style="Root.TFrame")
+        content = ttk.Frame(self.container, style="Root.TFrame")
         content.grid(row=3, column=0, sticky="nsew", padx=24, pady=(0, 12))
         content.columnconfigure(0, weight=1, minsize=260)
         content.columnconfigure(1, weight=1, minsize=230)
@@ -283,7 +299,7 @@ class MappingEditorWindow:
         """创建独立配置存档的加载和保存操作栏。"""
 
         frame = ttk.LabelFrame(
-            self.root,
+            self.container,
             text="配置存档",
             style="Card.TLabelframe",
             padding=(12, 8),
@@ -601,7 +617,7 @@ class MappingEditorWindow:
     def _build_footer(self) -> None:
         """创建保存、预览和重载操作。"""
 
-        footer = ttk.Frame(self.root, style="Root.TFrame")
+        footer = ttk.Frame(self.container, style="Root.TFrame")
         footer.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 18))
         footer.columnconfigure(0, weight=1)
         ttk.Label(footer, textvariable=self.status_var, style="Root.TLabel").grid(
@@ -1223,6 +1239,26 @@ def _load_startup_config(config_path: Path) -> MappingConfig:
     if not config_path.exists():
         return MappingConfig.default()
     return load_mapping_config(config_path)
+
+
+def create_mapping_editor_tab(
+    parent: tk.Misc,
+    config_path: Path = DEFAULT_CONFIG_PATH,
+) -> MappingEditorWindow | None:
+    """在现有 Tk 窗口中创建 Mapping 设置页。"""
+
+    root = parent.winfo_toplevel()
+    try:
+        config = _load_startup_config(config_path)
+    except MappingConfigError as error:
+        messagebox.showerror("配置加载失败", str(error), parent=root)
+        return None
+    return MappingEditorWindow(
+        root,
+        config_path,
+        config,
+        container=parent,
+    )
 
 
 def run_mapping_gui(config_path: Path = DEFAULT_CONFIG_PATH) -> int:

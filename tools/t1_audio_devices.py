@@ -5,28 +5,47 @@ from __future__ import annotations
 import json
 
 from t1remote.core.pcm_sink import PcmSinkError
-from t1remote.core.sounddevice_sink import enumerate_output_devices
+from t1remote.core.sounddevice_sink import (
+    enumerate_input_devices,
+    enumerate_output_devices,
+)
 
 
 def main() -> int:
     """执行音频输出端点枚举。"""
 
     try:
-        devices = enumerate_output_devices()
+        outputs = enumerate_output_devices()
+        inputs = enumerate_input_devices()
     except (PcmSinkError, OSError, RuntimeError, ValueError) as error:
         print(f"音频设备枚举失败：{error}")
         return 1
     print(
         json.dumps(
-            [
-                {
-                    "index": device.index,
-                    "name": device.name,
-                    "max_output_channels": device.max_output_channels,
-                    "default_samplerate": device.default_samplerate,
-                }
-                for device in devices
-            ],
+            {
+                "outputs": [
+                    {
+                        "index": device.index,
+                        "name": device.name,
+                        "max_output_channels": device.max_output_channels,
+                        "default_samplerate": device.default_samplerate,
+                        "hostapi_index": device.hostapi_index,
+                        "hostapi_name": device.hostapi_name,
+                    }
+                    for device in outputs
+                ],
+                "inputs": [
+                    {
+                        "index": device.index,
+                        "name": device.name,
+                        "max_input_channels": device.max_input_channels,
+                        "default_samplerate": device.default_samplerate,
+                        "hostapi_index": device.hostapi_index,
+                        "hostapi_name": device.hostapi_name,
+                    }
+                    for device in inputs
+                ],
+            },
             ensure_ascii=False,
             indent=2,
         )
