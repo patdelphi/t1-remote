@@ -17,6 +17,12 @@ dist/
 *.egg-info/
 *.obj
 
+# 本地诊断日志
+*.log
+
+# CMake 生成的原生工程目录
+native/**/build-*/
+
 # Windows 原生工程本地构建输出
 native/**/x64/
 native/**/Win32/
@@ -25,3 +31,6 @@ native/**/Release/
 
 # 本地对话记录不进入公开仓库
 chat_history.md
+
+# 本地语音回放录音不作为脱敏采集夹具
+captures/voice-replay/

@@ -14,6 +14,7 @@ from t1remote.core.capture_scope import (
     classify_hid_transport,
     is_t1_device_path,
     redacted_device_family,
+    selected_capture_button,
     validate_button_number,
 )
 
@@ -31,6 +32,12 @@ class CaptureScopeTests(unittest.TestCase):
     def test_only_air_mouse_is_disabled_for_capture(self) -> None:
         self.assertEqual(DISABLED_CAPTURE_BUTTONS, ("Air Mouse",))
         self.assertNotIn("Power", DISABLED_CAPTURE_BUTTONS)
+
+    def test_unselected_button_does_not_capture(self) -> None:
+        self.assertIsNone(selected_capture_button(None))
+        self.assertEqual(selected_capture_button("Home"), "Home")
+        self.assertIsNone(selected_capture_button("Air Mouse"))
+        self.assertIsNone(selected_capture_button("Unknown"))
 
     def test_t1_path_filter_requires_vid_and_pid(self) -> None:
         t1_path = (

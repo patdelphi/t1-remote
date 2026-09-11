@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import threading
+import time
 from typing import Callable
 
 import tkinter as tk
@@ -16,8 +17,14 @@ from t1remote.core.capture_scope import (
     build_logical_actions,
     collection_from_device_path,
     is_t1_device_path,
+    selected_capture_button,
 )
 from t1remote.windows.hid_input import HidInputEvent, HidInputListener
+from t1remote.windows.driver_bridge import (
+    BridgeStatus,
+    T1BridgeClient,
+    build_default_interception_policy,
+)
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
 
 
@@ -30,6 +37,193 @@ BUTTON_DISPLAY_NAMES = {
     "Volume Plus": "Volume +",
     "Volume Minus": "Volume -",
 }
+
+
+def should_ignore_passive_t1_raw_event(
+    collection: str,
+    *,
+    direct_hid_active: bool,
+    bridge_active: bool,
+) -> bool:
+    """判断是否应丢弃被动 Raw Input，避免与主动读取路径重复。"""
+
+    return collection in ("COL02", "COL03") and (
+        direct_hid_active or bridge_active
+    )
+
+
+class CaptureBridgeSession:
+    """维护捕获页使用的驱动拦截会话和原始报文队列。"""
+
+    def __init__(self, bridge_factory: Callable[[], object] = T1BridgeClient) -> None:
+        self._bridge_factory = bridge_factory
+        self._bridge: object | None = None
+        self._thread: threading.Thread | None = None
+        self._stop_requested = threading.Event()
+        self._lifecycle_lock = threading.RLock()
+        self._on_event: Callable[[object], None] | None = None
+        self._on_error: Callable[[Exception], None] | None = None
+        self._status: BridgeStatus | None = None
+
+    def start(
+        self,
+        on_event: Callable[[object], None],
+        on_error: Callable[[Exception], None] | None = None,
+    ) -> BridgeStatus:
+        """启动桥接，并确认驱动已经进入有效拦截态。"""
+
+        with self._lifecycle_lock:
+            if self._bridge is not None or (
+                self._thread is not None and self._thread.is_alive()
+            ):
+                if self._status is None:
+                    raise RuntimeError("捕获桥接会话状态不可用")
+                return self._status
+            bridge = self._bridge_factory()
+            policy = build_default_interception_policy(
+                enabled=True,
+                lease_required=True,
+            )
+            try:
+                bridge.open(policy)  # type: ignore[attr-defined]
+                get_preparsed_data = getattr(bridge, "get_preparsed_data", None)
+                if not callable(get_preparsed_data):
+                    raise RuntimeError("驱动 HID parser 接口不可用，无法安全拦截 Power")
+                # 先让驱动缓存两个目标 Collection 的 opaque preparsed data，
+                # 这样内核按真实 HID Usage（Power 为 0x0081）解析报告。
+                for collection in ("COL02", "COL03"):
+                    bytes(get_preparsed_data(collection))
+                bridge.start()  # type: ignore[attr-defined]
+                # 租约策略必须在启动后立即刷新一次，避免首个报告到达前失租约。
+                bridge.heartbeat()  # type: ignore[attr-defined]
+                status = bridge.status()  # type: ignore[attr-defined]
+                if status.state != "running" or not status.lease_active:
+                    raise RuntimeError(
+                        "驱动未进入有效拦截态："
+                        f"状态={status.state}，租约={'有效' if status.lease_active else '无效'}"
+                    )
+            except Exception:
+                self._stop_bridge(bridge)
+                raise
+            self._bridge = bridge
+            self._status = status
+            self._on_event = on_event
+            self._on_error = on_error
+            self._stop_requested.clear()
+            self._thread = threading.Thread(
+                target=self._read_loop,
+                name="t1-capture-bridge",
+                daemon=True,
+            )
+            self._thread.start()
+            return status
+
+    def stop(self) -> None:
+        """停止读取线程和拦截租约；重复调用不会重复释放桥接句柄。"""
+
+        self._stop_requested.set()
+        with self._lifecycle_lock:
+            thread = self._thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=2)
+        with self._lifecycle_lock:
+            if thread is self._thread:
+                self._thread = None
+            bridge = self._bridge
+            self._bridge = None
+            self._status = None
+            self._on_event = None
+            self._on_error = None
+        if bridge is not None:
+            self._stop_bridge(bridge)
+
+    def _read_loop(self) -> None:
+        """后台读取驱动队列，并按租约周期发送心跳。"""
+
+        next_heartbeat = time.monotonic() + 1.0
+        try:
+            while not self._stop_requested.is_set():
+                bridge = self._bridge
+                if bridge is None:
+                    return
+                now = time.monotonic()
+                if now >= next_heartbeat:
+                    bridge.heartbeat()  # type: ignore[attr-defined]
+                    status = bridge.status()  # type: ignore[attr-defined]
+                    if status.state != "running" or not status.lease_active:
+                        raise RuntimeError(
+                            "驱动拦截租约已失效："
+                            f"状态={status.state}，租约={'有效' if status.lease_active else '无效'}"
+                        )
+                    next_heartbeat = now + 1.0
+                event = bridge.read_event()  # type: ignore[attr-defined]
+                if event is not None and self._on_event is not None:
+                    self._on_event(event)
+                elif event is None:
+                    self._stop_requested.wait(0.01)
+        except Exception as error:
+            if self._on_error is not None:
+                self._on_error(error)
+            self._stop_requested.set()
+            with self._lifecycle_lock:
+                bridge = self._bridge
+                self._bridge = None
+                self._status = None
+            if bridge is not None:
+                self._stop_bridge(bridge)
+        finally:
+            with self._lifecycle_lock:
+                if self._thread is threading.current_thread():
+                    self._thread = None
+
+    @staticmethod
+    def _stop_bridge(bridge: object) -> None:
+        """尽力停止并关闭桥接，保证启动失败和窗口退出都能释放租约。"""
+
+        try:
+            bridge.stop()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        try:
+            bridge.close()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+class CaptureRawInputSession:
+    """管理捕获 Raw Input 注册，支持 Mapping 切换后重新注册。"""
+
+    def __init__(self, listener: RawInputListener) -> None:
+        self._listener = listener
+        self._active = False
+        self._lifecycle_lock = threading.RLock()
+
+    @property
+    def is_active(self) -> bool:
+        """返回当前捕获监听是否已注册。"""
+
+        with self._lifecycle_lock:
+            return self._active
+
+    def start(self) -> None:
+        """启动监听；重复调用不会重复注册。"""
+
+        with self._lifecycle_lock:
+            if self._active:
+                return
+            self._listener.start()
+            self._active = True
+
+    def stop(self) -> None:
+        """停止监听；重复调用不会重复释放。"""
+
+        with self._lifecycle_lock:
+            if not self._active:
+                return
+            try:
+                self._listener.stop()
+            finally:
+                self._active = False
 
 def _load_remote_image(root: tk.Tk) -> tk.PhotoImage | None:
     """加载项目内的干净遥控器正面产品图。"""
@@ -48,11 +242,38 @@ def _load_remote_image(root: tk.Tk) -> tk.PhotoImage | None:
         return None
 
 
+class CaptureTabController:
+    """控制捕获页清理和 Mapping 期间的 HID 直读暂停。"""
+
+    def __init__(
+        self,
+        cleanup_callback: Callable[[], None],
+        mapping_state_callback: Callable[[bool], None],
+    ) -> None:
+        self._cleanup_callback = cleanup_callback
+        self._mapping_state_callback = mapping_state_callback
+
+    def cleanup(self) -> None:
+        """停止捕获页监听器并保存当前记录。"""
+
+        self._cleanup_callback()
+
+    def set_mapping_active(self, active: bool) -> None:
+        """通知捕获页 Mapping 状态，避免两个读取路径同时抢报告。"""
+
+        self._mapping_state_callback(active)
+
+    def __call__(self) -> None:
+        """兼容旧的清理回调调用方式。"""
+
+        self.cleanup()
+
+
 def build_capture_tab(
     parent: tk.Misc,
     output_path: Path,
-) -> Callable[[], None]:
-    """在现有 Tk 窗口中创建采集页，并返回清理回调。"""
+) -> CaptureTabController:
+    """在现有 Tk 窗口中创建采集页，并返回生命周期控制器。"""
 
     # 延迟导入，避免 --help 或命令行模式强制依赖 GUI 模块。
     from tools.t1_inspector import (
@@ -94,7 +315,7 @@ def build_capture_tab(
     ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 2))
     ttk.Label(
         parent,
-        text="左侧按产品图操作遥控器，右侧查看与保存报文；T1 输入报文全部记录，当前标签仅用于标注。",
+        text="左侧选择按键后操作遥控器，右侧查看与保存报文；未选择按键时忽略输入。",
     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
 
     selected_label = tk.StringVar(value="当前标签：未选择")
@@ -107,6 +328,14 @@ def build_capture_tab(
     persisted_event_count = 0
     hid_listener: HidInputListener | None = None
     hid_active = False
+    listener: RawInputListener | None = None
+    raw_listener_session: CaptureRawInputSession | None = None
+    mapping_active = False
+    cleanup_requested = False
+    capture_interception_var = tk.BooleanVar(value=True)
+    capture_interception_button: ttk.Checkbutton | None = None
+    bridge_active = False
+    bridge_session = CaptureBridgeSession()
 
     content_frame = ttk.Frame(parent)
     content_frame.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 10))
@@ -169,6 +398,15 @@ def build_capture_tab(
 
         nonlocal current_button
         with state_lock:
+            mapping_is_active = mapping_active
+        if mapping_is_active:
+            messagebox.showwarning(
+                "捕获不可用",
+                "Mapping 服务运行中，捕获不可用。请先停止 Mapping 服务。",
+                parent=root,
+            )
+            return
+        with state_lock:
             current_button = button
         selected_label.set(
             f"当前标签：{BUTTON_DISPLAY_NAMES.get(button, button)}"
@@ -185,6 +423,26 @@ def build_capture_tab(
                         else "CaptureKey.TButton"
                     )
                 )
+        # 桥接开启时由驱动队列提供完整报告，不能再并行读取被清零的 HID 报告。
+        set_direct_hid_enabled(not bridge_active)
+
+    def clear_button_selection() -> None:
+        """清除标签并停止直读，防止未选择时继续占用 HID 报告路径。"""
+
+        nonlocal current_button
+        with state_lock:
+            current_button = None
+        set_direct_hid_enabled(False)
+        selected_label.set("当前标签：未选择")
+        status_label.set("状态：未选择按键，已忽略输入")
+        for name, widget in button_widgets.items():
+            widget.configure(
+                style=(
+                    "CaptureKeyDisabled.TButton"
+                    if name in DISABLED_CAPTURE_BUTTONS
+                    else "CaptureKey.TButton"
+                )
+            )
 
     for button in REMOTE_BUTTONS:
         widget = ttk.Button(
@@ -289,6 +547,18 @@ def build_capture_tab(
         textvariable=driver_stats_label,
         foreground="#52606d",
     ).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
+    capture_interception_button = ttk.Checkbutton(
+        future_frame,
+        text="拦截原生键位",
+        variable=capture_interception_var,
+        command=lambda: toggle_capture_interception(),
+    )
+    capture_interception_button.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 4))
+    ttk.Label(
+        future_frame,
+        text="开启后由驱动保存完整原始报文，关闭后使用 HID 直读。",
+        foreground="#7b8794",
+    ).grid(row=3, column=0, sticky="w", padx=10, pady=(0, 8))
 
     def save_capture() -> None:
         """保存当前内存中的脱敏采集结果。"""
@@ -329,6 +599,9 @@ def build_capture_tab(
         side="left", padx=(0, 6)
     )
     ttk.Button(action_bar, text="清空记录", command=clear_events).pack(side="left")
+    ttk.Button(action_bar, text="取消选择", command=clear_button_selection).pack(
+        side="left", padx=(6, 0)
+    )
 
     footer = ttk.Frame(operation_frame)
     footer.grid(row=4, column=0, sticky="ew", padx=8, pady=(0, 10))
@@ -383,20 +656,35 @@ def build_capture_tab(
         refresh_action_table()
         status_label.set("状态：监听中")
 
-    def on_raw_event(raw_event: RawInputEvent, from_direct_hid: bool = False) -> None:
+    def on_raw_event(
+        raw_event: RawInputEvent,
+        from_direct_hid: bool = False,
+        from_bridge: bool = False,
+    ) -> None:
         """在 Raw Input 线程中复制事件和当前标签，再投递到 UI 线程。"""
 
-        # 不按 Usage、按键类型或当前标签丢弃 T1 报文；未选标签的报文标记为“未标记”。
         if not is_t1_device_path(raw_event.device_path):
             return
         collection = collection_from_device_path(raw_event.device_path)
         with state_lock:
-            button = current_button or "未标记"
+            button = selected_capture_button(current_button)
             direct_is_active = hid_active
-        if not from_direct_hid and collection in ("COL02", "COL03"):
-            # 直读监听器已经提供完整报文时，Raw Input 只会造成重复。
-            if direct_is_active:
-                return
+            mapping_is_active = mapping_active
+            bridge_is_active = bridge_active
+        # 没有明确选择标签时不记录，避免后台输入污染采集结果。
+        if button is None or mapping_is_active:
+            return
+        if (
+            not from_direct_hid
+            and not from_bridge
+            and should_ignore_passive_t1_raw_event(
+                collection,
+                direct_hid_active=direct_is_active,
+                bridge_active=bridge_is_active,
+            )
+        ):
+            # 主动直读或驱动桥接已经提供完整报文，Raw Input 只会造成重复。
+            return
         try:
             root.after(0, handle_raw_event, raw_event, button)
         except RuntimeError:
@@ -425,6 +713,42 @@ def build_capture_tab(
 
         on_raw_event(hid_event_to_raw_event(event), from_direct_hid=True)
 
+    def bridge_event_to_raw_event(event: object) -> RawInputEvent:
+        """把驱动队列事件包装成可复用采集管线能识别的 HID 事件。"""
+
+        collection = str(getattr(event, "collection", "UNKNOWN")).upper()
+        if collection not in ("COL02", "COL03"):
+            collection = "COL02"
+        return RawInputEvent(
+            device_path=(
+                "\\\\?\\HID#VID_620A&PID_0407&"
+                f"{collection}#T1REMOTE\\CAPTURE"
+            ),
+            raw_input_type=2,
+            raw_data=bytes(getattr(event, "report", b"")),
+        )
+
+    def bridge_event_callback(event: object) -> None:
+        """使用驱动在拦截前保存的完整报告作为采集来源。"""
+
+        on_raw_event(bridge_event_to_raw_event(event), from_bridge=True)
+
+    def bridge_error_callback(error: Exception) -> None:
+        """把桥接线程异常投递到 Tk 主线程，不阻塞窗口退出。"""
+
+        def update_status() -> None:
+            nonlocal bridge_active
+            bridge_active = False
+            capture_interception_var.set(False)
+            driver_stats_label.set(f"驱动统计：拦截异常：{error}")
+            status_label.set(f"状态：原生键位拦截异常：{error}")
+            set_direct_hid_enabled(current_button is not None)
+
+        try:
+            root.after(0, update_status)
+        except RuntimeError:
+            pass
+
     def hid_error_callback(error: Exception) -> None:
         """把 HID 直读错误显示到窗口状态栏。"""
 
@@ -433,49 +757,184 @@ def build_capture_tab(
         except RuntimeError:
             pass
 
-    listener = RawInputListener(on_event=on_raw_event, on_error=on_error)
-    try:
-        listener.start()
-    except Exception as error:
-        messagebox.showerror("Inspector 启动失败", str(error), parent=root)
-        raise RuntimeError("Inspector 启动失败") from error
+    def set_raw_input_enabled(enabled: bool) -> None:
+        """切换捕获 Raw Input 注册，避免 Mapping 覆盖 COL01 接收窗口。"""
 
-    # Inspector 是采集工具，不在采集阶段启用桥接拦截，避免改变 Home、Power 等按键行为。
-    driver_stats_label.set("驱动统计：采集模式未启用拦截")
-    status_label.set("状态：准备启动 HID 直读采集")
+        if raw_listener_session is None:
+            return
+        if enabled:
+            raw_listener_session.start()
+        else:
+            raw_listener_session.stop()
 
-    try:
-        hid_listener = HidInputListener(
+    def set_capture_interception_enabled(enabled: bool) -> None:
+        """切换驱动拦截；关闭时保留 HID 直读采集能力。"""
+
+        nonlocal bridge_active
+        with state_lock:
+            if mapping_active:
+                capture_interception_var.set(True)
+                return
+        if enabled:
+            if bridge_active:
+                return
+            try:
+                bridge_status = bridge_session.start(
+                    bridge_event_callback,
+                    bridge_error_callback,
+                )
+            except Exception as error:
+                bridge_active = False
+                capture_interception_var.set(False)
+                driver_stats_label.set(f"驱动统计：拦截不可用：{error}")
+                status_label.set(f"状态：Raw Input 已启动，拦截不可用：{error}")
+                return
+            bridge_active = True
+            # 如果用户是在直读模式下打开开关，先关闭旧读路径，避免重复和清零抬起。
+            set_direct_hid_enabled(False)
+            attached = bridge_status.attached_collections
+            attached_text = ",".join(
+                f"COL{collection:02d}"
+                for collection in range(1, 32)
+                if attached & (1 << collection)
+            ) or "无"
+            driver_stats_label.set(
+                f"驱动统计：拦截已确认 | 租约有效 | 附着 {attached_text}"
+            )
+            status_label.set("状态：原生键位拦截已确认，未选择按键时忽略输入")
+            return
+        bridge_session.stop()
+        bridge_active = False
+        set_direct_hid_enabled(current_button is not None)
+        driver_stats_label.set("驱动统计：采集模式未启用拦截")
+        status_label.set("状态：Raw Input 已启动，未启用原生键位拦截")
+
+    def toggle_capture_interception() -> None:
+        """响应捕获页的原生键位拦截开关。"""
+
+        with state_lock:
+            if mapping_active:
+                capture_interception_var.set(True)
+                status_label.set("状态：Mapping 服务运行中，捕获不可用")
+                return
+        set_capture_interception_enabled(bool(capture_interception_var.get()))
+
+    def set_direct_hid_enabled(enabled: bool) -> None:
+        """按选择状态和 Mapping 状态启停 COL02/COL03 直读。"""
+
+        nonlocal hid_listener, hid_active
+        with state_lock:
+            should_start = (
+                enabled
+                and current_button is not None
+                and not mapping_active
+                and not cleanup_requested
+                and not bridge_active
+                and not hid_active
+            )
+            listener_to_stop = hid_listener if not enabled else None
+            if not enabled:
+                hid_listener = None
+                hid_active = False
+        if listener_to_stop is not None:
+            try:
+                listener_to_stop.stop()
+            except Exception as error:
+                hid_error_callback(error)
+        if not should_start:
+            return
+
+        candidate = HidInputListener(
             on_event=hid_event_loop_callback,
             on_error=hid_error_callback,
             target_collections=("COL02", "COL03"),
         )
-        hid_listener.start()
+        try:
+            candidate.start()
+        except Exception as error:
+            hid_error_callback(error)
+            return
         with state_lock:
-            hid_active = True
-        status_label.set(
-            "状态：HID 直读采集已启动，输入保持正常透传；请点击按键标签后操作遥控器"
-        )
+            can_keep_running = (
+                current_button is not None
+                and not mapping_active
+                and not cleanup_requested
+                and not bridge_active
+                and not hid_active
+            )
+            if can_keep_running:
+                hid_listener = candidate
+                hid_active = True
+        if not can_keep_running:
+            try:
+                candidate.stop()
+            except Exception as error:
+                hid_error_callback(error)
+
+    def set_mapping_active(active: bool) -> None:
+        """Mapping 启动时暂停捕获，停止后按开关恢复捕获。"""
+
+        if threading.current_thread() is not threading.main_thread():
+            try:
+                root.after(0, set_mapping_active, active)
+            except RuntimeError:
+                pass
+            return
+        nonlocal mapping_active, bridge_active
+        with state_lock:
+            mapping_active = active
+        if active:
+            # 同一进程只能为同一类 Raw Input 保留一个接收窗口；Mapping
+            # 启动前释放捕获注册，避免 COL01/Menu 被 Mapping 隐藏窗口接走。
+            set_raw_input_enabled(False)
+            bridge_session.stop()
+            bridge_active = False
+            set_direct_hid_enabled(False)
+            if capture_interception_button is not None:
+                capture_interception_button.state(["disabled"])
+            driver_stats_label.set("驱动统计：Mapping 服务运行中，捕获不可用")
+            status_label.set("状态：Mapping 服务运行中，捕获不可用")
+        else:
+            with state_lock:
+                should_restore_capture = not cleanup_requested
+            if should_restore_capture:
+                try:
+                    # Mapping 停止后重新注册，恢复 COL01/Menu 的 Raw Input 路径。
+                    set_raw_input_enabled(True)
+                except Exception as error:
+                    on_error(error)
+            if capture_interception_button is not None:
+                capture_interception_button.state(["!disabled"])
+            set_capture_interception_enabled(bool(capture_interception_var.get()))
+            set_direct_hid_enabled(current_button is not None)
+            if current_button is None:
+                status_label.set("状态：未选择按键，已忽略输入")
+            elif not bridge_active:
+                status_label.set("状态：HID 直读采集已恢复")
+
+    listener = RawInputListener(on_event=on_raw_event, on_error=on_error)
+    raw_listener_session = CaptureRawInputSession(listener)
+    try:
+        set_raw_input_enabled(True)
     except Exception as error:
-        hid_listener = None
-        hid_active = False
-        hid_error_callback(error)
+        messagebox.showerror("Inspector 启动失败", str(error), parent=root)
+        raise RuntimeError("Inspector 启动失败") from error
+
+    # 默认开启驱动拦截，确保捕获到驱动清零前的完整原始报告。
+    set_capture_interception_enabled(True)
 
     def cleanup() -> None:
         """停止 Raw Input 线程并保存当前结果。"""
 
-        nonlocal hid_active
+        nonlocal cleanup_requested
         with state_lock:
-            hid_active = False
-        if hid_listener:
-            try:
-                hid_listener.stop()
-            except Exception as error:
-                hid_error_callback(error)
-        listener.stop()
+            cleanup_requested = True
+        set_direct_hid_enabled(False)
+        set_raw_input_enabled(False)
+        bridge_session.stop()
         save_capture()
 
-    return cleanup
+    return CaptureTabController(cleanup, set_mapping_active)
 
 
 def run_gui(output_path: Path) -> int:
@@ -486,7 +945,7 @@ def run_gui(output_path: Path) -> int:
     root.geometry("1520x860")
     root.minsize(1280, 760)
     try:
-        cleanup = build_capture_tab(root, output_path)
+        capture_controller = build_capture_tab(root, output_path)
     except Exception:
         root.destroy()
         raise
@@ -494,7 +953,7 @@ def run_gui(output_path: Path) -> int:
     def on_close() -> None:
         """停止采集并关闭独立窗口。"""
 
-        cleanup()
+        capture_controller.cleanup()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)

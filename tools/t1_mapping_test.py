@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import threading
+import time
 
 from t1remote.core.capture_scope import collection_from_device_path, is_t1_device_path
 from t1remote.core.key_mapping import (
@@ -25,7 +26,7 @@ from t1remote.windows.driver_bridge import (
 )
 from t1remote.windows.mapping_runtime import MappingRuntimeError, T1MappingRuntime
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
-from t1remote.windows.send_input import KeyboardOutput, WindowsInputEmitter
+from t1remote.windows.send_input import MouseOutput, OutputEvent, WindowsInputEmitter
 from t1remote.windows.single_instance import SingleInstanceGuard
 
 
@@ -40,7 +41,7 @@ class _LockedEmitter:
         self._delegate = delegate
         self._lock = threading.Lock()
 
-    def emit(self, outputs: tuple[KeyboardOutput, ...]) -> None:
+    def emit(self, outputs: tuple[OutputEvent, ...]) -> None:
         with self._lock:
             self._delegate.emit(outputs)  # type: ignore[attr-defined]
 
@@ -48,12 +49,17 @@ class _LockedEmitter:
 class _DryRunEmitter:
     """只打印输出，不调用 SendInput，供配置检查使用。"""
 
-    def emit(self, outputs: tuple[KeyboardOutput, ...]) -> None:
+    def emit(self, outputs: tuple[OutputEvent, ...]) -> None:
         if outputs:
-            text = ", ".join(
-                f"VK=0x{item.virtual_key:02X}/flags=0x{item.flags:02X}"
-                for item in outputs
-            )
+            chunks = []
+            for item in outputs:
+                if isinstance(item, MouseOutput):
+                    chunks.append(f"MOUSE={item.button}/flags=0x{item.flags:02X}")
+                else:
+                    chunks.append(
+                        f"VK=0x{item.virtual_key:02X}/flags=0x{item.flags:02X}"
+                    )
+            text = ", ".join(chunks)
             print(f"[dry-run] 输出：{text}")
 
 
@@ -119,6 +125,7 @@ def run(config_path: Path, dry_run: bool = False) -> int:
     stop_requested = threading.Event()
     worker_threads: list[threading.Thread] = []
     raw_listener: RawInputListener | None = None
+    driver_clock_offset: float | None = None
 
     def reload_mapping_config(replacement: MappingConfig) -> None:
         """热加载有效配置，并先释放旧配置的活动输出。"""
@@ -129,6 +136,21 @@ def run(config_path: Path, dry_run: bool = False) -> int:
 
     def report_error(prefix: str, error: Exception) -> None:
         print(f"[{prefix}错误] {error}")
+
+    def driver_event_time(timestamp_100ns: object) -> float | None:
+        """把驱动的 100ns 时间戳换算到 Python monotonic 时钟。"""
+
+        nonlocal driver_clock_offset
+        try:
+            timestamp = int(timestamp_100ns)
+        except (TypeError, ValueError):
+            return None
+        if timestamp <= 0:
+            return None
+        timestamp_seconds = timestamp / 10_000_000
+        if driver_clock_offset is None:
+            driver_clock_offset = time.monotonic() - timestamp_seconds
+        return timestamp_seconds + driver_clock_offset
 
     instance_guard = SingleInstanceGuard("Local\\T1Remote.MappingSession")
     if not instance_guard.acquire():
@@ -169,6 +191,7 @@ def run(config_path: Path, dry_run: bool = False) -> int:
                     event.report,
                     usage_page=event.usage_page,
                     usage=event.usage,
+                    now=driver_event_time(getattr(event, "timestamp_100ns", 0)),
                 )
                 _print_mapping_events(mapped)
             except (BridgeError, MappingRuntimeError) as error:

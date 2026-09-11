@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
+import sys
+import types
+from unittest.mock import patch
 
 from t1remote.windows.gatt import (
     GattServiceInfo,
+    T1_AUDIO_SERVICE_UUID,
+    discover_ble_devices,
     normalize_uuid,
     summarize_bleak_services,
 )
@@ -69,6 +75,34 @@ class GattSummaryTests(unittest.TestCase):
     def test_rejects_invalid_uuid(self) -> None:
         with self.assertRaises(ValueError):
             normalize_uuid("not-a-uuid")
+
+    def test_discovers_unique_ble_device_addresses(self) -> None:
+        class FakeDevice:
+            def __init__(self, name: str | None, address: str) -> None:
+                self.name = name
+                self.address = address
+
+        first = FakeDevice("", "AA:BB:CC:DD:EE:FF")
+        second = FakeDevice(None, "11:22:33:44:55:66")
+        discovered = {
+            first: SimpleNamespace(local_name="", service_uuids=[T1_AUDIO_SERVICE_UUID]),
+            second: SimpleNamespace(local_name="", service_uuids=[]),
+        }
+        fake_bleak = types.ModuleType("bleak")
+        fake_bleak.BleakScanner = SimpleNamespace(discover=lambda **_kwargs: object())
+
+        def fake_asyncio_run(coroutine):
+            coroutine.close()
+            return discovered
+
+        with patch.dict(sys.modules, {"bleak": fake_bleak}), patch(
+            "t1remote.windows.gatt.asyncio.run", side_effect=fake_asyncio_run
+        ):
+            devices = discover_ble_devices()
+        self.assertEqual(len(devices), 2)
+        self.assertTrue(devices[0].is_t1_candidate)
+        self.assertEqual(devices[0].name, "未知设备")
+        self.assertEqual(devices[1].name, "未知设备")
 
 
 if __name__ == "__main__":

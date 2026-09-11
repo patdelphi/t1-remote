@@ -84,7 +84,7 @@ class AtvvV04GattAudioControllerTests(unittest.TestCase):
             await asyncio.sleep(0)
             await transport.emit(
                 ATVV_CONTROL_CHARACTERISTIC_UUID,
-                bytes.fromhex("0b0004000100860014"),
+                bytes.fromhex("0b0004000200860086"),
             )
             caps = await negotiation
 
@@ -95,7 +95,7 @@ class AtvvV04GattAudioControllerTests(unittest.TestCase):
             pcm = queue.pop(timeout=0)
             self.assertIsNotNone(pcm)
             self.assertEqual(transport.writes[0][1], bytes.fromhex("0a00010001"))
-            self.assertEqual(transport.writes[1][1], bytes.fromhex("0c0001"))
+            self.assertEqual(transport.writes[1][1], bytes.fromhex("0c0002"))
 
             await controller.close_microphone()
             self.assertEqual(transport.writes[2][1], bytes.fromhex("0d"))

@@ -54,6 +54,18 @@ class MappingEditorTests(unittest.TestCase):
         self.assertEqual(special.key, "MEDIA_PLAY_PAUSE")
         self.assertEqual(none, KeyAction("none"))
 
+    def test_mouse_form_is_supported(self) -> None:
+        action = build_action_from_form(
+            "mouse",
+            key="RIGHT_CLICK",
+            modifiers=(),
+            program="",
+            argument_lines=(),
+        )
+
+        self.assertEqual(action, KeyAction("mouse", "RIGHT_CLICK"))
+        self.assertEqual(format_action_summary(action), "鼠标：RIGHT_CLICK")
+
     def test_trigger_fields_are_preserved_by_form_conversion(self) -> None:
         action = build_action_from_form(
             "key",

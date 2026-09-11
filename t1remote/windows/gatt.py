@@ -34,6 +34,137 @@ class GattServiceInfo:
     characteristics: tuple[GattCharacteristicInfo, ...]
 
 
+@dataclass(frozen=True)
+class BleDeviceInfo:
+    """供界面显示的 BLE 设备名称和地址。"""
+
+    name: str
+    address: str
+    service_uuids: tuple[str, ...] = ()
+    paired: bool = False
+
+    @property
+    def is_t1_candidate(self) -> bool:
+        """返回设备是否通过 ATVV 服务或设备名称识别为 T1。"""
+
+        return self.is_t1_service_candidate or self.is_probable_t1
+
+    @property
+    def is_t1_service_candidate(self) -> bool:
+        """返回广播中是否包含 T1 ATVV 语音服务。"""
+
+        return T1_AUDIO_SERVICE_UUID in self.service_uuids
+
+    @property
+    def is_probable_t1(self) -> bool:
+        """返回设备名称是否包含 T1/Remote 标识。"""
+
+        normalized_name = self.name.casefold()
+        return "t1" in normalized_name or "remote" in normalized_name
+
+
+def discover_ble_devices(timeout: float = 4.0) -> tuple[BleDeviceInfo, ...]:
+    """扫描附近 BLE 设备，返回可交给 BleakClient 的名称和地址。"""
+
+    if timeout <= 0:
+        raise ValueError("BLE 扫描超时时间必须大于 0")
+    try:
+        from bleak import BleakScanner
+    except ImportError as error:
+        raise GattTransportError(
+            "未安装可选依赖 bleak；安装项目的 ble extra 后才能扫描 BLE 设备"
+        ) from error
+    async def scan() -> object:
+        """兼容支持和不支持 return_adv 的 Bleak 版本。"""
+
+        try:
+            return await BleakScanner.discover(timeout=timeout, return_adv=True)
+        except TypeError:
+            return await BleakScanner.discover(timeout=timeout)
+
+    scan_error: Exception | None = None
+    try:
+        discovered = asyncio.run(scan())
+    except Exception as error:
+        discovered = ()
+        scan_error = error
+    result: list[BleDeviceInfo] = []
+    seen: set[str] = set()
+    if isinstance(discovered, dict):
+        device_entries = tuple(discovered.items())
+    else:
+        device_entries = tuple((device, None) for device in discovered)
+    for device, advertisement in device_entries:
+        address = str(getattr(device, "address", "")).strip()
+        if not address or address in seen:
+            continue
+        seen.add(address)
+        local_name = getattr(advertisement, "local_name", "") if advertisement else ""
+        name = str(
+            getattr(device, "name", "") or local_name or "未知设备"
+        ).strip() or "未知设备"
+        service_uuids = tuple(
+            sorted(
+                {
+                    normalize_uuid(str(uuid_value))
+                    for uuid_value in getattr(advertisement, "service_uuids", ())
+                }
+            )
+        ) if advertisement else ()
+        result.append(BleDeviceInfo(name=name, address=address, service_uuids=service_uuids))
+    if not any(device.is_t1_candidate for device in result):
+        try:
+            paired_devices = discover_paired_ble_devices()
+        except Exception:
+            paired_devices = ()
+        known_addresses = {device.address.casefold() for device in result}
+        for device in paired_devices:
+            if device.address.casefold() not in known_addresses:
+                result.append(device)
+    if not result and scan_error is not None:
+        raise GattTransportError(f"BLE 设备扫描失败：{scan_error}") from scan_error
+    return tuple(result)
+
+
+def discover_paired_ble_devices() -> tuple[BleDeviceInfo, ...]:
+    """读取 Windows 已缓存的 BLE 设备，覆盖设备已连接但当前不广播的情况。"""
+
+    try:
+        from winrt.windows.devices.bluetooth import BluetoothLEDevice
+        from winrt.windows.devices.enumeration import DeviceInformation
+    except ImportError:
+        return ()
+
+    async def query() -> tuple[BleDeviceInfo, ...]:
+        selector = BluetoothLEDevice.get_device_selector()
+        device_infos = await DeviceInformation.find_all_async_aqs_filter(selector)
+        result: list[BleDeviceInfo] = []
+        seen: set[str] = set()
+        for info in device_infos:
+            name = str(getattr(info, "name", "") or "未知设备").strip() or "未知设备"
+            # 只把名称明显属于 T1 的已缓存设备加入回退列表，避免下拉框塞满鼠标耳机。
+            normalized_name = name.casefold()
+            if "t1" not in normalized_name and "remote" not in normalized_name:
+                continue
+            device = await BluetoothLEDevice.from_id_async(info.id)
+            if device is None:
+                continue
+            try:
+                address = f"{int(device.bluetooth_address):012X}"
+            finally:
+                device.close()
+            if address in seen:
+                continue
+            seen.add(address)
+            result.append(BleDeviceInfo(name=name, address=address, paired=True))
+        return tuple(result)
+
+    try:
+        return asyncio.run(query())
+    except Exception as error:
+        raise GattTransportError(f"读取已配对 BLE 设备失败：{error}") from error
+
+
 def normalize_uuid(value: str) -> str:
     """规范化 UUID，拒绝空值和非 UUID 字符串。"""
 
@@ -97,12 +228,23 @@ class BleakGattAdapter:
         if not address_or_identifier.strip():
             raise ValueError("BLE 地址或设备标识不能为空")
         try:
-            from bleak import BleakClient
+            from bleak import BLEDevice, BleakClient
         except ImportError as error:
             raise GattTransportError(
                 "未安装可选依赖 bleak；安装项目的 ble extra 后才能使用 GATT 探测"
             ) from error
-        self._client = BleakClient(address_or_identifier)
+        # Windows 可能已经缓存并配对了设备，但设备当前不广播。
+        # 传入 BLEDevice 可以绕过 Bleak 的再次扫描，直接使用缓存地址建立 GATT 会话。
+        compact_address = re.sub(r"[:-]", "", address_or_identifier.strip())
+        if re.fullmatch(r"[0-9a-fA-F]{12}", compact_address):
+            normalized_address = ":".join(
+                compact_address[index : index + 2]
+                for index in range(0, len(compact_address), 2)
+            )
+            target: Any = BLEDevice(normalized_address, "T1-Remote", None)
+        else:
+            target = address_or_identifier
+        self._client = BleakClient(target)
         self._notification_handlers: dict[str, Callable[..., Any]] = {}
 
     @property
@@ -197,10 +339,13 @@ class BleakGattAdapter:
 
 __all__ = [
     "BleakGattAdapter",
+    "BleDeviceInfo",
     "GattCharacteristicInfo",
     "GattServiceInfo",
     "GattTransportError",
     "T1_AUDIO_SERVICE_UUID",
+    "discover_ble_devices",
+    "discover_paired_ble_devices",
     "normalize_uuid",
     "summarize_bleak_services",
 ]

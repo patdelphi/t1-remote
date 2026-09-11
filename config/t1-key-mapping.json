@@ -1,4 +1,4 @@
-﻿{
+{
   "version": 1,
   "mappings": {
     "Power": {
@@ -28,6 +28,10 @@
       "key": "ENTER"
     },
     "Return": {
+      "type": "text",
+      "text": "停一下，review一下当前进度，看与需求目标、项目规划有没有偏差"
+    },
+    "Voice": {
       "type": "combo",
       "key": "D",
       "modifiers": [
@@ -39,20 +43,23 @@
         "threshold_ms": 500
       }
     },
-    "Voice": {
-      "type": "none"
-    },
     "Mute": {
-      "type": "media",
-      "key": "VOLUME_MUTE"
+      "type": "text",
+      "text": "继续按规划执行任务"
     },
     "Home": {
-      "type": "text",
-      "text": "的发生的发烧的方式的发生地方"
+      "type": "command",
+      "argv": [
+        "explorer.exe",
+        "shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App"
+      ]
     },
     "Menu": {
-      "type": "key",
-      "key": "APPS"
+      "type": "combo",
+      "key": "F10",
+      "modifiers": [
+        "SHIFT"
+      ]
     },
     "Volume Plus": {
       "type": "media",
@@ -63,4 +70,4 @@
       "key": "VOLUME_DOWN"
     }
   }
-}
+}

@@ -20,6 +20,7 @@ MAPPING_VERSION = 1
 _ACTION_KINDS = {
     "none",
     "key",
+    "mouse",
     "media",
     "special",
     "shortcut",
@@ -29,6 +30,12 @@ _ACTION_KINDS = {
     "text",
 }
 _MODIFIER_NAMES = {"ALT", "CTRL", "SHIFT", "WIN"}
+MOUSE_ACTION_KEYS: tuple[str, ...] = (
+    "LEFT_CLICK",
+    "RIGHT_CLICK",
+    "MIDDLE_CLICK",
+)
+_MOUSE_ACTION_KEY_SET = frozenset(MOUSE_ACTION_KEYS)
 _TRIGGER_KINDS = {"press", "long_press", "double_click", "hold_repeat"}
 _MACRO_STEP_KINDS = {"key", "special"}
 
@@ -230,6 +237,18 @@ class KeyAction:
             if self.trigger.kind == "hold_repeat":
                 raise MappingConfigError("输入文字暂不支持按住重复触发")
             return
+        if kind == "mouse":
+            if self.modifiers or self.argv or self.macro or self.text or self.append_enter:
+                raise MappingConfigError("mouse 动作只能包含 key")
+            if not isinstance(self.key, str) or not self.key.strip():
+                raise MappingConfigError("mouse 动作必须包含非空 key")
+            normalized_key = self.key.strip().upper()
+            if normalized_key not in _MOUSE_ACTION_KEY_SET:
+                raise MappingConfigError(
+                    f"不支持的鼠标动作：{self.key}，可选值：{', '.join(MOUSE_ACTION_KEYS)}"
+                )
+            object.__setattr__(self, "key", normalized_key)
+            return
         if not isinstance(self.key, str) or not self.key.strip():
             raise MappingConfigError(f"{kind} 动作必须包含非空 key")
         if self.text or self.append_enter:
@@ -358,7 +377,7 @@ class MappingConfig:
                 "Voice": KeyAction("none"),
                 "Mute": KeyAction("media", "VOLUME_MUTE"),
                 "Home": KeyAction("key", "HOME"),
-                "Menu": KeyAction("key", "APPS"),
+                "Menu": KeyAction("mouse", "RIGHT_CLICK"),
                 "Volume Plus": KeyAction("media", "VOLUME_UP"),
                 "Volume Minus": KeyAction("media", "VOLUME_DOWN"),
             }
@@ -611,6 +630,7 @@ def save_mapping_config(path: str | Path, config: MappingConfig) -> None:
 
 __all__ = [
     "KeyAction",
+    "MOUSE_ACTION_KEYS",
     "MacroStep",
     "MappingConfig",
     "MappingConfigError",

@@ -25,8 +25,45 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertTrue((PROJECT_ROOT / "tools" / "build_windows.ps1").exists())
         self.assertTrue((PROJECT_ROOT / "Docs" / "build-windows.md").exists())
 
-    def test_main_app_declares_three_integrated_tabs(self) -> None:
-        self.assertEqual(MAIN_TAB_LABELS, ("捕获", "Mapping 设置", "Mapping 服务"))
+    def test_release_workflow_declares_app_driver_and_install_entries(self) -> None:
+        """发布入口必须同时覆盖用户态 App、原生驱动和安装生命周期。"""
+
+        release_script = PROJECT_ROOT / "tools" / "build_release.ps1"
+        install_script = PROJECT_ROOT / "tools" / "install_release.ps1"
+        uninstall_script = PROJECT_ROOT / "tools" / "uninstall_release.ps1"
+        launcher = PROJECT_ROOT / "tools" / "start_release.bat"
+        release_doc = PROJECT_ROOT / "Docs" / "release.md"
+
+        for path in (
+            release_script,
+            install_script,
+            uninstall_script,
+            launcher,
+            release_doc,
+        ):
+            self.assertTrue(path.exists(), path)
+
+        release_text = release_script.read_text(encoding="utf-8-sig")
+        self.assertIn('Join-Path $packageRoot "App"', release_text)
+        self.assertIn('Join-Path $packageRoot "Driver"', release_text)
+        self.assertIn('Join-Path $packageRoot "Native"', release_text)
+        self.assertIn('$buildRoot = Join-Path $releaseOutputRoot ".build-$packageName"', release_text)
+        self.assertIn("SHA256SUMS.txt", release_text)
+        self.assertIn("Scripts/pyinstaller.exe", release_text)
+        self.assertIn("APPDATA", release_text)
+        self.assertIn("--icon", release_text)
+
+        install_text = install_script.read_text(encoding="utf-8-sig")
+        self.assertIn("pnputil.exe", install_text)
+        self.assertIn("Start-T1Remote.bat", install_text)
+        self.assertIn("$releaseRoot = $PSScriptRoot", install_text)
+
+        uninstall_text = uninstall_script.read_text(encoding="utf-8-sig")
+        self.assertIn("/delete-driver", uninstall_text)
+        self.assertIn("ProgramFiles", uninstall_text)
+
+    def test_main_app_declares_integrated_tabs(self) -> None:
+        self.assertEqual(MAIN_TAB_LABELS, ("捕获", "Mapping 设置", "Mapping 服务", "语音测试"))
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ from t1remote.core.capture_scope import (
     collection_from_device_path,
     is_t1_device_path,
     redacted_device_family,
+    selected_capture_button,
     validate_button_number,
 )
 from t1remote.windows.raw_input import RawInputEvent, RawInputListener
@@ -195,11 +196,12 @@ def main() -> int:
     def on_event(raw_event: RawInputEvent) -> None:
         """过滤 T1 路径，并把当前手动选择的物理键写入内存。"""
 
-        # 不按 Usage、按键类型或当前标签丢弃 T1 报文；未选标签的报文标记为“未标记”。
         if not is_t1_device_path(raw_event.device_path):
             return
         with state_lock:
-            button = current_button or "未标记"
+            button = selected_capture_button(current_button)
+        if button is None:
+            return
 
         event = _build_event(raw_event, button)
         with events_lock:

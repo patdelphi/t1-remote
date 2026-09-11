@@ -11,7 +11,6 @@ from typing import Any, Iterable
 from t1remote.core.capture_scope import collection_from_device_path, is_t1_device_path
 from t1remote.core.hid_report_descriptor import (
     HidReportField,
-    HidReportDescriptorError,
     parse_hid_report_descriptor,
 )
 from t1remote.windows.hid_input import HIDP_CAPS, enumerate_hid_paths
@@ -21,8 +20,6 @@ GENERIC_READ = 0x80000000
 FILE_SHARE_READ = 0x00000001
 FILE_SHARE_WRITE = 0x00000002
 OPEN_EXISTING = 3
-IOCTL_HID_GET_REPORT_DESCRIPTOR = 0x000B0007
-MAX_REPORT_DESCRIPTOR_BYTES = 4096
 
 
 @dataclass(frozen=True)
@@ -53,6 +50,35 @@ class HidInputButtonCapability:
     report_count: int
     link_collection: int
     is_absolute: bool
+    data_index_min: int = 0
+    data_index_max: int = 0
+
+
+@dataclass(frozen=True)
+class HidInputData:
+    """HidP_GetData 返回的一条 DataIndex 和原始值。"""
+
+    data_index: int
+    raw_value: int
+
+
+@dataclass(frozen=True)
+class HidInputButtonMatch:
+    """DataIndex 命中的一个 HIDP_BUTTON_CAPS Usage 候选。"""
+
+    capability_index: int
+    report_id: int
+    usage_page: int
+    usage: int
+
+
+@dataclass(frozen=True)
+class HidInputDataDescription:
+    """一条 HidP_GetData 结果及其可证明的 Usage 候选。"""
+
+    data_index: int
+    raw_value: int
+    button_matches: tuple[HidInputButtonMatch, ...] = ()
 
 
 class _HidpButtonRange(ctypes.Structure):
@@ -116,6 +142,16 @@ class _HidpButtonCaps(ctypes.Structure):
     )
 
 
+class _HidpData(ctypes.Structure):
+    """HIDP_DATA 的 ctypes 布局；Reserved 和联合体保持原始大小。"""
+
+    _fields_ = (
+        ("DataIndex", wintypes.USHORT),
+        ("Reserved", wintypes.USHORT),
+        ("RawValue", wintypes.ULONG),
+    )
+
+
 HIDP_INPUT = 0
 
 
@@ -154,8 +190,11 @@ def _read_input_button_capabilities(
         if is_range:
             usage_min = int(item.Usage.Range.UsageMin)
             usage_max = int(item.Usage.Range.UsageMax)
+            data_index_min = int(item.Usage.Range.DataIndexMin)
+            data_index_max = int(item.Usage.Range.DataIndexMax)
         else:
             usage_min = usage_max = int(item.Usage.NotRange.Usage)
+            data_index_min = data_index_max = int(item.Usage.NotRange.DataIndex)
         result.append(
             HidInputButtonCapability(
                 report_id=int(item.ReportID),
@@ -166,43 +205,176 @@ def _read_input_button_capabilities(
                 report_count=int(item.ReportCount),
                 link_collection=int(item.LinkCollection),
                 is_absolute=bool(item.IsAbsolute),
+                data_index_min=data_index_min,
+                data_index_max=data_index_max,
             )
         )
     return tuple(result)
 
 
-def _read_report_descriptor(
-    kernel32: ctypes.WinDLL,
-    handle: int,
-) -> bytes:
-    """通过只读 HID IOCTL 取得报告描述符；当前接口失败时返回空字节串。"""
+def inspect_preparsed_data(
+    preparsed_data: bytes | bytearray | memoryview,
+    *,
+    collection: str = "",
+    device_path: str = "",
+) -> HidCollectionInfo:
+    """用 Windows HID parser 读取桥接返回的 opaque preparsed data。"""
 
-    kernel32.DeviceIoControl.restype = wintypes.BOOL
-    kernel32.DeviceIoControl.argtypes = [
+    if os.name != "nt":
+        raise RuntimeError("HID preparsed data 探测只能在 Windows 上运行")
+    if not isinstance(preparsed_data, (bytes, bytearray, memoryview)):
+        raise TypeError("preparsed_data 必须是 bytes-like 对象")
+    data = bytes(preparsed_data)
+    if not data:
+        raise ValueError("preparsed_data 不能为空")
+
+    hid = ctypes.WinDLL("hid", use_last_error=True)
+    hid.HidP_GetCaps.restype = ctypes.c_int32
+    hid.HidP_GetCaps.argtypes = [ctypes.c_void_p, ctypes.POINTER(HIDP_CAPS)]
+    buffer = ctypes.create_string_buffer(data)
+    preparsed_pointer = ctypes.cast(buffer, ctypes.c_void_p)
+    caps = HIDP_CAPS()
+    status = int(hid.HidP_GetCaps(preparsed_pointer, ctypes.byref(caps)))
+    if status < 0:
+        raise RuntimeError(f"HidP_GetCaps 失败：0x{status & 0xFFFFFFFF:08X}")
+
+    input_button_capabilities = _read_input_button_capabilities(
+        hid,
+        preparsed_pointer,
+        caps,
+    )
+    return HidCollectionInfo(
+        collection=collection.upper(),
+        device_path=device_path,
+        usage_page=int(caps.UsagePage),
+        usage=int(caps.Usage),
+        input_report_length=int(caps.InputReportByteLength),
+        output_report_length=int(caps.OutputReportByteLength),
+        feature_report_length=int(caps.FeatureReportByteLength),
+        input_button_capabilities=input_button_capabilities,
+    )
+
+
+def parse_input_data(
+    preparsed_data: bytes | bytearray | memoryview,
+    report: bytes | bytearray | memoryview,
+) -> tuple[HidInputData, ...]:
+    """用 HidP_GetData 提取输入报告的 DataIndex 和原始值。"""
+
+    if os.name != "nt":
+        raise RuntimeError("HID input data 解析只能在 Windows 上运行")
+    if not isinstance(preparsed_data, (bytes, bytearray, memoryview)):
+        raise TypeError("preparsed_data 必须是 bytes-like 对象")
+    if not isinstance(report, (bytes, bytearray, memoryview)):
+        raise TypeError("report 必须是 bytes-like 对象")
+    preparsed_bytes = bytes(preparsed_data)
+    report_bytes = bytes(report)
+    if not preparsed_bytes:
+        raise ValueError("preparsed_data 不能为空")
+    if not report_bytes:
+        raise ValueError("report 不能为空")
+
+    hid = ctypes.WinDLL("hid", use_last_error=True)
+    hid.HidP_MaxDataListLength.restype = wintypes.ULONG
+    hid.HidP_MaxDataListLength.argtypes = [wintypes.USHORT, ctypes.c_void_p]
+    hid.HidP_GetData.restype = ctypes.c_int32
+    hid.HidP_GetData.argtypes = [
+        wintypes.USHORT,
+        ctypes.POINTER(_HidpData),
+        ctypes.POINTER(wintypes.ULONG),
         ctypes.c_void_p,
-        wintypes.DWORD,
-        ctypes.c_void_p,
-        wintypes.DWORD,
-        ctypes.c_void_p,
-        wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD),
-        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_ubyte),
+        wintypes.ULONG,
     ]
-    buffer = ctypes.create_string_buffer(MAX_REPORT_DESCRIPTOR_BYTES)
-    bytes_returned = wintypes.DWORD(0)
-    if not kernel32.DeviceIoControl(
-        ctypes.c_void_p(handle),
-        IOCTL_HID_GET_REPORT_DESCRIPTOR,
-        None,
-        0,
-        buffer,
-        MAX_REPORT_DESCRIPTOR_BYTES,
-        ctypes.byref(bytes_returned),
-        None,
-    ):
-        return b""
-    size = min(int(bytes_returned.value), MAX_REPORT_DESCRIPTOR_BYTES)
-    return bytes(buffer.raw[:size])
+    preparsed_buffer = ctypes.create_string_buffer(preparsed_bytes)
+    preparsed_pointer = ctypes.cast(preparsed_buffer, ctypes.c_void_p)
+    max_data_length = int(
+        hid.HidP_MaxDataListLength(HIDP_INPUT, preparsed_pointer)
+    )
+    if max_data_length <= 0:
+        raise RuntimeError("HidP_MaxDataListLength 返回了无效长度")
+    data_list = (_HidpData * max_data_length)()
+    data_length = wintypes.ULONG(max_data_length)
+    report_buffer = (ctypes.c_ubyte * len(report_bytes)).from_buffer_copy(
+        report_bytes
+    )
+    status = int(
+        hid.HidP_GetData(
+            HIDP_INPUT,
+            data_list,
+            ctypes.byref(data_length),
+            preparsed_pointer,
+            report_buffer,
+            len(report_bytes),
+        )
+    )
+    if status < 0:
+        raise RuntimeError(f"HidP_GetData 失败：0x{status & 0xFFFFFFFF:08X}")
+    return tuple(
+        HidInputData(
+            data_index=int(item.DataIndex),
+            raw_value=int(item.RawValue),
+        )
+        for item in data_list[: int(data_length.value)]
+    )
+
+
+def describe_input_data(
+    input_data: Iterable[HidInputData],
+    capabilities: Iterable[HidInputButtonCapability],
+) -> tuple[HidInputDataDescription, ...]:
+    """按 HIDP_BUTTON_CAPS 将 DataIndex 映射为可审计的 Usage 候选。
+
+    Microsoft 定义范围型能力的 DataIndex 与 Usage 是一一对应且顺序一致的。
+    这里仅使用该关系生成候选；找不到或出现多个候选时都保留证据，不猜测
+    字节偏移、Report ID 或业务名称。
+    """
+
+    capability_list = tuple(capabilities)
+    descriptions: list[HidInputDataDescription] = []
+    for item in input_data:
+        if not isinstance(item, HidInputData):
+            raise TypeError("input_data 必须只包含 HidInputData")
+        matches: list[HidInputButtonMatch] = []
+        for capability_index, capability in enumerate(capability_list):
+            if not isinstance(capability, HidInputButtonCapability):
+                raise TypeError("capabilities 必须只包含 HidInputButtonCapability")
+            if not (
+                capability.data_index_min
+                <= item.data_index
+                <= capability.data_index_max
+            ):
+                continue
+            if capability.is_range:
+                data_span = (
+                    capability.data_index_max - capability.data_index_min + 1
+                )
+                usage_span = capability.usage_max - capability.usage_min + 1
+                if data_span != usage_span:
+                    continue
+                usage = capability.usage_min + (
+                    item.data_index - capability.data_index_min
+                )
+            else:
+                if capability.usage_min != capability.usage_max:
+                    continue
+                usage = capability.usage_min
+            matches.append(
+                HidInputButtonMatch(
+                    capability_index=capability_index,
+                    report_id=capability.report_id,
+                    usage_page=capability.usage_page,
+                    usage=usage,
+                )
+            )
+        descriptions.append(
+            HidInputDataDescription(
+                data_index=item.data_index,
+                raw_value=item.raw_value,
+                button_matches=tuple(matches),
+            )
+        )
+    return tuple(descriptions)
 
 
 def inspect_hid_collections(
@@ -266,11 +438,6 @@ def inspect_hid_collections(
                 preparsed_data,
                 caps,
             )
-            report_descriptor = _read_report_descriptor(kernel32, int(handle))
-            try:
-                report_fields = parse_hid_report_descriptor(report_descriptor)
-            except (HidReportDescriptorError, TypeError):
-                report_fields = ()
             infos.append(
                 HidCollectionInfo(
                     collection=collection,
@@ -281,8 +448,6 @@ def inspect_hid_collections(
                     output_report_length=int(caps.OutputReportByteLength),
                     feature_report_length=int(caps.FeatureReportByteLength),
                     input_button_capabilities=input_button_capabilities,
-                    report_descriptor=report_descriptor,
-                    report_fields=report_fields.fields if report_descriptor else (),
                 )
             )
         finally:
@@ -315,6 +480,7 @@ def summarize_hid_collections(
                 "feature_report_length": info.feature_report_length,
                 "report_descriptor_length": len(info.report_descriptor),
                 "report_descriptor_hex": info.report_descriptor.hex(" "),
+                "report_descriptor_status": _report_descriptor_status(info),
                 "report_fields": [field.to_dict() for field in report_fields],
                 "input_button_capabilities": [
                     {
@@ -326,6 +492,8 @@ def summarize_hid_collections(
                         "report_count": capability.report_count,
                         "link_collection": capability.link_collection,
                         "is_absolute": capability.is_absolute,
+                        "data_index_min": capability.data_index_min,
+                        "data_index_max": capability.data_index_max,
                     }
                     for capability in info.input_button_capabilities
                 ],
@@ -335,9 +503,27 @@ def summarize_hid_collections(
     return summaries
 
 
+def _report_descriptor_status(info: HidCollectionInfo) -> str:
+    """区分描述符可用、损坏和当前接口无法取得三种现场状态。"""
+
+    if not info.report_descriptor:
+        return "descriptor_unavailable"
+    try:
+        parse_hid_report_descriptor(info.report_descriptor)
+    except (HidReportDescriptorError, TypeError, ValueError):
+        return "descriptor_invalid"
+    return "descriptor_available"
+
+
 __all__ = [
     "HidCollectionInfo",
     "HidInputButtonCapability",
+    "HidInputButtonMatch",
+    "HidInputData",
+    "HidInputDataDescription",
+    "describe_input_data",
+    "inspect_preparsed_data",
     "inspect_hid_collections",
+    "parse_input_data",
     "summarize_hid_collections",
 ]

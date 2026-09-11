@@ -13,6 +13,7 @@ from t1remote.core.key_mapping import (
     MappingConfig,
     MappingConfigError,
     MappingEngine,
+    MappingEvent,
     load_mapping_config,
     save_mapping_config,
     TriggerConfig,
@@ -37,7 +38,17 @@ class KeyMappingTests(unittest.TestCase):
         self.assertEqual(config.mappings["Volume Plus"].key, "VOLUME_UP")
         self.assertEqual(config.mappings["Power"].kind, "none")
         self.assertEqual(config.mappings["Voice"].kind, "none")
+        self.assertEqual(config.mappings["Menu"], KeyAction("mouse", "RIGHT_CLICK"))
         self.assertNotIn("Air Mouse", config.mappings)
+
+    def test_modifier_keys_can_be_configured_as_single_keys(self) -> None:
+        for key in ("CTRL", "SHIFT", "ALT", "WIN"):
+            self.assertEqual(KeyAction("key", key).key, key)
+
+    def test_mouse_action_accepts_only_supported_buttons(self) -> None:
+        self.assertEqual(KeyAction("mouse", "RIGHT_CLICK").key, "RIGHT_CLICK")
+        with self.assertRaises(MappingConfigError):
+            KeyAction("mouse", "WHEEL_UP")
 
     def test_legacy_air_mouse_mapping_is_dropped_when_loading(self) -> None:
         config = MappingConfig.from_dict(
@@ -64,6 +75,17 @@ class KeyMappingTests(unittest.TestCase):
 
         self.assertEqual(loaded.version, 1)
         self.assertEqual(loaded.mappings["Menu"], config.mappings["Menu"])
+
+    def test_active_config_uses_keyboard_context_menu_for_codex(self) -> None:
+        """当前活动配置用 Shift+F10 发送标准键盘上下文菜单。"""
+
+        config_path = Path(__file__).parents[1] / "config" / "t1-key-mapping.json"
+        config = load_mapping_config(config_path)
+
+        self.assertEqual(
+            config.mappings["Menu"],
+            KeyAction("combo", "F10", ("SHIFT",)),
+        )
 
     def test_invalid_config_is_rejected(self) -> None:
         with self.assertRaises(MappingConfigError):
@@ -161,6 +183,19 @@ class KeyMappingTests(unittest.TestCase):
         )
         with self.assertRaises(MappingConfigError):
             TriggerConfig("hold_repeat", interval_ms=10)
+        with self.assertRaises(MappingConfigError):
+            TriggerConfig("long_press", threshold_ms=50)
+
+    def test_active_voice_mapping_keeps_normal_long_press_threshold(self) -> None:
+        """活动配置不能把普通约 100ms 按键误判为长按。"""
+
+        config_path = Path(__file__).parents[1] / "config" / "t1-key-mapping.json"
+        config = load_mapping_config(config_path)
+
+        self.assertEqual(
+            config.mappings["Voice"].trigger,
+            TriggerConfig("long_press", threshold_ms=500),
+        )
 
     def test_long_press_only_emits_after_threshold(self) -> None:
         config = MappingConfig(
@@ -179,6 +214,27 @@ class KeyMappingTests(unittest.TestCase):
         self.assertEqual(engine.tick(now=0.49), ())
         self.assertEqual(engine.tick(now=0.5)[0].state, "down")
         self.assertEqual(engine.handle(button_event("OK", "up"), now=0.6)[0].state, "up")
+
+    def test_long_press_keeps_output_until_physical_release(self) -> None:
+        """长按触发后保持活动，只有真实 up 才生成释放事件。"""
+
+        action = KeyAction(
+            "key",
+            "ENTER",
+            trigger=TriggerConfig("long_press", threshold_ms=100),
+        )
+        engine = MappingEngine(
+            MappingConfig(mappings={**MappingConfig.default().mappings, "Voice": action})
+        )
+
+        self.assertEqual(engine.handle(button_event("Voice", "down"), now=0.0), ())
+        self.assertEqual(engine.tick(now=0.1), (MappingEvent("Voice", "down", action),))
+        self.assertEqual(engine.tick(now=0.2), ())
+        self.assertEqual(
+            engine.handle(button_event("Voice", "up"), now=0.3),
+            (MappingEvent("Voice", "up", action),),
+        )
+        self.assertEqual(engine.handle(button_event("Voice", "up"), now=0.4), ())
 
     def test_short_release_does_not_emit_long_press(self) -> None:
         config = MappingConfig(

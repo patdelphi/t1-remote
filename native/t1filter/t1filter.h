@@ -4,19 +4,48 @@
 
 #include <ntddk.h>
 #include <wdf.h>
+#include <hidclass.h>
+#include <hidpddi.h>
 #include <hidport.h>
 
 #include "..\t1bridge\t1bridge_protocol.h"
 
 #define T1FILTER_EVENT_QUEUE_CAPACITY 64u
+#define T1FILTER_MAX_COLLECTIONS 32u
+
+typedef struct _T1FILTER_ACTIVE_COLLECTION_STATE {
+    USHORT usage;
+    USHORT mapped_usage;
+} T1FILTER_ACTIVE_COLLECTION_STATE;
+
+/*
+ * 程序说明：缓存 HID parser 为每个输入 DataIndex 解析出的唯一 Usage。
+ *
+ * 映射来源必须是 HIDP_BUTTON_CAPS/HIDP_VALUE_CAPS，不能从报告字节位置
+ * 反推。ambiguous 用于保留异常或冲突能力，避免内核猜测业务键位。
+ */
+typedef struct _T1FILTER_PARSER_DATA_MAP {
+    USHORT usage_page;
+    USHORT usage;
+    BOOLEAN mapped;
+    BOOLEAN ambiguous;
+} T1FILTER_PARSER_DATA_MAP, *PT1FILTER_PARSER_DATA_MAP;
 
 typedef struct _T1FILTER_CONTROL_CONTEXT {
     WDFSPINLOCK lock;
     T1BRIDGE_POLICY policy;
     BOOLEAN filtering_enabled;
-    USHORT active_usage;
-    USHORT active_mapped_usage;
-    USHORT active_collection;
+    WDFIOTARGET collection_targets[T1FILTER_MAX_COLLECTIONS];
+    PHIDP_PREPARSED_DATA parser_preparsed_data[T1FILTER_MAX_COLLECTIONS];
+    PUSAGE_AND_PAGE parser_usage_lists[T1FILTER_MAX_COLLECTIONS];
+    ULONG parser_usage_capacity[T1FILTER_MAX_COLLECTIONS];
+    PHIDP_DATA parser_data_lists[T1FILTER_MAX_COLLECTIONS];
+    ULONG parser_data_capacity[T1FILTER_MAX_COLLECTIONS];
+    PT1FILTER_PARSER_DATA_MAP parser_data_maps[T1FILTER_MAX_COLLECTIONS];
+    ULONG parser_data_map_capacity[T1FILTER_MAX_COLLECTIONS];
+    T1FILTER_ACTIVE_COLLECTION_STATE active_collections[
+        T1FILTER_MAX_COLLECTIONS
+    ];
     ULONG event_head;
     ULONG event_tail;
     ULONG event_count;
@@ -50,6 +79,8 @@ typedef struct _T1FILTER_DEVICE_CONTEXT {
     PT1FILTER_CONTROL_CONTEXT control;
     USHORT collection;
     USHORT usage_page;
+    WDFCOLLECTION sent_requests;
+    WDFSPINLOCK sent_requests_lock;
     BOOLEAN registered;
 } T1FILTER_DEVICE_CONTEXT, *PT1FILTER_DEVICE_CONTEXT;
 
@@ -63,9 +94,11 @@ EVT_WDF_DRIVER_DEVICE_ADD T1FilterEvtDeviceAdd;
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL T1FilterEvtHidDeviceControl;
 EVT_WDF_IO_QUEUE_IO_READ T1FilterEvtHidRead;
 EVT_WDF_IO_QUEUE_IO_STOP T1FilterEvtIoStop;
+EVT_WDF_IO_QUEUE_IO_RESUME T1FilterEvtIoResume;
 EVT_WDF_IO_QUEUE_IO_INTERNAL_DEVICE_CONTROL T1FilterEvtInternalDeviceControl;
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL T1FilterEvtDeviceControl;
 EVT_WDF_REQUEST_COMPLETION_ROUTINE T1FilterEvtReadCompletion;
+EVT_WDF_REQUEST_COMPLETION_ROUTINE T1FilterEvtGetInputReportCompletion;
 EVT_WDF_OBJECT_CONTEXT_CLEANUP T1FilterEvtDeviceCleanup;
 
 NTSTATUS
@@ -83,7 +116,8 @@ T1FilterShouldBlockReport(
     _In_ ULONG ReportLength,
     _Out_ USHORT* Usage,
     _Out_ USHORT* MappedUsage,
-    _Out_ BOOLEAN* Pressed
+    _Out_ BOOLEAN* Pressed,
+    _Out_ ULONG* PolicyGeneration
 );
 
 VOID

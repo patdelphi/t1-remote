@@ -1,4 +1,4 @@
-"""程序说明：把已确认的语义按键转换为 Windows SendInput 键盘事件。
+"""程序说明：把已确认的语义按键转换为 Windows SendInput 键盘和鼠标事件。
 
 本模块默认只绑定安全的方向、确认、返回、菜单和媒体键。Power、Voice
 以及未知按键需要用户显式配置，避免误触发系统电源或外部语音动作。
@@ -13,12 +13,23 @@ import os
 from typing import Iterable, Mapping
 
 from t1remote.core.input_mapping import ButtonEvent
-from t1remote.core.key_mapping import KeyAction, MacroStep, MappingEvent
+from t1remote.core.key_mapping import (
+    KeyAction,
+    MacroStep,
+    MappingEvent,
+    MOUSE_ACTION_KEYS,
+)
 
 
 KEYEVENTF_EXTENDEDKEY = 0x0001
 KEYEVENTF_KEYUP = 0x0002
 KEYEVENTF_UNICODE = 0x0004
+MOUSEEVENTF_LEFTDOWN = 0x0002
+MOUSEEVENTF_LEFTUP = 0x0004
+MOUSEEVENTF_RIGHTDOWN = 0x0008
+MOUSEEVENTF_RIGHTUP = 0x0010
+MOUSEEVENTF_MIDDLEDOWN = 0x0020
+MOUSEEVENTF_MIDDLEUP = 0x0040
 
 
 @dataclass(frozen=True)
@@ -39,6 +50,17 @@ class KeyboardOutput:
     scan_code: int = 0
 
 
+@dataclass(frozen=True)
+class MouseOutput:
+    """待提交给 SendInput 的单个鼠标按钮事件。"""
+
+    button: str
+    flags: int
+
+
+OutputEvent = KeyboardOutput | MouseOutput
+
+
 DEFAULT_OUTPUT_BINDINGS: Mapping[str, OutputBinding] = {
     "Arrow Up": OutputBinding(0x26, extended=True),
     "Arrow Down": OutputBinding(0x28, extended=True),
@@ -54,8 +76,14 @@ DEFAULT_OUTPUT_BINDINGS: Mapping[str, OutputBinding] = {
 }
 
 _KEY_VIRTUAL_KEYS: dict[str, int] = {
+    "BACKSPACE": 0x08,
     "TAB": 0x09,
     "ENTER": 0x0D,
+    "SHIFT": 0x10,
+    "CTRL": 0x11,
+    "ALT": 0x12,
+    "PAUSE": 0x13,
+    "CAPSLOCK": 0x14,
     "ESC": 0x1B,
     "SPACE": 0x20,
     "PAGEUP": 0x21,
@@ -68,11 +96,53 @@ _KEY_VIRTUAL_KEYS: dict[str, int] = {
     "DOWN": 0x28,
     "INSERT": 0x2D,
     "DELETE": 0x2E,
+    "PRINTSCREEN": 0x2C,
+    "NUMPAD0": 0x60,
+    "NUMPAD1": 0x61,
+    "NUMPAD2": 0x62,
+    "NUMPAD3": 0x63,
+    "NUMPAD4": 0x64,
+    "NUMPAD5": 0x65,
+    "NUMPAD6": 0x66,
+    "NUMPAD7": 0x67,
+    "NUMPAD8": 0x68,
+    "NUMPAD9": 0x69,
+    "MULTIPLY": 0x6A,
+    "ADD": 0x6B,
+    "SEPARATOR": 0x6C,
+    "SUBTRACT": 0x6D,
+    "DECIMAL": 0x6E,
+    "DIVIDE": 0x6F,
+    "NUMLOCK": 0x90,
+    "SCROLLLOCK": 0x91,
+    "LSHIFT": 0xA0,
+    "RSHIFT": 0xA1,
+    "LCTRL": 0xA2,
+    "RCTRL": 0xA3,
+    "LALT": 0xA4,
+    "RALT": 0xA5,
+    # 标准键盘 OEM/标点虚拟键。
+    "SEMICOLON": 0xBA,
+    "EQUAL": 0xBB,
+    "COMMA": 0xBC,
+    "MINUS": 0xBD,
+    "PERIOD": 0xBE,
+    "SLASH": 0xBF,
+    "BACKQUOTE": 0xC0,
+    "LBRACKET": 0xDB,
+    "BACKSLASH": 0xDC,
+    "RBRACKET": 0xDD,
+    "APOSTROPHE": 0xDE,
+    "OEM_8": 0xDF,
+    "OEM_102": 0xE2,
+    "LWIN": 0x5B,
+    "RWIN": 0x5C,
+    "WIN": 0x5B,
     "APPS": 0x5D,
 }
 _KEY_VIRTUAL_KEYS.update({chr(code): code for code in range(ord("A"), ord("Z") + 1)})
 _KEY_VIRTUAL_KEYS.update({str(code - 0x30): code for code in range(0x30, 0x3A)})
-_KEY_VIRTUAL_KEYS.update({f"F{index}": 0x6F + index for index in range(1, 13)})
+_KEY_VIRTUAL_KEYS.update({f"F{index}": 0x6F + index for index in range(1, 25)})
 _MEDIA_VIRTUAL_KEYS = {
     "VOLUME_MUTE": 0xAD,
     "VOLUME_DOWN": 0xAE,
@@ -84,6 +154,7 @@ _SPECIAL_VIRTUAL_KEYS = {
     "MEDIA_PREV_TRACK": 0xB1,
     "MEDIA_STOP": 0xB2,
     "MEDIA_PLAY_PAUSE": 0xB3,
+    "MEDIA_SELECT": 0xB5,
     "LAUNCH_MAIL": 0xB4,
     "LAUNCH_MEDIA": 0xB5,
     "LAUNCH_APP1": 0xB6,
@@ -102,8 +173,34 @@ _SPECIAL_VIRTUAL_KEYS = {
 }
 KEY_VIRTUAL_KEY_NAMES: tuple[str, ...] = tuple(_KEY_VIRTUAL_KEYS)
 SPECIAL_HID_KEY_NAMES: tuple[str, ...] = tuple(_SPECIAL_VIRTUAL_KEYS)
+MOUSE_ACTION_NAMES: tuple[str, ...] = MOUSE_ACTION_KEYS
+MOUSE_ACTION_LABELS = {
+    "LEFT_CLICK": "鼠标左键",
+    "RIGHT_CLICK": "鼠标右键",
+    "MIDDLE_CLICK": "鼠标中键",
+}
 _MODIFIER_VIRTUAL_KEYS = {"ALT": 0x12, "CTRL": 0x11, "SHIFT": 0x10, "WIN": 0x5B}
-_EXTENDED_KEYS = {"PAGEUP", "PAGEDOWN", "END", "HOME", "LEFT", "UP", "RIGHT", "DOWN", "INSERT", "DELETE", "APPS"}
+_EXTENDED_KEYS = {
+    "PAGEUP",
+    "PAGEDOWN",
+    "END",
+    "HOME",
+    "LEFT",
+    "UP",
+    "RIGHT",
+    "DOWN",
+    "INSERT",
+    "DELETE",
+    "APPS",
+    "LWIN",
+    "RWIN",
+    "WIN",
+}
+_MOUSE_ACTION_FLAGS = {
+    "LEFT_CLICK": (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP),
+    "RIGHT_CLICK": (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP),
+    "MIDDLE_CLICK": (MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP),
+}
 
 
 def build_output_events(
@@ -120,13 +217,15 @@ def build_output_events(
     return _build_binding_events(event.state, binding)
 
 
-def build_mapping_output_events(event: MappingEvent) -> tuple[KeyboardOutput, ...]:
+def build_mapping_output_events(event: MappingEvent) -> tuple[OutputEvent, ...]:
     """把可配置映射事件转换为键盘、媒体键或快捷键输出。"""
 
     if event.action.kind == "text":
         if event.state != "down":
             return ()
         return build_text_output_events(event.action.text, event.action.append_enter)
+    if event.action.kind == "mouse":
+        return build_mouse_output_events(event.action.key or "", event.state)
     binding = binding_from_action(event.action)
     if binding is None:
         return ()
@@ -145,7 +244,7 @@ def binding_from_action(action: KeyAction) -> OutputBinding | None:
         return OutputBinding(virtual_key)
     if action.kind == "command":
         return None
-    if action.kind == "text":
+    if action.kind in {"text", "mouse"}:
         return None
     virtual_key = _KEY_VIRTUAL_KEYS.get(action.key or "")
     if virtual_key is None:
@@ -212,6 +311,19 @@ def build_text_output_events(
         outputs.extend(_build_binding_events("down", enter))
         outputs.extend(_build_binding_events("up", enter))
     return tuple(outputs)
+
+
+def build_mouse_output_events(action_key: str, state: str) -> tuple[MouseOutput, ...]:
+    """把鼠标动作转换为左键、右键或中键的按下/抬起事件。"""
+
+    flags = _MOUSE_ACTION_FLAGS.get(action_key)
+    if flags is None:
+        raise ValueError(f"不支持的鼠标动作：{action_key}")
+    if state == "down":
+        return (MouseOutput(action_key, flags[0]),)
+    if state == "up":
+        return (MouseOutput(action_key, flags[1]),)
+    return ()
 
 
 def _build_binding_events(
@@ -291,7 +403,7 @@ class WindowsInputEmitter:
     def __init__(self) -> None:
         self._user32: ctypes.WinDLL | None = None
 
-    def emit(self, outputs: Iterable[KeyboardOutput]) -> None:
+    def emit(self, outputs: Iterable[OutputEvent]) -> None:
         """批量调用 SendInput，失败时抛出 Windows API 异常。"""
 
         if os.name != "nt":
@@ -309,12 +421,21 @@ class WindowsInputEmitter:
             ]
         inputs = (INPUT * len(items))()
         for index, output in enumerate(items):
-            inputs[index].type = 1  # INPUT_KEYBOARD
-            inputs[index].ki.wVk = output.virtual_key
-            inputs[index].ki.wScan = output.scan_code
-            inputs[index].ki.dwFlags = output.flags
-            inputs[index].ki.time = 0
-            inputs[index].ki.dwExtraInfo = 0
+            if isinstance(output, MouseOutput):
+                inputs[index].type = 0  # INPUT_MOUSE
+                inputs[index].mi.dx = 0
+                inputs[index].mi.dy = 0
+                inputs[index].mi.mouseData = 0
+                inputs[index].mi.dwFlags = output.flags
+                inputs[index].mi.time = 0
+                inputs[index].mi.dwExtraInfo = 0
+            else:
+                inputs[index].type = 1  # INPUT_KEYBOARD
+                inputs[index].ki.wVk = output.virtual_key
+                inputs[index].ki.wScan = output.scan_code
+                inputs[index].ki.dwFlags = output.flags
+                inputs[index].ki.time = 0
+                inputs[index].ki.dwExtraInfo = 0
         sent = int(self._user32.SendInput(len(items), inputs, ctypes.sizeof(INPUT)))
         if sent != len(items):
             raise ctypes.WinError(ctypes.get_last_error())
@@ -327,6 +448,16 @@ __all__ = [
     "KEYEVENTF_UNICODE",
     "KeyboardOutput",
     "KEY_VIRTUAL_KEY_NAMES",
+    "MOUSE_ACTION_LABELS",
+    "MOUSE_ACTION_NAMES",
+    "MOUSEEVENTF_LEFTDOWN",
+    "MOUSEEVENTF_LEFTUP",
+    "MOUSEEVENTF_MIDDLEDOWN",
+    "MOUSEEVENTF_MIDDLEUP",
+    "MOUSEEVENTF_RIGHTDOWN",
+    "MOUSEEVENTF_RIGHTUP",
+    "MouseOutput",
+    "OutputEvent",
     "OutputBinding",
     "SPECIAL_HID_KEY_NAMES",
     "WindowsInputEmitter",
@@ -334,6 +465,7 @@ __all__ = [
     "binding_from_macro_step",
     "build_macro_step_events",
     "build_mapping_output_events",
+    "build_mouse_output_events",
     "build_output_events",
     "build_text_output_events",
 ]

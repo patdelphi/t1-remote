@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 
 _CONSUMER_BUTTONS = {
+    # 官方 HID 名称为 AC Search；Voice 是 T1 产品按键的业务别名。
     0x221: "Voice",
     0x223: "Home",
     0x224: "Return",

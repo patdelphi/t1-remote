@@ -7,6 +7,7 @@ import unittest
 
 from t1remote.windows.driver_bridge import (
     BridgeCapabilities,
+    BridgeProtocolError,
     BridgeStatus,
     BridgeStats,
     BridgeUnavailable,
@@ -17,6 +18,9 @@ from t1remote.windows.driver_bridge import (
     InterceptionPolicy,
     NativeBridgeCapabilities,
     NativeBridgeEvent,
+    NativeBridgeStatus,
+    NativePreparsedData,
+    NativeReportDescriptor,
     NativeBridgeStats,
     T1BridgeClient,
 )
@@ -59,6 +63,18 @@ class _FakeReadEventFunction(_FakeFunction):
         event.report[0] = 0x02
         event.report[1] = 0x23
         event.report[2] = 0x02
+        return result
+
+
+class _FakeStatusFunction(_FakeFunction):
+    """向状态结构写入完整的固定 ABI 头。"""
+
+    def __call__(self, *args: object) -> int:
+        result = super().__call__(*args)
+        output = ctypes.cast(args[1], ctypes.POINTER(NativeBridgeStatus)).contents
+        output.size = ctypes.sizeof(NativeBridgeStatus)
+        output.abi_version = 2
+        output.state = 1
         return result
 
 
@@ -128,6 +144,42 @@ class _FakeStatsFunction(_FakeFunction):
         return result
 
 
+class _FakeReportDescriptorFunction(_FakeFunction):
+    """向描述符结构写入一段模拟的 HID Report Descriptor。"""
+
+    def __call__(self, *args: object) -> int:
+        result = super().__call__(*args)
+        output = ctypes.cast(
+            args[1], ctypes.POINTER(NativeReportDescriptor)
+        ).contents
+        output.size = ctypes.sizeof(NativeReportDescriptor)
+        output.abi_version = 2
+        output.collection = 2
+        descriptor = bytes.fromhex(
+            "05 0C 09 01 A1 01 85 02 75 01 95 01 09 E9 81 02 C0"
+        )
+        output.descriptor_length = len(descriptor)
+        output.descriptor[: len(descriptor)] = descriptor
+        return result
+
+
+class _FakePreparsedDataFunction(_FakeFunction):
+    """向 preparsed data 结构写入一段模拟的 HID 能力数据。"""
+
+    def __call__(self, *args: object) -> int:
+        result = super().__call__(*args)
+        output = ctypes.cast(
+            args[1], ctypes.POINTER(NativePreparsedData)
+        ).contents
+        output.size = ctypes.sizeof(NativePreparsedData)
+        output.abi_version = 2
+        output.collection = 2
+        data = b"preparsed-fixture"
+        output.data_length = len(data)
+        output.data[: len(data)] = data
+        return result
+
+
 class _FakeBridgeLibrary:
     """模拟 t1bridge.dll 的最小 ABI。"""
 
@@ -139,11 +191,13 @@ class _FakeBridgeLibrary:
         self.heartbeat = _FakeFunction(0)
         self.stop = _FakeFunction(0)
         self.close = _FakeFunction(0)
-        self.status = _FakeFunction(0)
+        self.status = _FakeStatusFunction(0)
         self.read_event = _FakeReadEventFunction(0)
         self.capabilities = _FakeCapabilitiesFunction(0)
         self.stats = _FakeStatsFunction(0)
         self.flush_events = _FakeFunction(0)
+        self.report_descriptor = _FakeReportDescriptorFunction(0)
+        self.preparsed_data = _FakePreparsedDataFunction(0)
         self.T1Bridge_GetAbiVersion = self.abi
         self.T1Bridge_Open = self.open
         self.T1Bridge_SetPolicy = self.set_policy
@@ -156,6 +210,8 @@ class _FakeBridgeLibrary:
         self.T1Bridge_GetCapabilities = self.capabilities
         self.T1Bridge_GetStats = self.stats
         self.T1Bridge_FlushEvents = self.flush_events
+        self.T1Bridge_GetReportDescriptor = self.report_descriptor
+        self.T1Bridge_GetPreparsedData = self.preparsed_data
 
 
 class DriverBridgeTests(unittest.TestCase):
@@ -231,6 +287,76 @@ class DriverBridgeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             InterceptionPolicy(lease_required=True, lease_timeout_ms=99)
 
+    def test_policy_rejects_empty_or_zero_collections(self) -> None:
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(target_collections=())
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(target_collections=("COL00",))
+
+    def test_policy_rejects_zero_collection_field_rules(self) -> None:
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(
+                target_collections=("COL02",),
+                field_rules=(
+                    HidFieldRule(
+                        0x0C,
+                        "COL00",
+                        0x223,
+                        byte_offset=1,
+                        byte_length=1,
+                    ),
+                ),
+            )
+
+    def test_client_rejects_out_of_range_descriptor_collection(self) -> None:
+        """用户态查询接口不能把 COL00 或超范围编号传给驱动。"""
+
+        library = _FakeBridgeLibrary()
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+        client.open(InterceptionPolicy(target_collections=("COL02",)))
+
+        with self.assertRaises(ValueError):
+            client.get_report_descriptor("COL00")
+        with self.assertRaises(ValueError):
+            client.get_preparsed_data("COL32")
+        client.close()
+
+    def test_client_rejects_invalid_status_abi(self) -> None:
+        """驱动返回的状态头不完整时，桥接层必须拒绝继续解析。"""
+
+        library = _FakeBridgeLibrary()
+        library.status = _FakeFunction(0)
+        library.T1Bridge_GetStatus = library.status
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+        client.open(InterceptionPolicy(target_collections=("COL02",)))
+
+        with self.assertRaises(BridgeProtocolError):
+            client.status()
+        client.close()
+
+    def test_policy_rejects_conflicting_field_rule_flags(self) -> None:
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(
+                target_collections=("COL02",),
+                field_rules=(
+                    HidFieldRule(
+                        0x0C,
+                        "COL02",
+                        0x223,
+                        byte_offset=1,
+                        byte_length=1,
+                        remap=True,
+                        drop=True,
+                    ),
+                ),
+            )
+
     def test_policy_serializes_consumer_usage_remapping(self) -> None:
         policy = InterceptionPolicy(
             blocked_usages=(
@@ -261,6 +387,16 @@ class DriverBridgeTests(unittest.TestCase):
                 target_collections=("COL02",),
             )
 
+    def test_policy_rejects_wildcard_and_collection_specific_overlap(self) -> None:
+        with self.assertRaises(ValueError):
+            InterceptionPolicy(
+                blocked_usages=(
+                    HidUsage(0x0C, 0x223),
+                    HidUsage(0x0C, 0x223, "COL02"),
+                ),
+                target_collections=("COL02", "COL03"),
+            )
+
     def test_client_calls_native_lifecycle(self) -> None:
         library = _FakeBridgeLibrary()
         client = T1BridgeClient(
@@ -288,6 +424,42 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(len(library.status.calls), 1)
         self.assertEqual(len(library.stop.calls), 1)
         self.assertEqual(len(library.close.calls), 1)
+
+    def test_client_reads_report_descriptor_through_driver_bridge(self) -> None:
+        """Report Descriptor 必须通过驱动桥接读取，不能从用户态 HID 句柄猜测。"""
+
+        library = _FakeBridgeLibrary()
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+
+        client.open(InterceptionPolicy(target_collections=("COL02",)))
+        descriptor = client.get_report_descriptor("COL02")
+
+        self.assertEqual(
+            descriptor,
+            bytes.fromhex(
+                "05 0c 09 01 a1 01 85 02 75 01 95 01 09 e9 81 02 c0"
+            ),
+        )
+        self.assertEqual(len(library.report_descriptor.calls), 1)
+        client.close()
+
+    def test_client_reads_preparsed_data_through_driver_bridge(self) -> None:
+        """HID Collection 能力数据使用独立 API，不能与原始 Descriptor 混淆。"""
+
+        library = _FakeBridgeLibrary()
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+
+        client.open(InterceptionPolicy(target_collections=("COL02",)))
+
+        self.assertEqual(client.get_preparsed_data("COL02"), b"preparsed-fixture")
+        self.assertEqual(len(library.preparsed_data.calls), 1)
+        client.close()
 
     def test_unavailable_bridge_fails_closed(self) -> None:
         client = T1BridgeClient(
@@ -317,6 +489,32 @@ class DriverBridgeTests(unittest.TestCase):
 
         self.assertTrue(attempted)
         self.assertIn("native\\t1bridge\\x64\\Release\\t1bridge.dll", attempted[-1])
+        client.close()
+
+    def test_loader_prefers_current_cmake_release_output(self) -> None:
+        """运行时优先加载包含最新 ABI 导出的 CMake Release 产物。"""
+
+        library = _FakeBridgeLibrary()
+        attempted: list[str] = []
+
+        def load_library(path: str) -> object:
+            attempted.append(path)
+            if "native\\t1bridge\\build-vs2022\\Release\\t1bridge.dll" in path:
+                return library
+            raise OSError("not this candidate")
+
+        client = T1BridgeClient(
+            library_loader=load_library,
+            is_windows=True,
+        )
+
+        client.open(InterceptionPolicy())
+
+        self.assertEqual(len(attempted), 1)
+        self.assertIn(
+            "native\\t1bridge\\build-vs2022\\Release\\t1bridge.dll",
+            attempted[0],
+        )
         client.close()
 
     def test_native_status_layout_is_pointer_safe(self) -> None:
@@ -399,7 +597,7 @@ class DriverBridgeTests(unittest.TestCase):
 
         self.assertEqual(len(usages), 7)
         self.assertIn((0x0C, 0x223, "COL02"), usages)
-        self.assertIn((0x01, 0x01, "COL03"), usages)
+        self.assertIn((0x01, 0x81, "COL03"), usages)
         self.assertTrue(policy.lease_required)
 
     def test_default_interception_policy_can_be_disabled_for_dry_run(self) -> None:

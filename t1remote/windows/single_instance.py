@@ -12,6 +12,7 @@ import hashlib
 import os
 from pathlib import Path
 import tempfile
+import time
 
 
 ERROR_ALREADY_EXISTS = 183
@@ -87,4 +88,62 @@ class SingleInstanceGuard:
         return True
 
 
-__all__ = ["SingleInstanceGuard"]
+def activate_window_by_title(
+    title: str,
+    *,
+    timeout_seconds: float = 2.0,
+    poll_interval_seconds: float = 0.05,
+) -> bool:
+    """查找旧实例窗口并恢复到前台。"""
+
+    normalized_title = title.strip()
+    if not normalized_title:
+        raise ValueError("窗口标题不能为空")
+    if timeout_seconds < 0 or poll_interval_seconds <= 0:
+        raise ValueError("窗口唤起参数必须为有效的正数")
+    if os.name != "nt":
+        return False
+
+    try:
+        import win32con
+        import win32gui
+    except ImportError:
+        # 非 Windows 打包环境可能没有 pywin32，不能影响单实例判断。
+        return False
+
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        matched_hwnds: list[int] = []
+
+        def collect_window(hwnd: int, _extra: object) -> None:
+            try:
+                if win32gui.GetWindowText(hwnd).strip() == normalized_title:
+                    matched_hwnds.append(hwnd)
+            except Exception:
+                # 单个窗口读取失败时继续检查其他窗口。
+                pass
+
+        try:
+            win32gui.EnumWindows(collect_window, None)
+            if matched_hwnds:
+                hwnd = matched_hwnds[0]
+                # Tk 的 withdraw 和 Windows 最小化都需要显式恢复显示。
+                show_mode = (
+                    win32con.SW_SHOW
+                    if not win32gui.IsWindowVisible(hwnd)
+                    else win32con.SW_RESTORE
+                )
+                win32gui.ShowWindow(hwnd, show_mode)
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+                return True
+        except Exception:
+            # 窗口可能正处于销毁或重建过程中，按超时策略重试。
+            pass
+
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(poll_interval_seconds)
+
+
+__all__ = ["SingleInstanceGuard", "activate_window_by_title"]

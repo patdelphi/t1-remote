@@ -4,11 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
 
-from t1remote.core.key_mapping import KeyAction, MappingConfig, save_mapping_config
+from t1remote.core.key_mapping import (
+    KeyAction,
+    MappingConfig,
+    TriggerConfig,
+    save_mapping_config,
+)
+from t1remote.windows.command_runner import CommandExecutionError
 from t1remote.windows.driver_bridge import BridgeStatus, DriverInputEvent
 from t1remote.windows.mapping_session import T1MappingSession
 from t1remote.windows.raw_input import RawInputEvent
@@ -52,6 +59,55 @@ class _FakeBridge:
         self.closed = True
 
 
+class _CountingBridge(_FakeBridge):
+    """记录并发清理是否重复关闭桥接资源。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stop_calls = 0
+        self.close_calls = 0
+        self._count_lock = threading.Lock()
+
+    def stop(self) -> None:
+        with self._count_lock:
+            self.stop_calls += 1
+        super().stop()
+
+    def close(self) -> None:
+        with self._count_lock:
+            self.close_calls += 1
+        super().close()
+
+
+class _BlockingStartBridge(_FakeBridge):
+    """在启动阶段暂停，验证停止不会抢先清理资源。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.start_entered = threading.Event()
+        self.allow_start = threading.Event()
+
+    def start(self) -> None:
+        self.start_entered.set()
+        self.allow_start.wait(timeout=2)
+
+
+class _FlushingBridge(_FakeBridge):
+    """记录启动前是否清理过旧的驱动队列。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.flush_calls = 0
+        self.lifecycle: list[str] = []
+
+    def flush_events(self) -> None:
+        self.flush_calls += 1
+        self.lifecycle.append("flush")
+
+    def start(self) -> None:
+        self.lifecycle.append("start")
+
+
 class _ReconnectBridge(_FakeBridge):
     """模拟蓝牙重连后设备重新附着但过滤租约已停止。"""
 
@@ -90,11 +146,38 @@ class _EventBridge(_FakeBridge):
         return event
 
 
+class _SequenceEventBridge(_FakeBridge):
+    """按顺序返回多条驱动事件，验证命令失败后仍继续读队列。"""
+
+    def __init__(self, events: list[DriverInputEvent]) -> None:
+        super().__init__()
+        self._events = list(events)
+
+    def read_event(self):
+        if not self._events:
+            return None
+        return self._events.pop(0)
+
+
 class _FailingEmitter:
     """模拟 SendInput 失败，验证会话不会继续显示 running。"""
 
     def emit(self, _outputs) -> None:
         raise RuntimeError("SendInput 测试失败")
+
+
+class _NoopEmitter:
+    """模拟成功的 SendInput，避免会话测试修改系统键盘状态。"""
+
+    def emit(self, _outputs) -> None:
+        pass
+
+
+class _FailingCommandExecutor:
+    """模拟命令启动失败，验证会话仍保持运行。"""
+
+    def run(self, _argv) -> None:
+        raise CommandExecutionError("测试命令启动失败")
 
 
 class _FakeRawListener:
@@ -116,7 +199,198 @@ class _FakeRawListener:
         self.stopped = True
 
 
+class _FakeHidListener:
+    """模拟 Mapping 为 COL02/COL03 建立的 HID 读请求泵。"""
+
+    last_instance: "_FakeHidListener | None" = None
+
+    def __init__(self, on_event, on_error, target_collections) -> None:
+        self.on_event = on_event
+        self.on_error = on_error
+        self.target_collections = tuple(target_collections)
+        self.started = False
+        self.stopped = False
+        _FakeHidListener.last_instance = self
+
+    def start(self) -> None:
+        self.started = True
+
+    def stop(self) -> None:
+        self.stopped = True
+
+
 class MappingSessionTests(unittest.TestCase):
+    def test_stop_waits_until_start_finishes(self) -> None:
+        """启动与停止并发时，停止必须等待启动完成再清理。"""
+
+        bridge = _BlockingStartBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            starter = threading.Thread(
+                target=lambda: session.start(),
+                daemon=True,
+            )
+            starter.start()
+            self.assertTrue(bridge.start_entered.wait(timeout=1))
+            stopper = threading.Thread(target=session.stop, daemon=True)
+            stopper.start()
+            time.sleep(0.05)
+            self.assertTrue(stopper.is_alive())
+            bridge.allow_start.set()
+            starter.join(timeout=2)
+            stopper.join(timeout=2)
+
+        self.assertFalse(starter.is_alive())
+        self.assertFalse(stopper.is_alive())
+
+    def test_concurrent_cleanup_closes_bridge_once(self) -> None:
+        """停止按钮和故障线程同时清理时不能重复释放桥接句柄。"""
+
+        bridge = _CountingBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            workers = [threading.Thread(target=session._cleanup) for _ in range(2)]
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=2)
+
+        self.assertEqual(bridge.stop_calls, 1)
+        self.assertEqual(bridge.close_calls, 1)
+
+    def test_start_flushes_stale_driver_events_before_new_mapping(self) -> None:
+        bridge = _FlushingBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            session.stop()
+
+        self.assertEqual(bridge.flush_calls, 1)
+        self.assertEqual(bridge.lifecycle, ["flush", "start"])
+
+    def test_command_failure_does_not_stop_session_or_later_capture(self) -> None:
+        bridge = _SequenceEventBridge(
+            [
+                DriverInputEvent(
+                    sequence=1,
+                    usage_page=0x0C,
+                    usage=0x223,
+                    collection="COL02",
+                    report=bytes.fromhex("02 23 02"),
+                ),
+                DriverInputEvent(
+                    sequence=2,
+                    usage_page=0x0C,
+                    usage=0,
+                    collection="COL02",
+                    report=bytes.fromhex("02 00 00"),
+                ),
+                DriverInputEvent(
+                    sequence=3,
+                    usage_page=0x0C,
+                    usage=0xE9,
+                    collection="COL02",
+                    report=bytes.fromhex("02 E9 00"),
+                ),
+                DriverInputEvent(
+                    sequence=4,
+                    usage_page=0x0C,
+                    usage=0,
+                    collection="COL02",
+                    report=bytes.fromhex("02 00 00"),
+                ),
+            ]
+        )
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "Home": KeyAction("command", argv=("missing.exe",)),
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, config)
+            with patch(
+                "t1remote.windows.mapping_session.WindowsInputEmitter",
+                _NoopEmitter,
+            ), patch(
+                "t1remote.windows.mapping_runtime.WindowsCommandExecutor",
+                _FailingCommandExecutor,
+            ):
+                session = T1MappingSession(
+                    path,
+                    dry_run=False,
+                    bridge_factory=lambda: bridge,
+                    raw_listener_factory=_FakeRawListener,
+                    hid_listener_factory=_FakeHidListener,
+                    instance_name=f"T1RemoteTestSession-{id(bridge)}",
+                )
+                session.start()
+                try:
+                    deadline = time.monotonic() + 2
+                    while (
+                        session.status().diagnostics.input_events < 4
+                        and time.monotonic() < deadline
+                    ):
+                        time.sleep(0.02)
+                    status = session.status()
+                    self.assertEqual(status.state, "running")
+                    self.assertEqual(status.diagnostics.input_events, 4)
+                    self.assertEqual(status.diagnostics.errors, 1)
+                    self.assertEqual(status.diagnostics.output_events, 2)
+                finally:
+                    session.stop()
+
+    def test_real_session_starts_hid_read_pump_for_consumer_collections(self) -> None:
+        bridge = _FakeBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=False,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                hid_listener_factory=_FakeHidListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            try:
+                assert _FakeHidListener.last_instance is not None
+                self.assertTrue(_FakeHidListener.last_instance.started)
+                self.assertEqual(
+                    _FakeHidListener.last_instance.target_collections,
+                    ("COL02", "COL03"),
+                )
+            finally:
+                session.stop()
+            self.assertTrue(_FakeHidListener.last_instance.stopped)
+
     def test_heartbeat_restarts_filter_after_device_reconnect(self) -> None:
         bridge = _ReconnectBridge()
         with tempfile.TemporaryDirectory() as directory:
@@ -127,6 +401,7 @@ class MappingSessionTests(unittest.TestCase):
                 dry_run=False,
                 bridge_factory=lambda: bridge,
                 raw_listener_factory=_FakeRawListener,
+                hid_listener_factory=_FakeHidListener,
                 instance_name=f"T1RemoteTestSession-{id(bridge)}",
             )
             session.start()
@@ -165,6 +440,7 @@ class MappingSessionTests(unittest.TestCase):
                     dry_run=False,
                     bridge_factory=lambda: bridge,
                     raw_listener_factory=_FakeRawListener,
+                    hid_listener_factory=_FakeHidListener,
                     instance_name=f"T1RemoteTestSession-{id(bridge)}",
                 )
                 session.start()
@@ -206,6 +482,28 @@ class MappingSessionTests(unittest.TestCase):
         self.assertTrue(logs)
         self.assertEqual(errors, [])
 
+    def test_start_accepts_preloaded_config_without_reading_file_again(self) -> None:
+        """验证前台启动前加载的配置可以直接交给会话。"""
+
+        bridge = _FakeBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            config = MappingConfig.default()
+            save_mapping_config(path, config)
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            with patch(
+                "t1remote.windows.mapping_session.load_mapping_config",
+                side_effect=AssertionError("启动时不应重复读取配置"),
+            ):
+                session.start(config)
+            session.stop()
+
     def test_raw_input_from_t1_keyboard_is_processed(self) -> None:
         bridge = _FakeBridge()
         with tempfile.TemporaryDirectory() as directory:
@@ -231,6 +529,116 @@ class MappingSessionTests(unittest.TestCase):
             session.stop()
 
         self.assertEqual(session.status().diagnostics.mapping_events, 2)
+
+    def test_long_press_is_emitted_by_session_polling(self) -> None:
+        """桥接队列空闲时，长按计时器仍应按轮询及时触发。"""
+
+        bridge = _EventBridge(
+            DriverInputEvent(
+                sequence=1,
+                usage_page=0x0C,
+                usage=0x221,
+                collection="COL02",
+                report=bytes.fromhex("02 21 02"),
+            )
+        )
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "Voice": KeyAction(
+                    "combo",
+                    "D",
+                    ("CTRL", "SHIFT"),
+                    trigger=TriggerConfig("long_press", threshold_ms=100),
+                ),
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, config)
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            try:
+                deadline = time.monotonic() + 1
+                while (
+                    session.status().diagnostics.mapping_events < 1
+                    and time.monotonic() < deadline
+                ):
+                    time.sleep(0.01)
+                snapshot = session.status().diagnostics
+                self.assertGreaterEqual(snapshot.mapping_events, 1)
+                self.assertTrue(
+                    any(
+                        record.button == "Voice" and record.state == "long_press"
+                        for record in snapshot.recent_events
+                    )
+                )
+            finally:
+                session.stop()
+
+    def test_queued_driver_reports_use_kernel_timestamps_for_long_press(self) -> None:
+        """按下/抬起已排队时，会话仍使用驱动时间戳触发 Voice 长按。"""
+
+        bridge = _SequenceEventBridge(
+            [
+                DriverInputEvent(
+                    sequence=1,
+                    usage_page=0x0C,
+                    usage=0x221,
+                    collection="COL02",
+                    report=bytes.fromhex("02 21 02"),
+                    timestamp_100ns=1_000_000_000,
+                ),
+                DriverInputEvent(
+                    sequence=2,
+                    usage_page=0x0C,
+                    usage=0,
+                    collection="COL02",
+                    report=bytes.fromhex("02 00 00"),
+                    timestamp_100ns=1_001_000_000,
+                ),
+            ]
+        )
+        config = MappingConfig(
+            mappings={
+                **MappingConfig.default().mappings,
+                "Voice": KeyAction(
+                    "combo",
+                    "D",
+                    ("CTRL", "SHIFT"),
+                    trigger=TriggerConfig("long_press", threshold_ms=100),
+                ),
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, config)
+            session = T1MappingSession(
+                path,
+                dry_run=True,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            try:
+                deadline = time.monotonic() + 1
+                while (
+                    session.status().diagnostics.mapping_events < 2
+                    and time.monotonic() < deadline
+                ):
+                    time.sleep(0.01)
+                snapshot = session.status().diagnostics
+                self.assertEqual(snapshot.mapping_events, 2)
+                self.assertEqual(snapshot.errors, 0)
+            finally:
+                session.stop()
 
     def test_device_removal_releases_active_mapping(self) -> None:
         bridge = _FakeBridge()

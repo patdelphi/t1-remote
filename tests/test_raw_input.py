@@ -3,6 +3,7 @@
 import unittest
 
 from t1remote.windows.raw_input import (
+    _is_class_already_exists_error,
     WM_INPUT_DEVICE_CHANGE,
     WM_POWERBROADCAST,
     RIDEV_DEVNOTIFY,
@@ -49,6 +50,13 @@ class RawInputRegistrationTests(unittest.TestCase):
         self.assertEqual(devices[0]["transport_hint"], "hid-unknown")
         self.assertNotIn("secret-address", str(devices))
         self.assertNotIn("123", str(devices))
+
+    def test_register_class_restart_error_is_recognized(self) -> None:
+        class FakeWinError(Exception):
+            winerror = 1410
+
+        self.assertTrue(_is_class_already_exists_error(FakeWinError()))
+        self.assertFalse(_is_class_already_exists_error(OSError(5, "拒绝访问")))
 
 
 if __name__ == "__main__":

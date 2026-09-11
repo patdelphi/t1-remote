@@ -20,6 +20,14 @@ python -m pytest -q
 
 ## 生成包
 
+需要交付完整 Release（App、桥接 DLL、过滤驱动、安装/卸载脚本和校验清单）时，使用：
+
+```powershell
+pwsh -File .\tools\build_release.ps1 -PythonPath C:\Python313\python.exe
+```
+
+完整目录结构、驱动签名检查和安装边界见 [release.md](release.md)。
+
 在项目根目录执行：
 
 ```powershell
@@ -57,3 +65,11 @@ pwsh -File .\tools\build_windows.ps1 -SkipNative
 - `t1-remote-gatt-probe`：只读 GATT 服务和特征探测。
 - `t1-remote-gatt-capture`：限定时长采集脱敏 GATT 通知帧。
 - `t1-remote-audio-devices`：只读音频输出端点清单。
+- `t1-remote-voice-test`：限定范围的 Voice/GATT 音频测试。
+
+## 发布前检查
+
+1. 在项目根目录运行 `python -m pytest -q`，记录 GUI 环境错误与业务测试结果。
+2. 构建后核对 `SHA256SUMS.txt`、驱动签名和 Inf2Cat 输出。
+3. 不把 `dist/`、原生本地构建目录、Python 缓存、驱动重载日志和本地对话记录提交到仓库。
+4. 设备安装、设备重载、系统重启和生产部署均需单独确认。

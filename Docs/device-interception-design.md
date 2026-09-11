@@ -80,7 +80,7 @@ HidUsage(
 当前夹具已经确认：
 
 - Home：Consumer Control，报文签名 `02 23 02`
-- Voice：Consumer Control，报文签名 `02 21 02`
+- Voice（业务别名；HID 官方 Usage 为 AC Search）：Consumer Control，报文签名 `02 21 02`
 - Mute：Consumer Control，报文签名 `02 E2 00`
 - Volume Plus：Consumer Control，报文签名 `02 E9 00`
 - Volume Minus：Consumer Control，报文签名 `02 EA 00`
@@ -108,6 +108,7 @@ Power 由驱动层拦截后允许 Python 采集，避免触发系统电源行为
 | `IOCTL_T1FILTER_GET_STATS` | 查询接收、拦截、队列和错误统计 |
 | `IOCTL_T1FILTER_FLUSH_EVENTS` | 清空原始事件队列，不改变当前策略 |
 | `IOCTL_T1FILTER_HEARTBEAT` | 刷新 Python 会话租约；租约过期后自动停止过滤 |
+| `IOCTL_T1FILTER_GET_REPORT_DESCRIPTOR` | 由过滤器向下层 HID minidriver 读取指定 Collection 的原始 Report Descriptor |
 
 共享 ABI v2 定义位于 `native/t1bridge/t1bridge_protocol.h`。结构使用固定宽度整数和 1 字节对齐，Python 与 C 端都携带 `size` 和 `abi_version`，发现版本不一致时立即停止。策略包含会话租约和字段规则；状态包含策略代数、已附着 Collection、租约剩余时间；统计包含透传、完成错误、设备增删和普通/内部请求路径计数。
 
@@ -123,6 +124,9 @@ Power 由驱动层拦截后允许 Python 采集，避免触发系统电源行为
 6. Python 通过 `IOCTL_T1FILTER_READ_EVENT` 读取带 `KeQueryInterruptTime` 时间戳的原始 T1 事件，不依赖 HidHide 或 Raw Input 白名单。
 7. Python 运行期间每 500ms 发送一次心跳。启用租约时，如果应用崩溃、被强制结束或桥接断开，驱动在超时后自动停止过滤，让 Windows 恢复接收输入。
 8. 统计拦截、透传、队列溢出、完成错误、设备变化、租约过期和普通/内部请求路径，供 UI 和诊断日志展示。
+
+活动 Usage 状态按 Top-Level Collection 分开保存。COL03 的零报告不会清除 COL02
+Consumer Control（包括 Voice）的活动按键，Voice 释放只由 COL02 对应的零报告结束。
 
 驱动必须处理取消、设备拔出、休眠恢复、挂起 IRP、重复启动和停止竞态。不能在完成回调中执行用户态 IPC，也不能依赖 Python 进程始终在线。
 

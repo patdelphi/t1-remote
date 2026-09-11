@@ -7,6 +7,9 @@ import unittest
 from t1remote.core.atvv_protocol import (
     ATVV_AUDIO_CHARACTERISTIC_UUID,
     ATVV_AUDIO_SERVICE_UUID,
+    ATVV_CODEC_ADPCM_8KHZ,
+    ATVV_CODEC_ADPCM_16KHZ,
+    ATVV_V04_SAMPLE_RATE,
     ATVV_CONTROL_CHARACTERISTIC_UUID,
     ATVV_TX_CHARACTERISTIC_UUID,
     AtvvAudioFrame,
@@ -44,6 +47,7 @@ class AtvvUuidAndCommandTests(unittest.TestCase):
         self.assertEqual(build_get_caps_v04(), bytes.fromhex("0a00010001"))
         self.assertEqual(build_get_caps_v1(), bytes.fromhex("0a0100000303"))
         self.assertEqual(build_mic_open(0x0001), bytes.fromhex("0c0001"))
+        self.assertEqual(build_mic_open(ATVV_CODEC_ADPCM_16KHZ), bytes.fromhex("0c0002"))
         self.assertEqual(build_mic_close(), bytes.fromhex("0d"))
         self.assertEqual(build_mic_extend(), bytes.fromhex("0e00"))
 
@@ -56,11 +60,16 @@ class AtvvUuidAndCommandTests(unittest.TestCase):
 
 class AtvvCapabilityTests(unittest.TestCase):
     def test_parse_v04_capability_response(self) -> None:
-        caps = parse_capability_response(bytes.fromhex("0b0004000100860014"))
+        caps = parse_capability_response(bytes.fromhex("0b0004000200860086"))
         self.assertEqual(caps.version, (0, 4))
-        self.assertEqual(caps.codec_flags, 0x0001)
+        self.assertEqual(caps.codec_flags, ATVV_CODEC_ADPCM_16KHZ)
         self.assertEqual(caps.frame_size, 134)
-        self.assertEqual(caps.characteristic_payload_size, 20)
+        self.assertEqual(caps.characteristic_payload_size, 134)
+
+    def test_t1_v04_codec_uses_16khz_sample_rate(self) -> None:
+        self.assertEqual(ATVV_CODEC_ADPCM_8KHZ, 0x0001)
+        self.assertEqual(ATVV_CODEC_ADPCM_16KHZ, 0x0002)
+        self.assertEqual(ATVV_V04_SAMPLE_RATE, 16_000)
 
     def test_parse_v1_capability_response_without_interpreting_private_flags(self) -> None:
         caps = parse_capability_response(bytes.fromhex("0b0100020300780000"))

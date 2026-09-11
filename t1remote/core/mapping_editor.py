@@ -19,6 +19,7 @@ from t1remote.core.key_mapping import (
 ACTION_TYPE_LABELS: dict[str, str] = {
     "none": "未映射",
     "key": "单键",
+    "mouse": "鼠标键",
     "combo": "组合键",
     "special": "HID 特殊功能",
     "command": "命令行",
@@ -102,6 +103,8 @@ def build_action_from_form(
         )
     if normalized_kind == "special":
         return KeyAction("special", key=key, trigger=trigger)
+    if normalized_kind == "mouse":
+        return KeyAction("mouse", key=key, trigger=trigger)
     if normalized_kind == "combo":
         return KeyAction(
             "combo",
@@ -151,6 +154,8 @@ def format_action_summary(action: KeyAction) -> str:
         return f"{prefix}+{action.key}" if prefix else str(action.key)
     if action.kind in {"special", "media"}:
         return f"特殊：{action.key}"
+    if action.kind == "mouse":
+        return f"鼠标：{action.key}"
     return f"按键：{action.key}"
 
 

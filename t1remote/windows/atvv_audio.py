@@ -15,7 +15,7 @@ from t1remote.core.atvv_audio import AtvvV04AudioProcessor
 from t1remote.core.atvv_protocol import (
     ATVV_AUDIO_CHARACTERISTIC_UUID,
     ATVV_AUDIO_SERVICE_UUID,
-    ATVV_CODEC_ADPCM_8KHZ,
+    ATVV_CODEC_ADPCM_16KHZ,
     ATVV_CONTROL_CHARACTERISTIC_UUID,
     ATVV_TX_CHARACTERISTIC_UUID,
     AtvvCapabilityResponse,
@@ -132,9 +132,9 @@ class AtvvV04GattAudioController:
                 response=False,
             )
             capabilities = await asyncio.wait_for(future, timeout=timeout)
-            if not capabilities.codec_flags & ATVV_CODEC_ADPCM_8KHZ:
+            if not capabilities.codec_flags & ATVV_CODEC_ADPCM_16KHZ:
                 raise AtvvV04GattAudioControllerError(
-                    "T1 未声明 ATVV v0.4 ADPCM 8 kHz 能力，拒绝按 v0.4 解码"
+                    "T1 未声明 ATVV v0.4 ADPCM 16 kHz 能力，拒绝按 v0.4 解码"
                 )
             self._capabilities = capabilities
             self._session.on_negotiated(generation)
@@ -159,7 +159,7 @@ class AtvvV04GattAudioController:
         try:
             await self._transport.write(
                 ATVV_TX_CHARACTERISTIC_UUID,
-                build_mic_open(ATVV_CODEC_ADPCM_8KHZ),
+                build_mic_open(ATVV_CODEC_ADPCM_16KHZ),
                 response=False,
             )
             self._microphone_open = True

@@ -31,6 +31,8 @@ from t1remote.core.mapping_editor import (
 )
 from t1remote.windows.send_input import (
     KEY_VIRTUAL_KEY_NAMES,
+    MOUSE_ACTION_LABELS,
+    MOUSE_ACTION_NAMES,
     SPECIAL_HID_KEY_NAMES,
     binding_from_action,
 )
@@ -203,6 +205,12 @@ class MappingEditorWindow:
             font=("Segoe UI", 10),
         )
         style.configure(
+            "Hint.TLabel",
+            background=UI_SURFACE,
+            foreground="#7B8794",
+            font=("Segoe UI", 9),
+        )
+        style.configure(
             "TEntry",
             fieldbackground="#FBFCFE",
             foreground=UI_TEXT,
@@ -362,13 +370,13 @@ class MappingEditorWindow:
         frame.grid(row=0, column=1, sticky="nsew", padx=8)
         frame.columnconfigure(0, weight=1)
         ttk.Label(frame, textvariable=self.input_kind_var, foreground="#52606d").grid(
-            row=0, column=0, sticky="w", padx=12, pady=(14, 6)
+            row=0, column=0, sticky="w", padx=12, pady=(10, 4)
         )
         normal_frame = ttk.LabelFrame(
             frame, text="普通键位", style="Card.TLabelframe", padding=(8, 4)
         )
         normal_frame.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
-        for row, kind in enumerate(("none", "key", "combo", "macro")):
+        for row, kind in enumerate(("none", "key", "combo", "macro", "mouse")):
             radio = ttk.Radiobutton(
                 normal_frame,
                 text=ACTION_TYPE_LABELS[kind],
@@ -377,7 +385,7 @@ class MappingEditorWindow:
                 command=self._refresh_form,
             )
             self.kind_radios[kind] = radio
-            radio.grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=4)
+            radio.grid(row=row // 2, column=row % 2, sticky="w", padx=8, pady=2)
 
         special_frame = ttk.LabelFrame(
             frame, text="媒体与系统功能", style="Card.TLabelframe", padding=(8, 4)
@@ -391,12 +399,12 @@ class MappingEditorWindow:
             command=self._refresh_form,
         )
         self.kind_radios["special"] = special_radio
-        special_radio.grid(row=0, column=0, sticky="w", padx=8, pady=4)
+        special_radio.grid(row=0, column=0, sticky="w", padx=8, pady=2)
 
         command_frame = ttk.LabelFrame(
             frame, text="自动化", style="Card.TLabelframe", padding=(8, 4)
         )
-        command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 14))
+        command_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 8))
         for column, kind in enumerate(("command", "text")):
             radio = ttk.Radiobutton(
                 command_frame,
@@ -406,10 +414,10 @@ class MappingEditorWindow:
                 command=self._refresh_form,
             )
             self.kind_radios[kind] = radio
-            radio.grid(row=0, column=column, sticky="w", padx=8, pady=4)
+            radio.grid(row=0, column=column, sticky="w", padx=8, pady=2)
 
         ttk.Label(frame, text="触发方式：").grid(
-            row=4, column=0, sticky="w", padx=12, pady=(0, 6)
+            row=4, column=0, sticky="w", padx=12, pady=(0, 4)
         )
         self.trigger_combo = ttk.Combobox(
             frame,
@@ -417,10 +425,10 @@ class MappingEditorWindow:
             values=tuple(TRIGGER_TYPE_LABELS.values()),
             state="readonly",
         )
-        self.trigger_combo.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 14))
+        self.trigger_combo.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 12))
         self.trigger_combo.bind("<<ComboboxSelected>>", self._on_trigger_changed)
 
-        ttk.Separator(frame).grid(row=6, column=0, sticky="ew", padx=12, pady=4)
+        ttk.Separator(frame).grid(row=6, column=0, sticky="ew", padx=12, pady=2)
         ttk.Label(
             frame,
             text=(
@@ -430,8 +438,9 @@ class MappingEditorWindow:
                 "COL01 仍可能保留原始键盘输入。"
             ),
             justify="left",
-            foreground="#7b8794",
-        ).grid(row=7, column=0, sticky="nw", padx=12, pady=14)
+            style="Hint.TLabel",
+            wraplength=220,
+        ).grid(row=7, column=0, sticky="nw", padx=12, pady=(8, 4))
 
     def _build_detail_panel(self, parent: ttk.Frame) -> None:
         """创建单键、组合键、特殊键和命令行参数面板。"""
@@ -629,20 +638,31 @@ class MappingEditorWindow:
         ttk.Button(footer, text="预览动作", command=self._preview_current).grid(
             row=0, column=2, padx=4
         )
-        ttk.Button(footer, text="恢复默认", command=self._restore_default, style="Danger.TButton").grid(
-            row=0, column=3, padx=4
-        )
-        ttk.Button(footer, text="重新加载", command=self._reload_config).grid(
+        ttk.Button(
+            footer,
+            text="恢复当前键默认",
+            command=self._restore_current_default,
+            style="Danger.TButton",
+        ).grid(row=0, column=3, padx=4)
+        ttk.Button(
+            footer,
+            text="恢复全部默认",
+            command=self._restore_default,
+            style="Danger.TButton",
+        ).grid(
             row=0, column=4, padx=4
         )
-        ttk.Button(footer, text="导入", command=self._import_config).grid(
+        ttk.Button(footer, text="重新加载", command=self._reload_config).grid(
             row=0, column=5, padx=4
         )
-        ttk.Button(footer, text="导出", command=self._export_config).grid(
+        ttk.Button(footer, text="导入", command=self._import_config).grid(
             row=0, column=6, padx=4
         )
-        ttk.Button(footer, text="保存配置", command=self._save_config, style="Accent.TButton").grid(
+        ttk.Button(footer, text="导出", command=self._export_config).grid(
             row=0, column=7, padx=4
+        )
+        ttk.Button(footer, text="保存配置", command=self._save_config, style="Accent.TButton").grid(
+            row=0, column=8, padx=4
         )
 
     def _profile_label_for_path(self, path: Path) -> str:
@@ -905,6 +925,9 @@ class MappingEditorWindow:
             self.key_combo.configure(values=tuple(SPECIAL_HID_KEY_NAMES))
             self.key_frame.grid()
             self.special_hint.grid()
+        elif kind == "mouse":
+            self.key_combo.configure(values=tuple(MOUSE_ACTION_NAMES))
+            self.key_frame.grid()
         elif kind == "command":
             self.command_frame.grid(sticky="nsew")
         elif kind == "text":
@@ -1121,6 +1144,8 @@ class MappingEditorWindow:
             preview = f"输入文字：{action.text}\n执行后发送回车：{suffix}"
         elif action.kind == "command":
             preview = f"命令 argv：{action.argv}\n\n这里只预览，不会启动程序。"
+        elif action.kind == "mouse":
+            preview = f"鼠标动作：{MOUSE_ACTION_LABELS.get(action.key or '', action.key)}"
         elif action.kind == "macro":
             lines = [
                 f"{index}. {self._macro_step_summary(step)}，本步后等待 {step.delay_ms}ms"
@@ -1146,12 +1171,36 @@ class MappingEditorWindow:
     def _restore_default(self) -> None:
         """把内存中的编辑内容恢复为安全默认配置。"""
 
-        if not messagebox.askyesno("确认恢复", "放弃当前未保存修改并恢复默认映射？", parent=self.root):
+        if not messagebox.askyesno(
+            "确认恢复全部默认",
+            "放弃当前未保存修改并恢复全部默认映射？",
+            parent=self.root,
+        ):
             return
         self._working_actions = dict(MappingConfig.default().mappings)
         self._refresh_button_table()
         self._select_button(self._selected_button or MAPPABLE_REMOTE_BUTTONS[0])
-        self.status_var.set("已恢复默认映射，点击保存配置后才会写入文件")
+        self.status_var.set("已恢复全部默认映射，点击保存配置后才会写入文件")
+
+    def _restore_current_default(self) -> None:
+        """只把当前选中的物理按键恢复为首版默认动作。"""
+
+        button = self._selected_button
+        if not button:
+            self.status_var.set("请先选择一个物理按键")
+            return
+        display_name = BUTTON_DISPLAY_NAMES.get(button, button)
+        if not messagebox.askyesno(
+            "确认恢复当前键",
+            f"放弃“{display_name}”的当前修改并恢复该按键默认动作？",
+            parent=self.root,
+        ):
+            return
+        default_action = MappingConfig.default().mappings.get(button, KeyAction("none"))
+        self._working_actions[button] = default_action
+        self._refresh_button_table()
+        self._select_button(button)
+        self.status_var.set(f"已恢复当前按键默认：{display_name}，点击保存配置后才会写入文件")
 
     def _reload_config(self) -> None:
         """从磁盘重新读取配置并放弃未保存编辑。"""

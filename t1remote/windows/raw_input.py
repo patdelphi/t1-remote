@@ -36,6 +36,7 @@ RIDEV_PAGEONLY = 0x00000020
 RIDEV_INPUTSINK = 0x00000100
 RIDEV_DEVNOTIFY = 0x00002000
 RAW_INPUT_ERROR = 0xFFFFFFFF
+ERROR_CLASS_ALREADY_EXISTS = 1410
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,15 @@ class RawInputDeviceListEntry(ctypes.Structure):
         ("hDevice", wintypes.HANDLE),
         ("dwType", wintypes.DWORD),
     )
+
+
+def _is_class_already_exists_error(error: Exception) -> bool:
+    """识别 RegisterClass 在监听器重启时返回的已存在错误。"""
+
+    error_code = getattr(error, "winerror", None)
+    if error_code is None and getattr(error, "args", ()):
+        error_code = error.args[0]
+    return error_code == ERROR_CLASS_ALREADY_EXISTS
 
 
 class RawInputHeader(ctypes.Structure):
@@ -244,6 +254,7 @@ class RawInputListener:
         self._thread: threading.Thread | None = None
         self._hwnd: int | None = None
         self._window_class_name = f"T1RemoteInspector_{os.getpid()}_{id(self)}"
+        self._window_class_hinstance: int | None = None
         self._ready = threading.Event()
         self._stop_requested = threading.Event()
         self._startup_error: Exception | None = None
@@ -296,6 +307,16 @@ class RawInputListener:
             self._report_error(exc)
         finally:
             self._hwnd = None
+            if self._window_class_hinstance is not None:
+                try:
+                    win32gui.UnregisterClass(
+                        self._window_class_name,
+                        self._window_class_hinstance,
+                    )
+                except Exception:
+                    # 类可能来自监听器上一次异常退出；后续启动会安全复用它。
+                    pass
+                self._window_class_hinstance = None
 
     def _create_window(self) -> None:
         """创建不显示 UI 的消息窗口。"""
@@ -304,7 +325,12 @@ class RawInputListener:
         window_class.hInstance = win32api.GetModuleHandle(None)
         window_class.lpszClassName = self._window_class_name
         window_class.lpfnWndProc = self._window_proc
-        win32gui.RegisterClass(window_class)
+        self._window_class_hinstance = window_class.hInstance
+        try:
+            win32gui.RegisterClass(window_class)
+        except Exception as error:
+            if not _is_class_already_exists_error(error):
+                raise
         self._hwnd = win32gui.CreateWindowEx(
             0,
             self._window_class_name,

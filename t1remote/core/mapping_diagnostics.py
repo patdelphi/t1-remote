@@ -7,12 +7,22 @@
 from __future__ import annotations
 
 from collections import deque
+import csv
 from dataclasses import dataclass
 from datetime import datetime
+import io
 import threading
+from typing import Iterable
 
 from t1remote.core.input_mapping import ButtonEvent
 from t1remote.core.key_mapping import MappingEvent
+
+
+_TRIGGER_LABELS = {
+    "long_press": "长按",
+    "double_click": "双击",
+    "hold_repeat": "按住重复",
+}
 
 
 @dataclass(frozen=True)
@@ -77,15 +87,30 @@ class MappingDiagnostics:
     def record_mapping(self, event: MappingEvent) -> None:
         """记录一个经过状态机的映射事件。"""
 
+        trigger_kind = event.action.trigger.kind
+        trigger_label = _TRIGGER_LABELS.get(trigger_kind)
+        display_state = (
+            trigger_kind
+            if event.state == "down" and trigger_label is not None
+            else event.state
+        )
+        detail = (
+            f"{trigger_label}触发"
+            if event.state == "down" and trigger_label is not None
+            else f"释放{trigger_label}动作"
+            if event.state == "up" and trigger_label is not None
+            else ""
+        )
         with self._lock:
             self._mapping_events += 1
             self._recent.append(
                 DiagnosticRecord(
                     timestamp_local=_timestamp(),
                     button=event.button,
-                    state=event.state,
+                    state=display_state,
                     action_kind=event.action.kind,
                     result="mapping",
+                    detail=detail,
                 )
             )
 
@@ -159,4 +184,34 @@ def _timestamp() -> str:
     return datetime.now().astimezone().isoformat(timespec="milliseconds")
 
 
-__all__ = ["DiagnosticRecord", "DiagnosticSnapshot", "MappingDiagnostics"]
+def diagnostic_records_to_csv(
+    records: Iterable[DiagnosticRecord], *, limit: int = 30
+) -> str:
+    """把最近诊断记录转成可粘贴到表格的 CSV 文本。"""
+
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+        raise ValueError("CSV 记录数量必须是正整数")
+    selected = tuple(reversed(tuple(records)[-limit:]))
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("时间", "结果", "按键", "状态", "动作", "说明"))
+    for record in selected:
+        writer.writerow(
+            (
+                record.timestamp_local,
+                record.result,
+                record.button or "-",
+                record.state,
+                record.action_kind or "-",
+                record.detail,
+            )
+        )
+    return output.getvalue()
+
+
+__all__ = [
+    "DiagnosticRecord",
+    "DiagnosticSnapshot",
+    "MappingDiagnostics",
+    "diagnostic_records_to_csv",
+]

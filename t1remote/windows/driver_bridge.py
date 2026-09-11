@@ -18,6 +18,8 @@ MAX_BLOCKED_USAGES = 32
 MAX_TARGET_COLLECTIONS = 8
 MAX_FIELD_RULES = 32
 MAX_REPORT_BYTES = 64
+MAX_REPORT_DESCRIPTOR_BYTES = 4096
+MAX_PREPARSED_DATA_BYTES = 4096
 T1_VID = 0x620A
 T1_PID = 0x0407
 ERROR_NO_MORE_ITEMS = 259
@@ -35,6 +37,8 @@ CAPABILITY_REPORT_REMAP = 0x00000008
 CAPABILITY_SESSION_LEASE = 0x00000010
 CAPABILITY_DIAGNOSTICS = 0x00000020
 CAPABILITY_DESCRIPTOR_RULES = 0x00000040
+CAPABILITY_REPORT_DESCRIPTOR = 0x00000080
+CAPABILITY_PREPARSED_DATA = 0x00000100
 
 _COLLECTION_PATTERN = "COL"
 
@@ -72,7 +76,7 @@ class HidUsage:
             if not normalized.startswith(_COLLECTION_PATTERN) or not normalized[3:].isdigit():
                 raise ValueError("collection 必须使用 COL01 形式")
             number = int(normalized[3:])
-            if not 0 <= number <= 0xFFFF:
+            if not 1 <= number < 32:
                 raise ValueError("collection 编号超出范围")
             object.__setattr__(self, "collection", normalized)
 
@@ -95,6 +99,8 @@ class HidFieldRule:
         normalized = self.collection.upper()
         if not normalized.startswith(_COLLECTION_PATTERN) or not normalized[3:].isdigit():
             raise ValueError("collection 必须使用 COL01 形式")
+        if not 1 <= int(normalized[3:]) < 32:
+            raise ValueError("collection 编号超出范围")
         if not 0 <= self.usage_page <= 0xFFFF or not 0 <= self.usage <= 0xFFFF:
             raise ValueError("Usage Page 和 Usage 必须在 0x0000-0xFFFF 范围内")
         if not 0 <= self.report_id <= 0xFF:
@@ -107,6 +113,8 @@ class HidFieldRule:
             raise ValueError("字段超出最大报告范围")
         if self.mapped_usage is not None and not 0 <= self.mapped_usage <= 0xFFFF:
             raise ValueError("mapped_usage 必须在 0x0000-0xFFFF 范围内")
+        if self.remap and self.drop:
+            raise ValueError("字段规则不能同时要求重映射和丢弃")
         object.__setattr__(self, "collection", normalized)
 
     def to_native(self) -> NativeFieldRule:
@@ -236,6 +244,34 @@ class NativeBridgeStats(ctypes.Structure):
     )
 
 
+class NativeReportDescriptor(ctypes.Structure):
+    """与驱动桥接协议对齐的原始 HID Report Descriptor。"""
+
+    _pack_ = 1
+    _fields_ = (
+        ("size", ctypes.c_uint32),
+        ("abi_version", ctypes.c_uint32),
+        ("collection", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint16),
+        ("descriptor_length", ctypes.c_uint32),
+        ("descriptor", ctypes.c_ubyte * MAX_REPORT_DESCRIPTOR_BYTES),
+    )
+
+
+class NativePreparsedData(ctypes.Structure):
+    """与官方 HID Collection Descriptor 查询结果对齐的 opaque 数据。"""
+
+    _pack_ = 1
+    _fields_ = (
+        ("size", ctypes.c_uint32),
+        ("abi_version", ctypes.c_uint32),
+        ("collection", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint16),
+        ("data_length", ctypes.c_uint32),
+        ("data", ctypes.c_ubyte * MAX_PREPARSED_DATA_BYTES),
+    )
+
+
 class NativeBridgeEvent(ctypes.Structure):
     """与驱动事件队列对齐的固定布局结构。"""
 
@@ -285,16 +321,26 @@ class InterceptionPolicy:
         }
         if len(source_keys) != len(self.blocked_usages):
             raise ValueError("同一个源 Usage 不允许配置多条映射")
+        for index, source in enumerate(self.blocked_usages):
+            for other in self.blocked_usages[index + 1 :]:
+                if (
+                    source.usage_page == other.usage_page
+                    and source.usage == other.usage
+                    and (source.collection is None or other.collection is None)
+                ):
+                    raise ValueError("通配 Collection 与具体 Collection 的映射冲突")
 
         normalized_collections: list[str] = []
         for collection in self.target_collections:
             normalized = collection.upper()
             if not normalized.startswith(_COLLECTION_PATTERN) or not normalized[3:].isdigit():
                 raise ValueError("target_collections 必须使用 COL01 形式")
-            if _collection_number(normalized) > 0xFFFF:
+            if not 1 <= _collection_number(normalized) < 32:
                 raise ValueError("target_collections 编号超出范围")
             if normalized not in normalized_collections:
                 normalized_collections.append(normalized)
+        if not normalized_collections:
+            raise ValueError("target_collections 至少需要一个 Collection")
         object.__setattr__(self, "target_collections", tuple(normalized_collections))
         if not MIN_LEASE_TIMEOUT_MS <= self.lease_timeout_ms <= MAX_LEASE_TIMEOUT_MS:
             raise ValueError(
@@ -368,13 +414,13 @@ def build_default_interception_policy(
     """
 
     blocked_usages = (
-        HidUsage(0x0C, 0x221, "COL02"),  # Voice
+        HidUsage(0x0C, 0x221, "COL02"),  # AC Search；T1 业务别名 Voice
         HidUsage(0x0C, 0x223, "COL02"),  # Home
         HidUsage(0x0C, 0x224, "COL02"),  # Return
         HidUsage(0x0C, 0xE2, "COL02"),  # Mute
         HidUsage(0x0C, 0xE9, "COL02"),  # Volume Plus
         HidUsage(0x0C, 0xEA, "COL02"),  # Volume Minus
-        HidUsage(0x01, 0x01, "COL03"),  # Power
+        HidUsage(0x01, 0x81, "COL03"),  # System Power Down；T1 业务名称 Power
     )
     return InterceptionPolicy(
         blocked_usages=blocked_usages,
@@ -496,7 +542,30 @@ def _collection_number(collection: str) -> int:
     normalized = collection.upper()
     if not normalized.startswith(_COLLECTION_PATTERN) or not normalized[3:].isdigit():
         raise ValueError("collection 必须使用 COL01 形式")
-    return int(normalized[3:])
+    number = int(normalized[3:])
+    if not 1 <= number < 32:
+        raise ValueError("collection 编号超出范围")
+    return number
+
+
+def _validate_native_header(
+    native: object,
+    structure: type[ctypes.Structure],
+    operation: str,
+) -> None:
+    """验证固定 ABI 输出的长度和版本，避免解析不完整的设备数据。"""
+
+    actual_size = int(getattr(native, "size", 0))
+    expected_size = ctypes.sizeof(structure)
+    if actual_size != expected_size:
+        raise BridgeProtocolError(
+            f"{operation}结构长度不匹配：需要 {expected_size}，实际为 {actual_size}"
+        )
+    actual_abi = int(getattr(native, "abi_version", 0))
+    if actual_abi != BRIDGE_ABI_VERSION:
+        raise BridgeProtocolError(
+            f"{operation} ABI 版本不匹配：需要 {BRIDGE_ABI_VERSION}，实际为 {actual_abi}"
+        )
 
 
 def _configure_function(library: object, name: str, restype: object, argtypes: list[object]) -> object:
@@ -621,6 +690,7 @@ class T1BridgeClient:
         native_status.size = ctypes.sizeof(NativeBridgeStatus)
         result = int(function(self._handle, ctypes.byref(native_status)))
         self._raise_if_failed("T1Bridge_GetStatus", result)
+        _validate_native_header(native_status, NativeBridgeStatus, "驱动状态")
         return BridgeStatus.from_native(native_status)
 
     def capabilities(self) -> BridgeCapabilities:
@@ -638,6 +708,11 @@ class T1BridgeClient:
         native.size = ctypes.sizeof(NativeBridgeCapabilities)
         result = int(function(self._handle, ctypes.byref(native)))
         self._raise_if_failed("T1Bridge_GetCapabilities", result)
+        _validate_native_header(
+            native,
+            NativeBridgeCapabilities,
+            "驱动能力",
+        )
         return BridgeCapabilities(
             flags=int(native.flags),
             max_blocked_usages=int(native.max_blocked_usages),
@@ -665,6 +740,7 @@ class T1BridgeClient:
         native.size = ctypes.sizeof(NativeBridgeStats)
         result = int(function(self._handle, ctypes.byref(native)))
         self._raise_if_failed("T1Bridge_GetStats", result)
+        _validate_native_header(native, NativeBridgeStats, "驱动统计")
         return BridgeStats(
             received_reports=int(native.received_reports),
             blocked_reports=int(native.blocked_reports),
@@ -689,6 +765,56 @@ class T1BridgeClient:
 
         self._call_handle_function("T1Bridge_FlushEvents")
 
+    def get_report_descriptor(self, collection: str) -> bytes:
+        """通过过滤驱动向下层 HID minidriver 读取原始 Report Descriptor。"""
+
+        self._require_open()
+        assert self._library is not None
+        function = _configure_function(
+            self._library,
+            "T1Bridge_GetReportDescriptor",
+            ctypes.c_int32,
+            [ctypes.c_void_p, ctypes.POINTER(NativeReportDescriptor)],
+        )
+        native = NativeReportDescriptor()
+        native.size = ctypes.sizeof(NativeReportDescriptor)
+        native.abi_version = BRIDGE_ABI_VERSION
+        native.collection = _collection_number(collection)
+        result = int(function(self._handle, ctypes.byref(native)))
+        self._raise_if_failed("T1Bridge_GetReportDescriptor", result)
+        _validate_native_header(native, NativeReportDescriptor, "报告描述符")
+        descriptor_length = int(native.descriptor_length)
+        if descriptor_length > MAX_REPORT_DESCRIPTOR_BYTES:
+            raise BridgeProtocolError("报告描述符长度超出固定缓冲区")
+        if int(native.collection) != _collection_number(collection):
+            raise BridgeProtocolError("驱动返回了错误的 Collection")
+        return bytes(native.descriptor[:descriptor_length])
+
+    def get_preparsed_data(self, collection: str) -> bytes:
+        """按官方 HID 顺序读取 Collection 的 opaque preparsed data。"""
+
+        self._require_open()
+        assert self._library is not None
+        function = _configure_function(
+            self._library,
+            "T1Bridge_GetPreparsedData",
+            ctypes.c_int32,
+            [ctypes.c_void_p, ctypes.POINTER(NativePreparsedData)],
+        )
+        native = NativePreparsedData()
+        native.size = ctypes.sizeof(NativePreparsedData)
+        native.abi_version = BRIDGE_ABI_VERSION
+        native.collection = _collection_number(collection)
+        result = int(function(self._handle, ctypes.byref(native)))
+        self._raise_if_failed("T1Bridge_GetPreparsedData", result)
+        _validate_native_header(native, NativePreparsedData, "preparsed data")
+        data_length = int(native.data_length)
+        if data_length > MAX_PREPARSED_DATA_BYTES:
+            raise BridgeProtocolError("preparsed data 长度超出固定缓冲区")
+        if int(native.collection) != _collection_number(collection):
+            raise BridgeProtocolError("驱动返回了错误的 Collection")
+        return bytes(native.data[:data_length])
+
     def read_event(self) -> DriverInputEvent | None:
         """读取一条被驱动拦截前保存的原始事件；队列为空时返回 None。"""
 
@@ -706,18 +832,18 @@ class T1BridgeClient:
         if result == ERROR_NO_MORE_ITEMS:
             return None
         self._raise_if_failed("T1Bridge_ReadEvent", result)
-        if native_event.abi_version != BRIDGE_ABI_VERSION:
-            raise BridgeProtocolError(
-                f"驱动事件 ABI 不兼容：需要 {BRIDGE_ABI_VERSION}，实际为 {native_event.abi_version}"
-            )
+        _validate_native_header(native_event, NativeBridgeEvent, "驱动事件")
         report_length = int(native_event.report_length)
         if report_length > MAX_REPORT_BYTES:
             raise BridgeProtocolError("驱动事件报告长度超出固定缓冲区")
+        collection_number = int(native_event.collection)
+        if not 1 <= collection_number < 32:
+            raise BridgeProtocolError("驱动事件返回了无效的 Collection")
         return DriverInputEvent(
             sequence=int(native_event.sequence),
             usage_page=int(native_event.usage_page),
             usage=int(native_event.usage),
-            collection=f"COL{int(native_event.collection):02d}",
+            collection=f"COL{collection_number:02d}",
             report=bytes(native_event.report[:report_length]),
             timestamp_100ns=int(native_event.timestamp_100ns),
         )
@@ -760,6 +886,14 @@ class T1BridgeClient:
             candidates.append(str(self._dll_path))
         candidates.extend(
             [
+                str(
+                    project_root
+                    / "native"
+                    / "t1bridge"
+                    / "build-vs2022"
+                    / "Release"
+                    / "t1bridge.dll"
+                ),
                 str(project_root / "native" / "t1bridge.dll"),
                 str(project_root / "native" / "t1bridge" / "t1bridge.dll"),
                 str(
@@ -813,7 +947,11 @@ __all__ = [
     "CAPABILITY_SESSION_LEASE",
     "CAPABILITY_DIAGNOSTICS",
     "CAPABILITY_DESCRIPTOR_RULES",
+    "CAPABILITY_REPORT_DESCRIPTOR",
+    "CAPABILITY_PREPARSED_DATA",
     "DEFAULT_LEASE_TIMEOUT_MS",
+    "MAX_PREPARSED_DATA_BYTES",
+    "MAX_REPORT_DESCRIPTOR_BYTES",
     "FIELD_RULE_FLAG_DROP",
     "FIELD_RULE_FLAG_REMAP",
     "BridgeCapabilities",
@@ -830,6 +968,8 @@ __all__ = [
     "NativeBridgeEvent",
     "NativeBridgeCapabilities",
     "NativeBridgeStats",
+    "NativePreparsedData",
+    "NativeReportDescriptor",
     "NativeFieldRule",
     "T1BridgeClient",
 ]

@@ -38,6 +38,7 @@ t1-remote-driver-inspector = "tools.t1_driver_inspector:main"
 t1-remote-gatt-probe = "tools.t1_gatt_probe:main"
 t1-remote-gatt-capture = "tools.t1_gatt_capture:main"
 t1-remote-audio-devices = "tools.t1_audio_devices:main"
+t1-remote-voice-test = "tools.t1_voice_test:main"
 
 [tool.setuptools.packages.find]
 include = ["t1remote*", "tools*"]

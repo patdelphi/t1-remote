@@ -37,6 +37,16 @@ T1_VID = "620A"
 T1_PID = "0407"
 
 
+def selected_capture_button(button: str | None) -> str | None:
+    """返回可用于采集的当前标签；未选择或禁用按键时返回 None。"""
+
+    if button is None or button not in REMOTE_BUTTONS:
+        return None
+    if button in DISABLED_CAPTURE_BUTTONS:
+        return None
+    return button
+
+
 @dataclass(frozen=True)
 class CaptureEvent:
     """一次与当前遥控区域标签关联的 Windows Raw Input 事件。"""

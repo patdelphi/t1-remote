@@ -122,8 +122,8 @@ def normalize_target_collections(collections: Iterable[str]) -> tuple[str, ...]:
         normalized = str(collection).upper()
         if not re.fullmatch(r"COL\d{2}", normalized):
             raise ValueError("target Collection 必须使用 COL01 形式")
-        if int(normalized[3:]) == 0:
-            raise ValueError("target Collection 编号必须大于 0")
+        if not 1 <= int(normalized[3:]) < 32:
+            raise ValueError("target Collection 编号必须在 1-31 范围内")
         if normalized not in normalized_collections:
             normalized_collections.append(normalized)
     if not normalized_collections:
@@ -285,6 +285,8 @@ class HidInputListener:
         self._path_enumerator = path_enumerator
         self._readers: list[_Reader] = []
         self._lock = threading.Lock()
+        # 启动和停止共享同一组句柄，必须避免并发修改 readers。
+        self._lifecycle_lock = threading.RLock()
         self._stop_requested = threading.Event()
         self._kernel32: ctypes.WinDLL | None = None
         self._hid: ctypes.WinDLL | None = None
@@ -298,6 +300,12 @@ class HidInputListener:
 
     def start(self) -> None:
         """枚举目标接口、打开句柄并启动后台读取线程。"""
+
+        with self._lifecycle_lock:
+            self._start()
+
+    def _start(self) -> None:
+        """在生命周期锁内完成监听器启动。"""
 
         if os.name != "nt":
             raise RuntimeError("T1 HID 直读监听器只能在 Windows 上运行")
@@ -352,6 +360,12 @@ class HidInputListener:
     def stop(self) -> None:
         """取消挂起的 ReadFile 请求，并等待读取线程退出。"""
 
+        with self._lifecycle_lock:
+            self._stop()
+
+    def _stop(self) -> None:
+        """在生命周期锁内完成监听器停止。"""
+
         self._stop_requested.set()
         with self._lock:
             readers = list(self._readers)
@@ -359,7 +373,8 @@ class HidInputListener:
             self._cancel_reader(reader)
         for reader in readers:
             if reader.thread:
-                reader.thread.join(timeout=5)
+                # CancelIoEx 不等待请求完成；必须等待读取线程退出后再关闭句柄。
+                reader.thread.join()
             self._close_reader(reader)
         with self._lock:
             self._readers.clear()
@@ -488,7 +503,7 @@ class HidInputListener:
                 ctypes.c_void_p(reader.handle),
                 buffer,
                 reader.report_length,
-                ctypes.byref(bytes_read),
+                None,
                 ctypes.byref(overlapped),
             )
             if not result:
@@ -513,17 +528,19 @@ class HidInputListener:
                         )
                         return
                     break
-                if not kernel32.GetOverlappedResult(
-                    ctypes.c_void_p(reader.handle),
-                    ctypes.byref(overlapped),
-                    ctypes.byref(bytes_read),
-                    False,
-                ):
-                    error_code = ctypes.get_last_error()
-                    if error_code not in (ERROR_OPERATION_ABORTED, ERROR_INVALID_HANDLE):
-                        self._report_error(ctypes.WinError(error_code))
-                    return
+            if not kernel32.GetOverlappedResult(
+                ctypes.c_void_p(reader.handle),
+                ctypes.byref(overlapped),
+                ctypes.byref(bytes_read),
+                False,
+            ):
+                error_code = ctypes.get_last_error()
+                if error_code not in (ERROR_OPERATION_ABORTED, ERROR_INVALID_HANDLE):
+                    self._report_error(ctypes.WinError(error_code))
+                return
 
+            if self._stop_requested.is_set():
+                return
             report = bytes(buffer[: bytes_read.value])
             if not report:
                 continue
@@ -538,10 +555,9 @@ class HidInputListener:
         if not self._kernel32:
             return
         self._kernel32.CancelIoEx(ctypes.c_void_p(reader.handle), None)
-        self._kernel32.SetEvent(ctypes.c_void_p(reader.event))
 
     def _close_reader(self, reader: _Reader) -> None:
-        """关闭句柄和事件；重复关闭由 Windows 忽略错误并由状态管理避免。"""
+        """在读取线程退出后关闭句柄和事件。"""
 
         if reader.handle:
             self._close_handle(reader.handle)

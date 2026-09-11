@@ -8,15 +8,18 @@ from typing import Protocol
 from t1remote.core.input_mapping import ButtonEvent, T1InputDecoder
 from t1remote.core.key_mapping import MacroStep, MappingConfig, MappingEngine, MappingEvent
 from t1remote.core.mapping_diagnostics import DiagnosticSnapshot, MappingDiagnostics
-from t1remote.windows.command_runner import WindowsCommandExecutor
+from t1remote.windows.command_runner import (
+    CommandExecutionError,
+    WindowsCommandExecutor,
+)
 from t1remote.windows.macro import KeyboardMacroExecutor
-from t1remote.windows.send_input import KeyboardOutput, build_mapping_output_events
+from t1remote.windows.send_input import OutputEvent, build_mapping_output_events
 
 
 class OutputEmitter(Protocol):
     """键盘输出器的最小协议，便于使用假对象测试。"""
 
-    def emit(self, outputs: tuple[KeyboardOutput, ...]) -> None:
+    def emit(self, outputs: tuple[OutputEvent, ...]) -> None:
         """提交一批键盘输出事件。"""
 
 
@@ -86,8 +89,13 @@ class T1MappingRuntime:
         *,
         usage_page: int | None = None,
         usage: int | None = None,
+        now: float | None = None,
     ) -> tuple[MappingEvent, ...]:
-        """解码并输出一条 Raw Input 或驱动报告。"""
+        """解码并输出一条 Raw Input 或驱动报告。
+
+        驱动队列事件可以携带采集时刻；调用方传入 ``now`` 后，长按和
+        双击会以硬件时序判断，而不是以 Python 消费队列的时刻判断。
+        """
 
         with self._lock:
             input_event = self._decoder.feed(
@@ -97,14 +105,19 @@ class T1MappingRuntime:
                 usage_page=usage_page,
                 usage=usage,
             )
-            return self.process_button_event(input_event)
+            return self.process_button_event(input_event, now=now)
 
-    def process_button_event(self, event: ButtonEvent) -> tuple[MappingEvent, ...]:
+    def process_button_event(
+        self,
+        event: ButtonEvent,
+        *,
+        now: float | None = None,
+    ) -> tuple[MappingEvent, ...]:
         """处理已经解码的语义按键事件。"""
 
         with self._lock:
             self._diagnostics.record_input(event)
-            mapping_events = self._engine.handle(event)
+            mapping_events = self._engine.handle(event, now=now)
             self._emit_mapping_events(mapping_events)
             return mapping_events
 
@@ -155,13 +168,17 @@ class T1MappingRuntime:
                 outputs = build_mapping_output_events(event)
                 self._emit_outputs(outputs)
                 self._diagnostics.record_output(len(outputs))
+            except CommandExecutionError as exc:
+                # 外部命令是单次动作；启动失败不能中断 HID 监听和后续按键。
+                self._diagnostics.record_error(exc)
+                continue
             except (OSError, RuntimeError, ValueError) as exc:
                 self._diagnostics.record_error(exc)
                 raise MappingRuntimeError(
                     f"输出按键动作失败：{event.button}/{event.action.kind}"
                 ) from exc
 
-    def _emit_outputs(self, outputs: tuple[KeyboardOutput, ...]) -> None:
+    def _emit_outputs(self, outputs: tuple[OutputEvent, ...]) -> None:
         """串行提交输出，避免宏与普通映射交错写入 SendInput。"""
 
         with self._output_lock:

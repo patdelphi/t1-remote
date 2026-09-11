@@ -48,12 +48,21 @@ python -m tools.t1_mapping_gui
 
 可以用“导入/导出”管理备份配置；保存后运行中的测试会话会自动监视并热加载有效配置。
 
-前台左侧选择物理按键，中间选择动作类型和触发方式，右侧填写参数。支持单键、组合键、HID 特殊功能、命令行、未映射、长按、双击和按住重复；“预览动作”不会调用 `SendInput`，命令行动作也不会启动程序。点击“保存配置”后，已经运行的测试会话会自动监视并热加载有效配置。
+前台左侧选择物理按键，中间选择动作类型和触发方式，右侧填写参数。支持单键、组合键、鼠标键、HID 特殊功能、命令行、未映射、长按、双击和按住重复；“预览动作”不会调用 `SendInput`，命令行动作也不会启动程序。点击“保存配置”后，已经运行的测试会话会自动监视并热加载有效配置。
 
 当前支持：
 
-- `key`：键盘单键，例如 `A`、`ENTER`、`UP`、`F1`；
+- `key`：键盘单键，例如 `A`、`ENTER`、`UP`、`SEMICOLON`、`BACKSLASH`、`CTRL`、`WIN`、`F1`-`F24`；
 - `combo`/`shortcut`：组合键，例如 `ALT+TAB`、`CTRL+C`；
+- `mouse`：鼠标左键、右键或中键，例如：
+
+```json
+"Menu": {
+  "type": "mouse",
+  "key": "RIGHT_CLICK"
+}
+```
+
 - `special`/`media`：HID 预设功能键，例如 `VOLUME_UP`、`MEDIA_PLAY_PAUSE`、`BROWSER_HOME`、`SLEEP`；
 - `command`：命令行参数数组，例如：
 
@@ -73,6 +82,10 @@ python -m tools.t1_mapping_gui
 优先测试已经由设备级驱动拦截的 Home、Return、Mute、Volume Plus、Volume Minus。Power 和 Voice 默认不输出，便于避免误触发系统动作。
 
 当前 `COL01` 键盘集合仍未由过滤驱动阻断。方向键、OK、Menu 的默认映射可以测试；如果把这些键改成不同输出，Windows 仍可能收到原始键，完整无泄露重映射需要后续扩展 `COL01` 驱动过滤。
+
+当前活动配置将 Menu 输出为 `Shift+F10`，这是标准键盘上下文菜单组合，适合 Codex 输入框；`APPS` 是键盘上下文菜单键，鼠标右键、`APPS` 和 `Shift+F10` 是三种不同输入。需要恢复鼠标右键时，可在“鼠标键”中选择 `RIGHT_CLICK`。
+
+长按动作达到阈值后，Mapping 诊断的状态会显示为 `long_press`，释放时仍会显示 `up`，说明动作已经实际触发。COL02/COL03 驱动事件会使用内核时间戳判断按下和抬起间隔，即使两条报文已同时排在队列中也不会丢失 Voice 长按。
 
 ## 真实硬件验收记录
 
