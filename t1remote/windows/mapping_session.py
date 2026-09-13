@@ -208,12 +208,12 @@ class T1MappingSession:
             flush_events = getattr(bridge, "flush_events", None)
             if callable(flush_events):
                 flush_events()
+            if not self.dry_run:
+                self._prime_hid_parser(bridge)
             bridge.start()
             with self._bridge_lock:
                 bridge.heartbeat()
                 self._update_driver_status(bridge.status())
-            if not self.dry_run:
-                self._prime_hid_parser(bridge)
             if not self.dry_run:
                 # 过滤驱动在 HID ReadFile 完成时才会看到 COL02/COL03 报告。
                 # 这里仅建立读请求，实际报文统一由 bridge.read_event() 消费，
@@ -426,24 +426,30 @@ class T1MappingSession:
         """取得 opaque preparsed data，让新驱动缓存官方 HID parser 输入。"""
 
         getter = getattr(bridge, "get_preparsed_data", None)
+        self._hid_parser_data = {}
         if not callable(getter):
-            return
-        self._hid_parser_data.clear()
+            raise MappingSessionError("驱动缺少 HID parser 接口，未启用过滤")
+        parser_data = {}
         for collection in ("COL02", "COL03"):
             try:
                 preparsed_data = bytes(getter(collection))
+                if not preparsed_data:
+                    raise ValueError("preparsed data 为空")
                 info = inspect_preparsed_data(
                     preparsed_data,
                     collection=collection,
                 )
             except (BridgeError, OSError, RuntimeError, TypeError, ValueError) as error:
-                self._log(f"{collection} HID parser 能力不可用，回退兼容解码：{error}")
-                continue
-            self._hid_parser_data[collection] = (preparsed_data, info)
+                raise MappingSessionError(
+                    f"{collection} HID parser 不可用，未启用过滤：{error}"
+                ) from error
+            parser_data[collection] = (preparsed_data, info)
             self._log(
                 f"{collection} HID parser 已启用："
                 f"{len(info.input_button_capabilities)} 个输入按钮能力"
             )
+        # 完整准备后一次替换，工作线程不会看到半初始化缓存。
+        self._hid_parser_data = parser_data
 
     def _parser_usage_for_event(self, event: object) -> tuple[int, int] | None:
         """仅在 parser 得到唯一 Usage 时替换驱动的兼容解码结果。"""
@@ -511,11 +517,12 @@ class T1MappingSession:
                         and getattr(status, "state", "") == "stopped"
                         and int(getattr(status, "attached_collections", 0)) != 0
                     ):
+                        self._prime_hid_parser(bridge)
                         bridge.start()
                         status = bridge.status()
                         self._log("T1 HID 已重连，Mapping 过滤器已自动恢复")
                     self._update_driver_status(status)
-            except BridgeError as error:
+            except (BridgeError, MappingSessionError) as error:
                 self._fail_from_worker(error)
 
     def _log_mapping_events(self, events: tuple[object, ...]) -> None:

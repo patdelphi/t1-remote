@@ -19,7 +19,7 @@ _CONSUMER_BUTTONS = {
     0xEA: "Volume Minus",
 }
 
-_SYSTEM_BUTTONS = {0x01: "Power"}
+_SYSTEM_BUTTONS = {0x81: "Power"}
 
 _KEYBOARD_BUTTONS = {
     0x0D: "OK",
@@ -158,8 +158,20 @@ class T1InputDecoder:
         usage_page: int | None,
         usage: int | None,
     ) -> ButtonEvent:
-        report_usage = report[1] if len(report) > 1 else 0
-        parsed_usage = report_usage or (usage if len(report) < 2 else 0)
+        # 仅识别已确认的 T1 COL03 / Report ID 03 布局；未知长度不推测。
+        if len(report) != 2 or report[0] != 3 or usage_page not in (None, 0x01):
+            return self._unknown(collection, "hid", report, usage_page, usage)
+        if report[1] == 0:
+            # 释放事件元数据可能仍携带上一帧 Usage，必须先判断零报告。
+            parsed_usage = 0
+        elif usage is not None:
+            parsed_usage = usage
+            if not parsed_usage:
+                return self._unknown(collection, "hid", report, usage_page or 1, usage)
+        elif report[1] == 1:
+            parsed_usage = 0x81
+        else:
+            return self._unknown(collection, "hid", report, usage_page or 1, usage)
         if parsed_usage:
             button = _SYSTEM_BUTTONS.get(parsed_usage)
             if button:

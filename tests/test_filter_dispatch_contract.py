@@ -15,6 +15,24 @@ FILTER_INF = ROOT / "native" / "t1filter" / "t1filter.inf"
 BRIDGE_SOURCE = ROOT / "native" / "t1bridge" / "t1bridge.c"
 
 
+def test_get_report_rejects_user_mode_before_packet_dereference() -> None:
+    """完成回调不可解引用未经锁定的用户包；入口拒绝该未支持路径。"""
+    source = FILTER_SOURCE.read_text(encoding="utf-8-sig")
+    helper = source[source.index("T1FilterGetInputReportBuffer("):source.index("VOID\nT1FilterEvtGetInputReportCompletion(")]
+    assert helper.index("irp->RequestorMode != KernelMode") < helper.index("packet->reportBuffer")
+    forward = source[source.index("T1FilterForwardHidRequest("):source.index("VOID\nT1FilterEvtHidDeviceControl(")]
+    assert "WdfRequestGetRequestorMode(Request) != KernelMode" in forward
+    assert "STATUS_NOT_SUPPORTED" in forward
+
+
+def test_collection_property_memory_belongs_to_device() -> None:
+    """查询属性内存必须随设备释放，不能遗留到驱动卸载。"""
+    source = FILTER_SOURCE.read_text(encoding="utf-8-sig")
+    helper = source[source.index("T1FilterDetectCollection("):source.index("VOID\nT1FilterEvtDeviceCleanup(")]
+    assert "attributes.ParentObject = Device;" in helper
+    assert "&attributes," in helper
+
+
 def test_hid_report_has_device_control_dispatch_path() -> None:
     """HID 读报告必须通过普通 DeviceControl 队列进入过滤器。"""
 

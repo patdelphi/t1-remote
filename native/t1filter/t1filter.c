@@ -1090,11 +1090,12 @@ T1FilterShouldBlockReport(
          * 布局，直到真实能力证据足以替换该 ABI。固定 byte offset 只在 parser
          * 不可用或拒绝当前报告时使用。 */
         if (UsagePage == 0x0001 && Collection == 3) {
-            if (ReportLength < 2) {
+            /* 仅支持已确认的 03 01 / 03 00，不外推其他位域。 */
+            if (ReportLength != 2 || Report[0] != 3 || Report[1] > 1) {
                 WdfSpinLockRelease(Context->lock);
                 return FALSE;
             }
-            decoded_usage = (USHORT)Report[1];
+            decoded_usage = Report[1] == 1 ? 0x0081 : 0;
         } else {
             if (ReportLength < 3) {
                 WdfSpinLockRelease(Context->lock);
@@ -1104,7 +1105,8 @@ T1FilterShouldBlockReport(
                 ((USHORT)Report[2] << 8);
         }
         pressed = decoded_usage != 0;
-        field_matched = T1FilterFindFieldRule(
+        /* 字节字段规则不能覆盖 System Control 的位域语义。 */
+        field_matched = !(UsagePage == 0x0001 && Collection == 3) && T1FilterFindFieldRule(
             &policy,
             UsagePage,
             Collection,
@@ -1300,6 +1302,11 @@ T1FilterRewriteReport(
         WdfSpinLockRelease(Context->lock);
         return rewritten;
     }
+    /* 无 parser 时不能把 Usage 数值直接写入 System Control 位域。 */
+    if (UsagePage == 0x0001 && Collection == 3) {
+        WdfSpinLockRelease(Context->lock);
+        return FALSE;
+    }
     if (T1FilterFindFieldRule(
             &policy,
             UsagePage,
@@ -1313,10 +1320,6 @@ T1FilterRewriteReport(
             Report[rule->byte_offset + byte_index] =
                 (UCHAR)((MappedUsage >> (byte_index * 8)) & 0xFF);
         }
-        rewritten = TRUE;
-    } else if (UsagePage == 0x0001 && Collection == 3 &&
-               ReportLength >= 2) {
-        Report[1] = (UCHAR)(MappedUsage & 0xFF);
         rewritten = TRUE;
     } else if (ReportLength >= 3) {
         Report[1] = (UCHAR)(MappedUsage & 0xFF);
@@ -1577,7 +1580,8 @@ T1FilterGetInputReportBuffer(
     *ReportLength = 0;
 
     irp = WdfRequestWdmGetIrp(Request);
-    if (irp == NULL || irp->UserBuffer == NULL) {
+    /* 完成回调可能处于 DISPATCH_LEVEL，仅接受内核包，不能在此 Probe。 */
+    if (irp == NULL || irp->RequestorMode != KernelMode || irp->UserBuffer == NULL) {
         return FALSE;
     }
     packet = (PHID_XFER_PACKET)irp->UserBuffer;
@@ -1591,9 +1595,6 @@ T1FilterGetInputReportBuffer(
      * 直接解引用用户地址；没有 MDL 时只接受内核发起的请求。
      */
     if (irp->MdlAddress == NULL) {
-        if (irp->RequestorMode != KernelMode) {
-            return FALSE;
-        }
         *Report = packet->reportBuffer;
         *ReportLength = packet->reportBufferLen;
         return TRUE;
@@ -1865,6 +1866,14 @@ T1FilterForwardHidRequest(
 {
     PT1FILTER_DEVICE_CONTEXT device_context =
         T1FilterGetDeviceContext(Device);
+
+    /* 用户发起的 GET 报告尚无锁页契约，入口明确拒绝，避免完成阶段访问用户指针。 */
+    if ((IoControlCode == IOCTL_HID_GET_INPUT_REPORT ||
+         IoControlCode == IOCTL_UMDF_HID_GET_INPUT_REPORT) &&
+        WdfRequestGetRequestorMode(Request) != KernelMode) {
+        WdfRequestCompleteWithInformation(Request, STATUS_NOT_SUPPORTED, 0);
+        return;
+    }
 
     if (device_context != NULL && device_context->control != NULL &&
         T1FilterIsInputReportControl(IoControlCode)) {
@@ -2438,6 +2447,7 @@ T1FilterDetectCollection(
 )
 {
     WDFMEMORY memory = NULL;
+    WDF_OBJECT_ATTRIBUTES attributes;
     PVOID property_buffer = NULL;
     size_t property_length = 0;
     const WCHAR* property_text;
@@ -2445,11 +2455,14 @@ T1FilterDetectCollection(
     ULONG index;
     NTSTATUS status;
 
+    /* 所有早退分支的属性内存都随设备释放。 */
+    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+    attributes.ParentObject = Device;
     status = WdfDeviceAllocAndQueryProperty(
         Device,
         DevicePropertyHardwareID,
         NonPagedPoolNx,
-        WDF_NO_OBJECT_ATTRIBUTES,
+        &attributes,
         &memory
     );
     if (!NT_SUCCESS(status) || memory == NULL) {

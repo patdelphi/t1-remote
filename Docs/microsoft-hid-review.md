@@ -171,3 +171,13 @@ Microsoft 的 `IOCTL_HID_GET_INPUT_REPORT` 约定要求输入报告首字节的 
 现场报告 `COL03 / 03 01` 经 HID parser 解码为 System Control Usage `0x01:0x0081`（System Power Down）。默认策略此前误写为 `0x01:0x0001`，导致 Power 能进入采集链路，但不能命中驱动拦截规则。现已将 Python 默认策略改为 `0x0081`，并新增桥接策略回归断言。该修复只涉及策略下发值，不需要重建 `t1filter.sys`；主 App 需要重启后才能加载新策略。
 
 捕获页还有一处初始化缺口：它原先没有请求 `COL02/COL03` 的 preparsed data，驱动因此可能继续使用报告 payload 的兼容解码值 `0x0001`。现已在捕获桥接启动前请求并缓存两个 Collection 的 parser 数据；接口不可用时会拒绝进入有效拦截态。相关定向测试 `78 passed`。
+
+## 14. 2026-09-12 Mapping 与内核边界修复
+
+Mapping 会话现也在 START 前准备 COL02/COL03 parser，缺接口、空数据或检查失败直接报错并清理；重连自动 START 前再次查询。dry-run 不要求 parser。这里的就绪只代表初始化完成，不保证每条报告的唯一 Usage 解析。
+
+Power 的 C/Python 兼容解码统一为 0x0081，仅接受已确认的 03 01 与 03 00 布局；释放包优先于残留 Usage，未知位域不猜测。无 parser 的 System Control 字段重映射被拒绝，保留调用方失败后清零报告的既有行为。
+
+GET_INPUT_REPORT 用户发起路径当前返回 STATUS_NOT_SUPPORTED，避免在完成回调访问未验证用户指针；内核包路径保留。属性查询内存归属 Device。此轮修改了内核源码，需要重新编译和验收驱动，与第 13 节仅更新策略的发布要求不同。
+
+未修改 ACL、IOCTL 数值或拦截层。后续权限、会话归属和并发方案见 [optimization-plan.md](optimization-plan.md)。

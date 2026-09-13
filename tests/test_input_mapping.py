@@ -49,7 +49,24 @@ class InputMappingTests(unittest.TestCase):
         released = decoder.feed("COL03", 2, bytes.fromhex("03 00"))
 
         self.assertEqual((pressed.button, pressed.state), ("Power", "down"))
+        self.assertEqual(pressed.usage, 0x81)
         self.assertEqual((released.button, released.state), ("Power", "up"))
+
+    def test_power_release_metadata_and_unknown_layout(self) -> None:
+        """释放包不能被旧 Usage 重新触发；未知布局不能猜成 Power。"""
+        decoder = T1InputDecoder()
+        pressed = decoder.feed("COL03", 2, b"\x03\x01", usage_page=1, usage=0x81)
+        self.assertEqual(pressed.usage, 0x81)
+        released = decoder.feed("COL03", 2, b"\x03\x00", usage_page=1, usage=0x81)
+        self.assertEqual((released.button, released.state), ("Power", "up"))
+        for report in (b"\x03\x03", b"\x03\x80", b"\x04\x01", b"\x03\x01\x00", b"\x03"):
+            self.assertEqual(decoder.feed("COL03", 2, report).state, "unknown")
+
+    def test_system_parser_usage_is_not_replaced_by_payload(self) -> None:
+        """有效 Usage 优先，未支持的 Sleep 不得误报为 Power。"""
+        event = T1InputDecoder().feed("COL03", 2, b"\x03\x01", usage_page=1, usage=0x82)
+        self.assertEqual(event.usage, 0x82)
+        self.assertIsNone(event.button)
 
     def test_keyboard_payload_decodes_direction_and_release(self) -> None:
         decoder = T1InputDecoder()

@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from t1remote.core.key_mapping import (
@@ -17,7 +18,7 @@ from t1remote.core.key_mapping import (
 )
 from t1remote.windows.command_runner import CommandExecutionError
 from t1remote.windows.driver_bridge import BridgeStatus, DriverInputEvent
-from t1remote.windows.mapping_session import T1MappingSession
+from t1remote.windows.mapping_session import MappingSessionError, T1MappingSession
 from t1remote.windows.raw_input import RawInputEvent
 
 
@@ -37,6 +38,9 @@ class _FakeBridge:
 
     def heartbeat(self) -> None:
         pass
+
+    def get_preparsed_data(self, collection: str) -> bytes:
+        return collection.encode("ascii")
 
     def status(self) -> BridgeStatus:
         return BridgeStatus(
@@ -117,6 +121,11 @@ class _ReconnectBridge(_FakeBridge):
         self.attached_collections = 0x06
         self.lease_active = False
         self.start_calls = 0
+        self.parser_calls = []
+
+    def get_preparsed_data(self, collection: str) -> bytes:
+        self.parser_calls.append(collection)
+        return super().get_preparsed_data(collection)
 
     def start(self) -> None:
         self.start_calls += 1
@@ -220,6 +229,69 @@ class _FakeHidListener:
 
 
 class MappingSessionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # 模拟官方解析边界，生命周期测试不依赖真实 HID 设备。
+        mock = patch("t1remote.windows.mapping_session.inspect_preparsed_data", return_value=SimpleNamespace(input_button_capabilities=(object(),)))
+        mock.start()
+        self.addCleanup(mock.stop)
+
+    def test_parser_failure_prevents_filter_start(self) -> None:
+        """缺接口或任一集合查询失败均不得启用过滤。"""
+        for missing in (True, False):
+            bridge = _FlushingBridge()
+            if missing:
+                bridge.get_preparsed_data = None
+            else:
+                def fail(_collection):
+                    raise OSError("parser unavailable")
+                bridge.get_preparsed_data = fail
+            with tempfile.TemporaryDirectory() as directory:
+                session = T1MappingSession(str(Path(directory) / "mapping.json"), bridge_factory=lambda: bridge, raw_listener_factory=_FakeRawListener, hid_listener_factory=_FakeHidListener, instance_name=f"T1ParserFailure-{id(bridge)}")
+                with self.assertRaises(MappingSessionError):
+                    session.start(MappingConfig.default())
+                self.assertNotIn("start", bridge.lifecycle)
+                self.assertTrue(bridge.closed)
+                self.assertEqual(session.status().state, "error")
+
+    def test_parser_is_ready_before_start(self) -> None:
+        """两个集合准备完毕后才允许 Start。"""
+        bridge = _FlushingBridge()
+        def get_data(collection):
+            bridge.lifecycle.append(collection)
+            return b"parser"
+        bridge.get_preparsed_data = get_data
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(str(path), bridge_factory=lambda: bridge, raw_listener_factory=_FakeRawListener, hid_listener_factory=_FakeHidListener, instance_name=f"T1ParserOrder-{id(bridge)}")
+            try:
+                session.start()
+                self.assertLess(bridge.lifecycle.index("COL02"), bridge.lifecycle.index("start"))
+                self.assertLess(bridge.lifecycle.index("COL03"), bridge.lifecycle.index("start"))
+            finally:
+                session.stop()
+
+    def test_reconnect_parser_failure_does_not_restart_filter(self) -> None:
+        """重连重新查询失败时保持停止并报告错误。"""
+        bridge = _ReconnectBridge()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(str(path), bridge_factory=lambda: bridge, raw_listener_factory=_FakeRawListener, hid_listener_factory=_FakeHidListener, instance_name=f"T1ParserReconnect-{id(bridge)}")
+            try:
+                session.start()
+                def fail(_collection):
+                    raise OSError("parser reconnect failed")
+                bridge.get_preparsed_data = fail
+                bridge.driver_state = "stopped"
+                deadline = time.monotonic() + 3
+                while session.status().state != "error" and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertEqual(session.status().state, "error")
+                self.assertEqual(bridge.start_calls, 1)
+            finally:
+                session.stop()
+
     def test_stop_waits_until_start_finishes(self) -> None:
         """启动与停止并发时，停止必须等待启动完成再清理。"""
 
@@ -413,6 +485,7 @@ class MappingSessionTests(unittest.TestCase):
                 while bridge.start_calls < 2 and time.monotonic() < deadline:
                     time.sleep(0.02)
                 self.assertGreaterEqual(bridge.start_calls, 2)
+                self.assertEqual(bridge.parser_calls[:4], ["COL02", "COL03", "COL02", "COL03"])
                 self.assertEqual(session.status().driver_state, "running")
                 self.assertTrue(session.status().lease_active)
             finally:
