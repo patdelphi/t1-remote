@@ -181,3 +181,11 @@ Power 的 C/Python 兼容解码统一为 0x0081，仅接受已确认的 03 01 �
 GET_INPUT_REPORT 用户发起路径当前返回 STATUS_NOT_SUPPORTED，避免在完成回调访问未验证用户指针；内核包路径保留。属性查询内存归属 Device。此轮修改了内核源码，需要重新编译和验收驱动，与第 13 节仅更新策略的发布要求不同。
 
 未修改 ACL、IOCTL 数值或拦截层。后续权限、会话归属和并发方案见 [optimization-plan.md](optimization-plan.md)。
+
+## 15. 2026-09-13 权限收紧与控制会话归属
+
+按管理员 App 方案收紧控制面：控制设备 SDDL 从 `BU 读写` 改为 `BU 只读`；11 个自定义 IOCTL 撤掉 `FILE_ANY_ACCESS`，查询类使用 `FILE_READ_DATA`、修改类使用 `FILE_WRITE_DATA`。控制会话按文件对象确定所有者：第一个下发策略的句柄持引用成为所有者，非所有者的 SET_POLICY/START/STOP/HEARTBEAT/FLUSH_EVENTS 返回 `STATUS_ACCESS_DENIED`，所有者句柄关闭等同 STOP；查询类请求对所有具备读权限的句柄开放。桥接 DLL 未改打开方式，因此主 App 需要管理员权限，普通用户句柄只能做只读诊断。
+
+同时修复两处非权限缺陷：`mapping_watch` 的变更检测改为长度加 SHA-256 内容摘要，避免 Windows 写入时间未刷新时等长重写被漏检；`test_mapping_session` 不再把伪造 preparsed data 交给原生 HID 解析器，消除随内存布局出现的测试阻塞。
+
+原生编译验证：安装 WDK 10.0.19041 并把 `WindowsKernelModeDriver10.0` 工具集释放到 VS2019 BuildTools 实例后，驱动 Release x64 编译 0 警告 0 错误（Level4 + 警告即错误），Inf2Cat 可签名性 0 错误 0 警告；桥接 DLL 以 `/W4 /WX /utf-8` 编译 0 警告。本轮未安装驱动、未签名、未做真机与双客户端验证。

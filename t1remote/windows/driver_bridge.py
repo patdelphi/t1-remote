@@ -23,6 +23,7 @@ MAX_PREPARSED_DATA_BYTES = 4096
 T1_VID = 0x620A
 T1_PID = 0x0407
 ERROR_NO_MORE_ITEMS = 259
+ERROR_ACCESS_DENIED = 5
 DEFAULT_LEASE_TIMEOUT_MS = 3000
 MIN_LEASE_TIMEOUT_MS = 250
 MAX_LEASE_TIMEOUT_MS = 60000
@@ -938,6 +939,12 @@ class T1BridgeClient:
 
     @staticmethod
     def _raise_if_failed(operation: str, result: int) -> None:
+        if result == ERROR_ACCESS_DENIED:
+            # 控制设备只给管理员写权限，且同一时间只有一个控制会话所有者。
+            raise BridgeError(
+                f"{operation} 被拒绝（错误码 5）：App 需要以管理员身份运行，"
+                "或控制会话已被其他句柄占用"
+            )
         if result != 0:
             raise BridgeError(f"{operation} 失败，错误码：{result}")
 

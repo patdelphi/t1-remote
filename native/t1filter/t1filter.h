@@ -35,6 +35,11 @@ typedef struct _T1FILTER_CONTROL_CONTEXT {
     WDFSPINLOCK lock;
     T1BRIDGE_POLICY policy;
     BOOLEAN filtering_enabled;
+    /*
+     * 控制会话所有者：第一个下发策略的句柄。持有引用直到句柄关闭或
+     * 被替换，避免文件对象提前释放后留下悬空指针。
+     */
+    WDFFILEOBJECT owner_file;
     WDFIOTARGET collection_targets[T1FILTER_MAX_COLLECTIONS];
     PHIDP_PREPARSED_DATA parser_preparsed_data[T1FILTER_MAX_COLLECTIONS];
     PUSAGE_AND_PAGE parser_usage_lists[T1FILTER_MAX_COLLECTIONS];
@@ -100,6 +105,7 @@ EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL T1FilterEvtDeviceControl;
 EVT_WDF_REQUEST_COMPLETION_ROUTINE T1FilterEvtReadCompletion;
 EVT_WDF_REQUEST_COMPLETION_ROUTINE T1FilterEvtGetInputReportCompletion;
 EVT_WDF_OBJECT_CONTEXT_CLEANUP T1FilterEvtDeviceCleanup;
+EVT_WDF_FILE_CLOSE T1FilterEvtFileClose;
 
 NTSTATUS
 T1FilterCreateControlDevice(

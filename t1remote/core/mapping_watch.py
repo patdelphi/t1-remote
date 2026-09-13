@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 import threading
 from typing import Callable
@@ -15,7 +16,7 @@ from t1remote.core.key_mapping import MappingConfig, load_mapping_config
 
 ConfigReloadCallback = Callable[[MappingConfig], None]
 ConfigErrorCallback = Callable[[Exception], None]
-FileSignature = tuple[int, int] | None
+FileSignature = tuple[int, bytes] | None
 
 
 class MappingConfigWatcher:
@@ -83,11 +84,17 @@ class MappingConfigWatcher:
             self.check_once()
 
     def _signature(self) -> FileSignature:
+        """返回文件的内容签名。
+
+        Windows 上最后写入时间的更新可能被延迟，快速重写同一长度的配置会
+        让 stat 签名保持不变，因此签名必须包含内容摘要而不是只依赖 stat。
+        """
+
         try:
-            stat = self.path.stat()
+            data = self.path.read_bytes()
         except OSError:
             return None
-        return stat.st_mtime_ns, stat.st_size
+        return len(data), sha256(data).digest()
 
 
 __all__ = ["MappingConfigWatcher"]

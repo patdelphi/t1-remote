@@ -13,6 +13,14 @@ FILTER_SOURCE = ROOT / "native" / "t1filter" / "t1filter.c"
 FILTER_HEADER = ROOT / "native" / "t1filter" / "t1filter.h"
 FILTER_INF = ROOT / "native" / "t1filter" / "t1filter.inf"
 BRIDGE_SOURCE = ROOT / "native" / "t1bridge" / "t1bridge.c"
+BRIDGE_PROTOCOL = ROOT / "native" / "t1bridge" / "t1bridge_protocol.h"
+
+
+def _ioctl_definition(source: str, name: str) -> str:
+    """返回一个 IOCTL 宏的完整定义文本，用于核对访问权限。"""
+
+    start = source.index(f"#define IOCTL_T1FILTER_{name} \\")
+    return source[start:source.index("\n", source.index("CTL_CODE(", start))]
 
 
 def test_get_report_rejects_user_mode_before_packet_dereference() -> None:
@@ -431,3 +439,68 @@ def test_bridge_checks_structured_ioctl_output_length_and_collection_bounds() ->
     assert "ERROR_INSUFFICIENT_BUFFER" in source
     assert "descriptor->collection == 0" in source
     assert "preparsed_data->collection == 0" in source
+
+
+def test_control_ioctls_require_read_or_write_access() -> None:
+    """管理类 IOCTL 不能使用 FILE_ANY_ACCESS：查询只读、修改需要写权限。"""
+
+    protocol = BRIDGE_PROTOCOL.read_text(encoding="utf-8-sig")
+    ctl_code_lines = [line for line in protocol.splitlines() if "CTL_CODE(" in line]
+
+    assert ctl_code_lines
+    assert all("FILE_ANY_ACCESS" not in line for line in ctl_code_lines)
+    for name in ("SET_POLICY", "START", "STOP", "HEARTBEAT", "FLUSH_EVENTS"):
+        assert "FILE_WRITE_DATA" in _ioctl_definition(protocol, name), name
+    for name in (
+        "GET_STATUS",
+        "READ_EVENT",
+        "GET_CAPABILITIES",
+        "GET_STATS",
+        "GET_REPORT_DESCRIPTOR",
+        "GET_PREPARSED_DATA",
+    ):
+        assert "FILE_READ_DATA" in _ioctl_definition(protocol, name), name
+
+
+def test_control_session_owner_guards_mutating_ioctls() -> None:
+    """只有所有者句柄能改策略、启停过滤和刷新租约，查询请求不受限。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    header = FILTER_HEADER.read_text(encoding="utf-8")
+    owner_section = source[
+        source.index("T1FilterRequiresOwner(") : source.index(
+            "NTSTATUS\nT1FilterCreateControlDevice("
+        )
+    ]
+
+    assert "WDFFILEOBJECT owner_file;" in header
+    assert "EVT_WDF_FILE_CLOSE T1FilterEvtFileClose;" in header
+    assert "WdfRequestGetFileObject(Request)" in owner_section
+    assert "STATUS_ACCESS_DENIED" in owner_section
+    assert owner_section.index("T1FilterRequiresOwner(IoControlCode)") < (
+        owner_section.index("switch (IoControlCode)")
+    )
+
+
+def test_owner_close_stops_filter_and_control_device_limits_write_access() -> None:
+    """所有者句柄关闭等同 STOP；控制设备注册文件回调并只给管理员写权限。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    close_callback = source[
+        source.index("T1FilterEvtFileClose(") : source.index(
+            "VOID\nT1FilterEvtDeviceControl("
+        )
+    ]
+    create_device = source[
+        source.index("T1FilterCreateControlDevice(") : source.index(
+            "static BOOLEAN\nT1FilterCharEqualsInsensitive"
+        )
+    ]
+
+    assert "context->owner_file == FileObject" in close_callback
+    assert "context->filtering_enabled = FALSE;" in close_callback
+    assert "WdfObjectDereference(FileObject);" in close_callback
+    assert "WdfDeviceInitSetFileObjectConfig" in create_device
+    assert "T1FilterEvtFileClose" in create_device
+    assert "(A;;GR;;;BU)" in create_device
+    assert "GRGW" not in create_device

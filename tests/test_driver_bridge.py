@@ -7,6 +7,7 @@ import unittest
 
 from t1remote.windows.driver_bridge import (
     BridgeCapabilities,
+    BridgeError,
     BridgeProtocolError,
     BridgeStatus,
     BridgeStats,
@@ -460,6 +461,23 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertEqual(client.get_preparsed_data("COL02"), b"preparsed-fixture")
         self.assertEqual(len(library.preparsed_data.calls), 1)
         client.close()
+
+    def test_access_denied_reports_admin_and_owner_hint(self) -> None:
+        """控制设备拒绝写权限时给出管理员/占用提示，不能只回裸错误码。"""
+
+        library = _FakeBridgeLibrary()
+        library.open = _FakeOpenFunction(5)
+        library.T1Bridge_Open = library.open
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+
+        with self.assertRaises(BridgeError) as context:
+            client.open(InterceptionPolicy(target_collections=("COL02",)))
+
+        self.assertIn("管理员", str(context.exception))
+        self.assertFalse(client.is_open)
 
     def test_unavailable_bridge_fails_closed(self) -> None:
         client = T1BridgeClient(

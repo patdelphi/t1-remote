@@ -15,11 +15,32 @@
 
 兼容解码只覆盖已有 Power 样本，不新增 Sleep/Wake；parser 初始化成功不证明所有动态报告均可唯一解析。
 
-## 待决：权限和单会话归属
+## 已执行：权限模型与控制会话归属（2026-09-13，dev 分支）
 
-收紧控制设备权限前，需要确定 App 以管理员运行还是引入受限服务代理。前者改动较少但改变启动权限，后者引入服务部署。当前保留 ACL 和 IOCTL 数值。
+方案确定为**管理员 App**（不使用服务代理）。
 
-确定后同步修改桥接 DLL 与驱动，以句柄确定控制会话所有者；仅所有者可修改策略、刷新租约和 STOP。诊断句柄关闭不能停止其他会话。验收覆盖双客户端、异常关闭、无权限和版本不匹配；不能只依赖 Python 单实例锁或只删除 Close 的 STOP。
+| 文件 | 变更 |
+| --- | --- |
+| native/t1bridge/t1bridge_protocol.h | 11 个 IOCTL 撤掉 `FILE_ANY_ACCESS`：查询类改 `FILE_READ_DATA`，修改类改 `FILE_WRITE_DATA` |
+| native/t1filter/t1filter.c / .h | 控制设备 SDDL 改 `SY/BA 全权 + BU 只读`；按文件对象确定控制会话所有者；所有者关闭等同 STOP；注册 `EvtFileClose` 与文件对象配置 |
+| t1remote/windows/driver_bridge.py | 错误码 5 映射为"需要管理员运行或会话被占用"提示 |
+
+行为边界：桥接 DLL 仍以读写方式打开设备，所以主 App 必须管理员运行；普通用户句柄可做只读诊断（状态、能力、事件、描述符、preparsed data），不能修改策略、启停过滤或刷新租约。非所有者调用修改类 IOCTL 返回 `STATUS_ACCESS_DENIED`。
+
+待现场验证：双客户端抢占、异常关闭、无权限、版本不匹配；源码契约测试不能替代真机行为。
+
+## 已执行：配置监视与测试隔离（2026-09-13）
+
+- `mapping_watch` 的签名从 `mtime + size` 改为长度 + SHA-256 内容摘要：Windows 写入时间未刷新时等长重写不再漏检，且不会因仅更新时间戳而误触发重载。
+- `test_mapping_session` 补 `parse_input_data` 打桩，避免把伪造 preparsed data 交给原生解析器导致偶发阻塞；相关等待上限统一放宽到 5 秒。
+
+## 已执行：原生编译验证（2026-09-13）
+
+本机安装 WDK 10.0.19041（winget）并把 VSIX 工具集手动释放到 VS2019 BuildTools 实例（`VSIXInstaller` 对 BuildTools 返回 2003，改用手工复制 `WindowsKernelModeDriver10.0` 工具集文件）。随后：
+
+- `MSBuild native/t1filter/t1filter.vcxproj /p:Configuration=Release /p:Platform=x64 /p:SpectreMitigation=false /p:SignMode=Off`：编译 0 警告 0 错误（Level4 + 警告即错误），Inf2Cat 可签名性测试 0 错误 0 警告。
+- 桥接 DLL：`cl /LD /O2 /W4 /WX /utf-8 t1bridge.c` 0 警告。
+- 未安装 Spectre 缓解库，编译用命令行覆盖关闭；未做签名、安装、设备验证（无证书、无设备、需管理员与重启）。
 
 ## 待执行：并发与性能
 

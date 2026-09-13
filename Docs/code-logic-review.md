@@ -2,6 +2,17 @@
 
 程序说明：合并本轮两次代码审查的结论，范围限定为代码逻辑本身——Python 21,158 行与原生 C 3,472 行——不含安装、驱动包、发布产物和现场设备状态。判定依据是逐行读源码与 Microsoft Learn 官方文档对照；现场证据只作为代码行为的旁证，不单独作为结论。本文与 `Docs/microsoft-hid-review.md`（持续更新的官方文档对照日志）互补，不替换其现场记录。
 
+## 2026-09-13 dev 分支第二批修复（优先于下方全部结论）
+
+按已确认的"管理员 App"方案实施 C-2/C-6，并修复一处新发现的配置监视缺陷与测试隔离缺陷。
+
+- C-2：控制设备 SDDL 改为 `SY/BA 全权 + BU 只读`；11 个 IOCTL 全部脱离 `FILE_ANY_ACCESS`，查询类用 `FILE_READ_DATA`、修改类用 `FILE_WRITE_DATA`（`t1bridge_protocol.h`）。桥接 DLL 仍以读写方式打开，因此 App 需要管理员权限；普通用户句柄只能读状态、能力和事件，不能改策略。
+- C-6：控制会话按文件对象确定所有者。第一个下发策略的句柄成为所有者并持引用；非所有者的 SET_POLICY/START/STOP/HEARTBEAT/FLUSH_EVENTS 返回 `STATUS_ACCESS_DENIED`；所有者句柄关闭等同 STOP（停过滤、清租约与活动 Usage）。查询类请求不受限。
+- W-1（新）：`mapping_watch` 原先以 `st_mtime_ns + st_size` 判断变化，Windows 写入时间未刷新时，等长内容重写会被漏检、热加载丢失。改为长度 + SHA-256 内容摘要，等长改动也能触发且不会误触发重载。
+- T-1（新）：`test_mapping_session` 把假桥接返回的 `b"COL02"` 当作 preparsed data 交给真实原生解析器，越界读取随内存布局偶发长时间阻塞（表现为 `input_events == 0`、驱动线程卡住）。测试边界已补 `parse_input_data` 打桩，全量连跑 5 次稳定。
+- 构建验证：WDK 10.0.19041 + VS2019 BuildTools 编译 KMDF 驱动通过（Level4 警告即错误，0 警告），Inf2Cat 可签名性 0 错误 0 警告；桥接 DLL 以 `/W4 /WX /utf-8` 编译 0 警告。
+- 未完成：C-3/C-5（需要请求所有权设计与内核并发验证）、C-8（需要 ABI 兼容决策）、L-4、A-1；权限与会话行为尚未在真机（双客户端、异常关闭、无权限）验证。
+
 ## 2026-09-12 复核与首批修复（优先于下方历史结论）
 
 下方审查保留为历史依据，当前执行状态见本节及 [optimization-plan.md](optimization-plan.md)。

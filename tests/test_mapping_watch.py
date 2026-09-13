@@ -20,6 +20,7 @@ class MappingWatchTests(unittest.TestCase):
             watcher = MappingConfigWatcher(path, loaded.append, errors.append)
 
             self.assertFalse(watcher.check_once())
+            original_size = path.stat().st_size
             replacement = MappingConfig(
                 mappings={
                     **MappingConfig.default().mappings,
@@ -27,6 +28,8 @@ class MappingWatchTests(unittest.TestCase):
                 }
             )
             save_mapping_config(path, replacement)
+            # 替换内容与原文等长：只比较 stat 会在写入时间戳未刷新时漏检。
+            self.assertEqual(path.stat().st_size, original_size)
 
             self.assertTrue(watcher.check_once())
             self.assertFalse(watcher.check_once())

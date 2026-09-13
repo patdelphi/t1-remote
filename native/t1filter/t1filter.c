@@ -2015,6 +2015,92 @@ T1FilterEvtInternalDeviceControl(
     );
 }
 
+/*
+ * 程序说明：控制会话归属。
+ *
+ * 第一个下发策略的句柄成为所有者，只有它能够修改策略、启停过滤、刷新租约
+ * 和清理事件队列，避免第二个客户端抢占或关闭正在运行的会话；查询类请求
+ * 仍然对任何持有读权限的句柄开放。所有者句柄关闭等同 STOP，防止应用退出
+ * 后过滤器继续吞键。
+ */
+static BOOLEAN
+T1FilterRequiresOwner(
+    _In_ ULONG IoControlCode
+)
+{
+    return IoControlCode == IOCTL_T1FILTER_SET_POLICY ||
+        IoControlCode == IOCTL_T1FILTER_START ||
+        IoControlCode == IOCTL_T1FILTER_STOP ||
+        IoControlCode == IOCTL_T1FILTER_HEARTBEAT ||
+        IoControlCode == IOCTL_T1FILTER_FLUSH_EVENTS;
+}
+
+static BOOLEAN
+T1FilterClaimOrCheckOwner(
+    _In_ PT1FILTER_CONTROL_CONTEXT Context,
+    _In_ WDFREQUEST Request
+)
+{
+    WDFFILEOBJECT file_object;
+    BOOLEAN allowed = FALSE;
+
+    if (Context == NULL) {
+        return FALSE;
+    }
+    file_object = WdfRequestGetFileObject(Request);
+    if (file_object == NULL) {
+        /* 没有文件对象的请求不能成为控制会话所有者。 */
+        return FALSE;
+    }
+
+    WdfSpinLockAcquire(Context->lock);
+    if (Context->owner_file == NULL) {
+        WdfObjectReference(file_object);
+        Context->owner_file = file_object;
+        allowed = TRUE;
+    } else {
+        allowed = Context->owner_file == file_object;
+    }
+    WdfSpinLockRelease(Context->lock);
+    return allowed;
+}
+
+VOID
+T1FilterEvtFileClose(
+    _In_ WDFFILEOBJECT FileObject
+)
+{
+    WDFDEVICE device = WdfFileObjectGetDevice(FileObject);
+    PT1FILTER_CONTROL_CONTEXT context;
+    BOOLEAN was_owner = FALSE;
+
+    if (device == NULL) {
+        return;
+    }
+    context = T1FilterGetControlContext(device);
+    if (context == NULL || context->lock == NULL) {
+        return;
+    }
+
+    WdfSpinLockAcquire(context->lock);
+    if (context->owner_file == FileObject) {
+        context->owner_file = NULL;
+        was_owner = TRUE;
+        /* 所有者退出等同于 STOP，避免失联的过滤器继续吞键。 */
+        context->filtering_enabled = FALSE;
+        context->lease_deadline_100ns = 0;
+        RtlZeroMemory(
+            context->active_collections,
+            sizeof(context->active_collections)
+        );
+    }
+    WdfSpinLockRelease(context->lock);
+
+    if (was_owner) {
+        WdfObjectDereference(FileObject);
+    }
+}
+
 VOID
 T1FilterEvtDeviceControl(
     _In_ WDFQUEUE Queue,
@@ -2035,6 +2121,12 @@ T1FilterEvtDeviceControl(
 
     if (context == NULL) {
         T1FilterCompleteStatus(Request, STATUS_DEVICE_NOT_READY, 0);
+        return;
+    }
+    if (T1FilterRequiresOwner(IoControlCode) &&
+        !T1FilterClaimOrCheckOwner(context, Request)) {
+        /* 非所有者句柄不能修改策略、启停过滤或刷新租约。 */
+        T1FilterCompleteStatus(Request, STATUS_ACCESS_DENIED, 0);
         return;
     }
 
@@ -2355,6 +2447,7 @@ T1FilterCreateControlDevice(
     PWDFDEVICE_INIT init = NULL;
     WDFDEVICE device = NULL;
     WDF_OBJECT_ATTRIBUTES attributes;
+    WDF_FILEOBJECT_CONFIG file_config;
     WDF_IO_QUEUE_CONFIG queue_config;
     WDF_OBJECT_ATTRIBUTES queue_attributes;
     WDFQUEUE queue = NULL;
@@ -2363,12 +2456,28 @@ T1FilterCreateControlDevice(
     UNICODE_STRING sddl;
     NTSTATUS status;
 
-    RtlInitUnicodeString(&sddl, L"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;BU)");
+    RtlInitUnicodeString(&sddl, L"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GR;;;BU)");
     init = WdfControlDeviceInitAllocate(Driver, &sddl);
     if (init == NULL) {
         T1FilterLogStatus(g_DriverObject, STATUS_INSUFFICIENT_RESOURCES, 0x2001);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
+
+    /*
+     * 注册文件对象回调才能取得 WDFFILEOBJECT，用于把控制会话绑定到
+     * 管理员 App 的句柄；普通用户只有只读权限，无法下发策略。
+     */
+    WDF_FILEOBJECT_CONFIG_INIT(
+        &file_config,
+        WDF_NO_EVENT_CALLBACK,
+        T1FilterEvtFileClose,
+        WDF_NO_EVENT_CALLBACK
+    );
+    WdfDeviceInitSetFileObjectConfig(
+        init,
+        &file_config,
+        WDF_NO_OBJECT_ATTRIBUTES
+    );
 
     RtlInitUnicodeString(&device_name, L"\\Device\\T1RemoteFilter");
     status = WdfDeviceInitAssignName(init, &device_name);

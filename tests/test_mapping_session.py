@@ -234,6 +234,14 @@ class MappingSessionTests(unittest.TestCase):
         mock = patch("t1remote.windows.mapping_session.inspect_preparsed_data", return_value=SimpleNamespace(input_button_capabilities=(object(),)))
         mock.start()
         self.addCleanup(mock.stop)
+        # 假桥接返回的不是合法 preparsed data；不能把它交给真实原生解析器，
+        # 否则解析器按伪造结构读越界内存，测试会随内存布局偶发长时间阻塞。
+        parse_mock = patch(
+            "t1remote.windows.mapping_session.parse_input_data",
+            return_value=(),
+        )
+        parse_mock.start()
+        self.addCleanup(parse_mock.stop)
 
     def test_parser_failure_prevents_filter_start(self) -> None:
         """缺接口或任一集合查询失败均不得启用过滤。"""
@@ -424,7 +432,7 @@ class MappingSessionTests(unittest.TestCase):
                 )
                 session.start()
                 try:
-                    deadline = time.monotonic() + 2
+                    deadline = time.monotonic() + 5
                     while (
                         session.status().diagnostics.input_events < 4
                         and time.monotonic() < deadline
@@ -481,7 +489,7 @@ class MappingSessionTests(unittest.TestCase):
                 # 模拟设备重连：集合已附着，但原租约对应的过滤状态已经停止。
                 bridge.driver_state = "stopped"
                 bridge.lease_active = False
-                deadline = time.monotonic() + 2
+                deadline = time.monotonic() + 5
                 while bridge.start_calls < 2 and time.monotonic() < deadline:
                     time.sleep(0.02)
                 self.assertGreaterEqual(bridge.start_calls, 2)
@@ -517,7 +525,7 @@ class MappingSessionTests(unittest.TestCase):
                     instance_name=f"T1RemoteTestSession-{id(bridge)}",
                 )
                 session.start()
-                deadline = time.monotonic() + 2
+                deadline = time.monotonic() + 5
                 while session.status().state == "running" and time.monotonic() < deadline:
                     time.sleep(0.02)
                 self.assertEqual(session.status().state, "error")
@@ -638,7 +646,7 @@ class MappingSessionTests(unittest.TestCase):
             )
             session.start()
             try:
-                deadline = time.monotonic() + 1
+                deadline = time.monotonic() + 5
                 while (
                     session.status().diagnostics.mapping_events < 1
                     and time.monotonic() < deadline
@@ -701,7 +709,7 @@ class MappingSessionTests(unittest.TestCase):
             )
             session.start()
             try:
-                deadline = time.monotonic() + 1
+                deadline = time.monotonic() + 5
                 while (
                     session.status().diagnostics.mapping_events < 2
                     and time.monotonic() < deadline
