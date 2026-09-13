@@ -295,7 +295,7 @@ class InterceptionPolicy:
     """只允许 T1 VID/PID 的 HID 过滤策略。"""
 
     blocked_usages: tuple[HidUsage, ...] = ()
-    target_collections: tuple[str, ...] = ("COL02", "COL03")
+    target_collections: tuple[str, ...] = ("COL01", "COL02", "COL03")
     enabled: bool = True
     drop_unmapped: bool = False
     remap_enabled: bool = True
@@ -406,12 +406,16 @@ class InterceptionPolicy:
 
 
 def build_default_interception_policy(
-    *, enabled: bool = True, lease_required: bool = True
+    *, enabled: bool = True, lease_required: bool = False
 ) -> InterceptionPolicy:
     """构造当前已确认遥控键的拦截策略。
 
     ``enabled=False`` 用于 dry-run：仍保留目标 VID/PID 和 Usage 清单，便于
-    诊断策略内容，但底层过滤器不会拦截输入，也不建立租约。
+    诊断策略内容，但底层过滤器不会拦截输入。
+
+    驱动按常驻拦截工作：``lease_required`` 默认关闭，策略会写入注册表并在
+    驱动启动时直接加载，App 退出后拦截仍然有效；``lease_required=True`` 只在
+    明确需要“App 失联即停拦截”时使用。
     """
 
     blocked_usages = (
@@ -422,12 +426,24 @@ def build_default_interception_policy(
         HidUsage(0x0C, 0xE9, "COL02"),  # Volume Plus
         HidUsage(0x0C, 0xEA, "COL02"),  # Volume Minus
         HidUsage(0x01, 0x81, "COL03"),  # System Power Down；T1 业务名称 Power
+        # 键盘集合（COL01）的 HID Usage 按 captures/t1-remote-control.json 的
+        # Raw Input 快照反推：VK_UP(0x26)←HID 0x52、VK_LEFT(0x25)←0x50、
+        # VK_RIGHT(0x27)←0x4F、VK_DOWN(0x28)←0x51、VK_RETURN(0x0D)←0x28、
+        # VK_APPS(0x5D)←0x65。0x25-0x28 不是本设备的箭头键，不能照搬 VK。
+        HidUsage(0x07, 0x28, "COL01"),  # OK（HID 键盘 Enter）
+        HidUsage(0x07, 0x4F, "COL01"),  # Arrow Right
+        HidUsage(0x07, 0x50, "COL01"),  # Arrow Left
+        HidUsage(0x07, 0x51, "COL01"),  # Arrow Down
+        HidUsage(0x07, 0x52, "COL01"),  # Arrow Up
+        HidUsage(0x07, 0x65, "COL01"),  # Menu（HID 键盘 Application）
     )
     return InterceptionPolicy(
         blocked_usages=blocked_usages,
-        target_collections=("COL02", "COL03"),
+        target_collections=("COL01", "COL02", "COL03"),
         enabled=enabled,
-        drop_unmapped=False,
+        # 常驻拦截全部原生按键：目标集合内未解析出 Usage 的报告也拦截，
+        # 否则键盘集合在没有 parser 缓存时会漏放。
+        drop_unmapped=True,
         remap_enabled=False,
         lease_required=lease_required,
     )

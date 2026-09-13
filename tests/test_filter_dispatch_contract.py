@@ -129,7 +129,8 @@ def test_system_control_collection_is_attached_and_decoded() -> None:
     assert "AddFilter = T1RemoteFilter, 0, T1RemoteFilter_Filter" in inf
     assert "FilterPosition = Lower" in inf
     assert "usage_page" in header
-    assert "collection == 3" in source
+    assert "case 3:" in source
+    assert "context->usage_page = 0x0001;" in source
     assert "Report[1]" in source
     assert "event.usage_page = UsagePage" in source
 
@@ -297,8 +298,8 @@ def test_policy_validation_rejects_unknown_flags_and_invalid_collections() -> No
     assert "usages[index].collection >= T1FILTER_MAX_COLLECTIONS" in validation
 
 
-def test_policy_update_preserves_stopped_state_and_clears_active_reports() -> None:
-    """SetPolicy 不能绕过 Start，并且不能让旧策略的按下状态泄漏。"""
+def test_policy_update_applies_enabled_flag_and_clears_active_reports() -> None:
+    """SetPolicy 按 FLAG_ENABLED 决定是否拦截，并且不能让旧策略的按下状态泄漏。"""
 
     source = FILTER_SOURCE.read_text(encoding="utf-8")
     update = source[
@@ -307,9 +308,29 @@ def test_policy_update_preserves_stopped_state_and_clears_active_reports() -> No
         )
     ]
 
-    assert "context->filtering_enabled = was_filtering &&" in update
+    assert "context->filtering_enabled =" in update
+    assert "T1BRIDGE_FLAG_ENABLED) != 0;" in update
     assert "RtlZeroMemory(" in update
     assert "context->active_collections" in update
+
+
+def test_stop_and_owner_close_keep_resident_filtering() -> None:
+    """常驻拦截：STOP 与所有者关闭都不得关闭过滤，只有策略能关。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    stop_case = source[
+        source.index("case IOCTL_T1FILTER_STOP:") : source.index(
+            "case IOCTL_T1FILTER_HEARTBEAT:"
+        )
+    ]
+    close_callback = source[
+        source.index("T1FilterEvtFileClose(") : source.index(
+            "VOID\nT1FilterEvtDeviceControl("
+        )
+    ]
+
+    assert "filtering_enabled = FALSE" not in stop_case
+    assert "filtering_enabled = FALSE" not in close_callback
 
 
 def test_report_rewrite_is_guarded_by_policy_generation() -> None:
@@ -482,6 +503,54 @@ def test_control_session_owner_guards_mutating_ioctls() -> None:
     )
 
 
+def test_filter_attaches_to_keyboard_collection_with_correct_usage_page() -> None:
+    """键盘集合必须挂过滤器，并使用 HID Usage Page 0x07 解码。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    inf = FILTER_INF.read_text(encoding="utf-8")
+    device_add = source[source.index("T1FilterEvtDeviceAdd("):]
+
+    assert "&Col01" in inf
+    assert "&Col02" in inf
+    assert "&Col03" in inf
+    assert "case 1:" in device_add
+    assert "context->usage_page = 0x0007;" in device_add
+    assert "context->usage_page = 0x0001;" in device_add
+    assert "context->usage_page = 0x000C;" in device_add
+
+
+def test_policy_is_persisted_and_loaded_at_driver_start() -> None:
+    """常驻拦截：策略必须写入注册表，并在驱动启动时加载。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+
+    assert "T1FilterPersistPolicy(" in source
+    assert "T1FilterLoadPersistedPolicy(" in source
+    assert "ZwSetValueKey(" in source
+    assert "ZwQueryValueKey(" in source
+    assert "Services\\\\T1RemoteFilter\\\\Parameters" in source
+    # SET_POLICY 分支必须落盘
+    set_policy = source[source.index("case IOCTL_T1FILTER_SET_POLICY:"):source.index("case IOCTL_T1FILTER_GET_REPORT_DESCRIPTOR:")]
+    assert "T1FilterPersistPolicy(" in set_policy
+    # DriverEntry 必须在创建控制设备后加载持久策略
+    driver_entry = source[source.index("DriverEntry("):]
+    assert "T1FilterLoadPersistedPolicy(g_ControlContext);" in driver_entry
+
+
+def test_byte_fallback_only_applies_to_consumer_control() -> None:
+    """无 parser 时只有消费者控制的字节布局可以解码，其他集合不猜测。"""
+
+    source = FILTER_SOURCE.read_text(encoding="utf-8")
+    share_block = source[
+        source.index("T1FilterShouldBlockReport(") : source.index(
+            "VOID\nT1FilterQueueEvent("
+        )
+    ]
+
+    assert "} else if (UsagePage == 0x000C) {" in share_block
+    assert "只有消费者控制的字节布局经过验证" in source
+
+
 def test_owner_close_stops_filter_and_control_device_limits_write_access() -> None:
     """所有者句柄关闭等同 STOP；控制设备注册文件回调并只给管理员写权限。"""
 
@@ -498,7 +567,6 @@ def test_owner_close_stops_filter_and_control_device_limits_write_access() -> No
     ]
 
     assert "context->owner_file == FileObject" in close_callback
-    assert "context->filtering_enabled = FALSE;" in close_callback
     assert "WdfObjectDereference(FileObject);" in close_callback
     assert "WdfDeviceInitSetFileObjectConfig" in create_device
     assert "T1FilterEvtFileClose" in create_device

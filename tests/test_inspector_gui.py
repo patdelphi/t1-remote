@@ -70,7 +70,8 @@ class CaptureBridgeSessionTests(unittest.TestCase):
             self.assertIsNotNone(bridge.policy)
             assert bridge.policy is not None
             self.assertTrue(bridge.policy.enabled)
-            self.assertTrue(bridge.policy.lease_required)
+            # 常驻拦截：采集页策略也不依赖租约。
+            self.assertFalse(bridge.policy.lease_required)
             self.assertEqual(bridge.preparsed_collections, ["COL02", "COL03"])
             self.assertEqual(
                 bridge.calls[:6],

@@ -413,12 +413,54 @@
 
 ## 2026-09-13 dev 分支第二批（权限与控制会话归属）
 
+- [x] 构建脚本：新增 `tools/build_env.ps1` 解析 MSBuild/CMake/VS 生成器；CMake 不可用时用 `cl.exe` 直编桥接 DLL；`-SkipTests`/`-SkipSpectreMitigation`/`-SkipDriverSigning` 参数落地。
+- [x] 修复 `build_windows.ps1` 的 PyInstaller 相对路径缺陷（`--specpath` 下 `--add-data` 必须绝对路径），并让外部命令失败时中止而不是静默出包。
+- [x] 构建脚本端到端验证：包内含 `app/T1Remote/T1Remote.exe`（config/assets 已打入）、桥接 DLL、驱动与 `SHA256SUMS.txt`。
+- [ ] GUI 测试偶发 `TclError: invalid command name "tcl_findLibrary"`（约三分之一概率，单文件运行稳定）；已确认非测试顺序导致，待定位根因。
 - [x] C-2：控制面 IOCTL 拆分读写权限，撤销 `FILE_ANY_ACCESS`；SDDL 收紧为 BU 只读。
 - [x] C-6：按文件对象确定控制会话所有者；非所有者修改类请求返回 ACCESS_DENIED；所有者关闭等同 STOP。
 - [x] 桥接错误码 5 增加管理员/占用提示，并补回归测试。
 - [x] mapping_watch 改用内容摘要签名，等长内容重写不再漏检。
 - [x] 修复 test_mapping_session 测试隔离缺陷（伪造 preparsed data 交给原生解析器导致偶发阻塞）。
+- [x] 驱动安装（2026-09-13）：WDK 提权重建并自动测试签名（证书 CN=WDKTestCert patde,134337710192182488）；证书已导入 LocalMachine 的 Root 与 TrustedPublisher；bcdedit /set testsigning on 已执行（需重启生效）；驱动包装入 DriverStore 为 oem153.inf（原始名 t1filter.inf，提供程序 T1 Remote，HIDClass，09-13 19.3.38.861）。
+- [ ] 需要重启使测试签名生效；重启后连接 T1，再验证 COL02/COL03 附着与 Power 拦截（A-1 对照实验）。
+- [ ] 回滚方式：pnputil /delete-driver oem153.inf /uninstall；bcdedit /set testsigning off 后重启；从 LocalMachine 的 Root 与 TrustedPublisher 删除测试证书 CN=WDKTestCert patde。
 - [ ] 真机验收权限模型：双客户端抢占、异常关闭、无权限、版本不匹配；主 App 需管理员运行。
 - [ ] C-3/C-5：请求所有权设计、parser 工作区隔离、锁耗时测量与内核并发验证。
 - [ ] C-8/L-4/A-1：计数语义、独立 raw-capture、Power 系统动作真机对照。
-- [ ] 本轮未提交、未安装驱动、未签名。
+- [ ] 本轮源码改动未提交（驱动已于同日安装，见上方安装记录）。
+
+## 2026-09-13 真机验证记录（常驻拦截改造）
+
+已确认（真机）：
+- [x] 新驱动加载并附着三个集合：`attached=0x0E`（COL01+COL02+COL03）；驱动镜像来自 DriverStore 最新包。
+- [x] 策略持久化：注册表 `Services\T1RemoteFilter\Parameters\Policy` 688 字节，flags=0x3（ENABLED+DROP_UNMAPPED，无 LEASE_REQUIRED）。
+- [x] 目标集合全拦：`received=50 blocked=50 forwarded=0`；COL02 音量键被清零后系统音量不变（实测无音量条）。
+- [x] COL03 Power 被驱动拦截（BLOCKED 记录 `report=0301`）→ 但系统仍执行电源动作，证明该动作在过滤器生效点之外执行；已按 C1 把系统电源按钮动作设为“不采取任何操作”（原值 AC=2/DC=3 备份在 `%ProgramData%\T1 Remote\power-button-backup.json`，卸载脚本会恢复）。
+- [x] C-6 控制会话归属：第二个客户端得到错误码 5 与中文提示，抢不到正在运行的会话。
+- [x] 已知的 COL02 键（音量+/−、Mute、Home、Return）与 COL03 Power 事件都能被驱动解析并入队。
+
+未闭环：
+- [ ] **COL01（键盘集合）重启后完全静默**：方向键、OK、Menu 和背面全键盘都不产生任何报文（Raw Input 与驱动计数器都无变化），空鼠（COL04）正常。设备重启（`pnputil /restart-device`）与蓝牙重新配对后仍未恢复；重启前（21:05）曾正常抓到 COL01 键盘事件，项目历史采集夹具也有 COL01 的 Arrow/OK/Menu 样本。
+- [ ] 判定实验：移除外挂过滤器（需卸载驱动并重启）后键盘是否恢复。恢复 → 过滤器附着影响键盘栈；不恢复 → 蓝牙键盘接口/遥控器侧问题。
+- [ ] 待下一次重启生效的驱动改动：STOP 与所有者句柄关闭不再关闭过滤（策略是唯一开关），SET_POLICY 直接按 FLAG_ENABLED 决定是否拦截。
+- [ ] COL01 的真实 HID Usage（映射表用）尚未从真机确认；当前映射表按 HID 标准写（Enter=0x28、方向 0x4F–0x52、Application=0x65）。
+
+## 2026-09-13 23:31 第三遍复查 + 重启后验证
+
+复查修复（3 个真实缺陷，全部已编译安装）：
+- [x] LoadPersistedPolicy 栈缓冲不足（KEY_VALUE_PARTIAL_INFORMATION 的 DataOffset 含值名长度，16+688 不够 → 重启后必加载失败）：加 64 字节余量。
+- [x] SET_POLICY 无条件持久化会把 dry-run/诊断的 enabled=False 写进注册表，误关常驻拦截：改为仅 FLAG_ENABLED 落盘。
+- [x] 策略表键盘键位与硬件不符（0x0D/0x5D 系 Raw Input VK 移植，0x25-0x28 非本设备箭头）：按快照反推修正为 HID 0x28=OK(Enter)、0x4F-0x52=方向、0x65=Menu，与解码表一致。
+
+验证结果（真机，重启后）：
+- [x] 测试 296 passed；驱动签名编译 Errors/Warnings None；oem156.inf 已装，COL01/COL03 设备重绑 OK。
+- [x] 常驻拦截重启生效：开机后无任何 app 连接时驱动已 received=36 blocked=36 forwarded=0（与用户“都无反应”一致）；generation=2 证明开机自动加载策略。
+- [x] COL02 全键（Home/Return/Mute/音量）与 COL03 Power 事件正常解析入队；Power 连按 4 次未睡眠 → C1 电源按钮动作生效。
+- [x] COL01 定性：重启（新驱动+全新系统启动）+ 设备栈重启后，方向键/OK 依然零报文（received 不变）→ 键盘输入流在蓝牙/设备侧挂起，与过滤器关联性大幅降低；卸载对照实验仍保留为可选最后一步。
+
+待办：
+- [ ] COL01 对照实验（卸载驱动重启）仅在其他手段无效时再做
+- [ ] COL01 恢复后的真实 HID Usage 验证
+- [ ] 本轮全部改动未提交，待用户确认后 commit
+

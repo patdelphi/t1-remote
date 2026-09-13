@@ -607,16 +607,23 @@ class DriverBridgeTests(unittest.TestCase):
     def test_default_policy_targets_installed_filter_collections(self) -> None:
         policy = InterceptionPolicy()
 
-        self.assertEqual(policy.target_collections, ("COL02", "COL03"))
+        self.assertEqual(policy.target_collections, ("COL01", "COL02", "COL03"))
 
     def test_default_interception_policy_covers_confirmed_remote_buttons(self) -> None:
         policy = build_default_interception_policy()
         usages = {(item.usage_page, item.usage, item.collection) for item in policy.blocked_usages}
 
-        self.assertEqual(len(usages), 7)
+        self.assertEqual(len(usages), 13)
         self.assertIn((0x0C, 0x223, "COL02"), usages)
         self.assertIn((0x01, 0x81, "COL03"), usages)
-        self.assertTrue(policy.lease_required)
+        # 键盘集合：OK、方向键和 Menu 也必须由驱动拦截。
+        # 键位来自 Raw Input 快照反推的 HID Usage（0x28=Enter、0x4F-0x52=箭头、0x65=Application）。
+        self.assertIn((0x07, 0x28, "COL01"), usages)
+        self.assertIn((0x07, 0x4F, "COL01"), usages)
+        self.assertIn((0x07, 0x51, "COL01"), usages)
+        self.assertIn((0x07, 0x65, "COL01"), usages)
+        # 常驻拦截：默认不依赖 App 会话租约。
+        self.assertFalse(policy.lease_required)
 
     def test_default_interception_policy_can_be_disabled_for_dry_run(self) -> None:
         policy = build_default_interception_policy(enabled=False, lease_required=False)

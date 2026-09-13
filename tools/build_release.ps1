@@ -9,11 +9,15 @@ param(
     [string]$PythonPath = "python",
     [switch]$SourceApp,
     [switch]$SkipTests,
-    [switch]$SkipNativeBuild
+    [switch]$SkipNativeBuild,
+    # 以下两项只用于本机编译校验：正式包不应关闭 Spectre 缓解或驱动签名。
+    [switch]$SkipSpectreMitigation,
+    [switch]$SkipDriverSigning
 )
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "build_env.ps1")
 
 function Invoke-External {
     param(
@@ -105,19 +109,34 @@ New-Item -ItemType Directory -Force -Path $appRoot, $nativeRoot, $driverRoot | O
 # 优先在本次包的临时目录构建桥接 DLL；编译工具缺失时复用已存在的 Release DLL。
 $bridgeSource = $null
 if (-not $SkipNativeBuild) {
-    $cmake = Get-Command "cmake.exe" -ErrorAction SilentlyContinue
+    $cmake = Resolve-CMake
     if ($null -ne $cmake) {
         $bridgeBuildRoot = Join-Path $buildRoot "t1bridge"
-        Invoke-External $cmake.Source @(
+        $cmakeArguments = @(
             "-S", (Join-Path $projectRoot "native/t1bridge"),
-            "-B", $bridgeBuildRoot,
-            "-A", "x64"
+            "-B", $bridgeBuildRoot
         )
-        Invoke-External $cmake.Source @("--build", $bridgeBuildRoot, "--config", "Release")
+        $generator = Resolve-CMakeGenerator (Resolve-MSBuild)
+        if ($null -ne $generator) {
+            $cmakeArguments += @("-G", $generator, "-A", "x64")
+        } else {
+            $cmakeArguments += @("-A", "x64")
+        }
+        Invoke-External $cmake $cmakeArguments
+        Invoke-External $cmake @("--build", $bridgeBuildRoot, "--config", "Release")
         $builtBridge = Join-Path $bridgeBuildRoot "Release/t1bridge.dll"
         if (Test-Path -LiteralPath $builtBridge -PathType Leaf) {
             $bridgeSource = $builtBridge
         }
+    } else {
+        Write-Warning "未找到 CMake，改用 cl.exe 直编桥接 DLL"
+    }
+    if ($null -eq $bridgeSource) {
+        # 输出到运行时加载器搜索的目录，同时作为后续候选来源。
+        $bridgeSource = Invoke-BridgeDllCompile `
+            -SourceDirectory (Join-Path $projectRoot "native/t1bridge") `
+            -OutputDirectory (Join-Path $projectRoot "native/t1bridge/x64/Release") `
+            -MSBuildPath (Resolve-MSBuild)
     }
 }
 if ($null -eq $bridgeSource) {
@@ -138,13 +157,14 @@ Copy-Item -LiteralPath $bridgeSource -Destination (Join-Path $nativeRoot "t1brid
 # 过滤驱动需要 INF、SYS 和 CAT 三个文件；没有完整包时才尝试调用 MSBuild。
 $driverPackage = $null
 if (-not $SkipNativeBuild) {
-    $msbuild = Get-Command "msbuild.exe" -ErrorAction SilentlyContinue
+    $msbuild = Resolve-MSBuild
     if ($null -ne $msbuild) {
-        Invoke-External $msbuild.Source @(
-            (Join-Path $projectRoot "native/t1filter/t1filter.vcxproj"),
-            "/p:Configuration=Release",
-            "/p:Platform=x64"
-        )
+        Invoke-External $msbuild (Get-DriverBuildArguments `
+                -ProjectPath (Join-Path $projectRoot "native/t1filter/t1filter.vcxproj") `
+                -SkipSpectreMitigation:$SkipSpectreMitigation `
+                -SkipDriverSigning:$SkipDriverSigning)
+    } else {
+        Write-Warning "未找到 MSBuild 或 WDK 工具集，改为复用已有驱动包"
     }
 }
 $driverPackage = Find-DriverPackage @(

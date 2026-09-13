@@ -48,6 +48,42 @@ pwsh -File .\tools\build_windows.ps1 -SkipNative
 
 每次构建使用新的时间戳目录，不覆盖已有包，同时生成同名 ZIP 压缩包。输出目录包含 `SHA256SUMS.txt`，安装或交付前应核对目录文件和 ZIP 的校验值。
 
+## 工具链解析
+
+两个构建脚本共用 `tools/build_env.ps1` 解析原生工具链，不安装任何东西，找不到时只给出警告：
+
+- MSBuild：先查 PATH，再用 `vswhere`，最后扫描 Visual Studio 固定安装路径。只装 BuildTools 的实例在部分 `vswhere` 版本下不带 product 标记，因此最后一步扫描是必要的。
+- CMake：先查 PATH，再查 `Program Files\CMake\bin`。
+- CMake 生成器：装了 Ninja 的机器上 CMake 会默认选 Ninja，而 Ninja 不接受 `-A x64`，因此按 MSBuild 路径里的年份显式指定 `Visual Studio 16 2019` / `Visual Studio 17 2022`。
+- 桥接 DLL 兜底：CMake 的 VS 生成器依赖 Visual Studio 实例注册，只装 BuildTools 的机器上会失败。此时脚本改用 `cl.exe` 直编 `t1bridge.c`（`/LD /O2 /W4 /WX /utf-8`），产物落在构建目录，不污染源码目录。
+
+过滤驱动需要 WDK。当 Visual Studio 实例是 BuildTools 时，`VSIXInstaller` 可能拒绝安装 WDK 扩展（退出码 2003），此时需要把 `%ProgramFiles(x86)%\Windows Kits\10\Vsix\VS2019\WDK.vsix` 中的 `$MSBuild` 内容手工释放到实例的 `MSBuild` 目录，`WindowsKernelModeDriver10.0` 工具集才会被识别。
+
+常用参数：
+
+```powershell
+# 只做编译校验：跳过 Spectre 缓解库和驱动签名（正式包不应带这两项）
+pwsh -File .\tools\build_windows.ps1 -SkipSpectreMitigation -SkipDriverSigning
+
+# 跳过测试门槛（本机 Tcl/Tk 偶发失败时使用）
+pwsh -File .\tools\build_windows.ps1 -SkipTests
+
+# 指定解释器
+pwsh -File .\tools\build_windows.ps1 -PythonPath C:\Python313\python.exe
+```
+
+## 测试环境说明
+
+完整测试包含 Tkinter GUI 用例。Tcl/Tk 需要能找到库目录；若当前会话没有继承用户级环境变量，可显式设置后运行：
+
+```powershell
+$env:TCL_LIBRARY = "C:\Python313\tcl\tcl8.6"
+$env:TK_LIBRARY  = "C:\Python313\tcl\tk8.6"
+python -m pytest -q
+```
+
+本机 GUI 用例存在偶发失败（约三分之一概率出现 `TclError: invalid command name "tcl_findLibrary"`），单文件运行稳定，与业务断言无关。该问题已记录在 `todo.md`，尚未定位到根因；构建脚本因此提供 `-SkipTests`。
+
 ## 安装边界
 
 本脚本不执行驱动安装、证书安装、测试签名切换、重启或生产部署。驱动安装需要管理员确认，并必须按真实 T1 设备的 Collection 和签名状态单独回归。

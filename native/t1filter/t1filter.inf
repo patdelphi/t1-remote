@@ -23,6 +23,7 @@ t1filter.sys = 1
 %ProviderName% = Standard, NTamd64.10.0...18362
 
 [Standard.NTamd64.10.0...18362]
+%T1RemoteFilter.DeviceDesc% = T1RemoteFilter_Install, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col01
 %T1RemoteFilter.DeviceDesc% = T1RemoteFilter_Install, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col02
 %T1RemoteFilter.DeviceDesc% = T1RemoteFilter_Install, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col03
 

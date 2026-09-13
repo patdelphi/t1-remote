@@ -7,7 +7,9 @@ param(
     [string]$InstallRoot = (Join-Path ${env:ProgramFiles} "T1 Remote"),
     [switch]$SkipDriver,
     [switch]$EnableTestSigning,
-    [switch]$AllowUnsignedDriver
+    [switch]$AllowUnsignedDriver,
+    # 电源键由 T1 接管后，系统电源按钮动作被设为“不采取任何操作”；此开关可跳过。
+    [switch]$SkipPowerButton
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +36,53 @@ function Copy-DirectoryContents {
     Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $Destination $_.Name) -Recurse -Force
     }
+}
+
+function Set-PowerButtonActionDoNothing {
+    # 电源键的系统动作在过滤器之外执行，驱动拦不住（2026-09-13 真机验证）。
+    # 安装时把它设为“不采取任何操作”，改由 App 的 mapping 决定行为；
+    # 原值备份到 ProgramData，卸载时恢复。
+    param([string]$BackupPath)
+
+    $subgroup = '4f971e89-eebd-4455-a8de-9e59040e7347'
+    $setting = '7648efa3-dd9c-4e3e-b566-50f929386280'
+    $schemeLine = (& powercfg.exe /getactivescheme | Out-String)
+    $match = [regex]::Match($schemeLine, '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})')
+    if (-not $match.Success) {
+        Write-Warning "无法确定当前电源方案，跳过电源按钮设置。"
+        return
+    }
+    $scheme = $match.Groups[1].Value
+    $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\' + $scheme + '\' + $subgroup + '\' + $setting
+    $current = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+    if ($null -eq $current) {
+        Write-Warning "当前电源方案没有电源按钮设置，跳过。"
+        return
+    }
+
+    $backupDirectory = Split-Path -Parent $BackupPath
+    New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null
+    $hasBackup = Test-Path -LiteralPath $BackupPath
+    if ($hasBackup) {
+        $existing = Get-Content -LiteralPath $BackupPath -Raw | ConvertFrom-Json
+        if ($existing.PSObject.Properties.Name -contains 'Restored' -and $existing.Restored) {
+            $hasBackup = $false
+        }
+    }
+    if (-not $hasBackup) {
+        [pscustomobject]@{
+            ACSettingIndex = [int]$current.ACSettingIndex
+            DCSettingIndex = [int]$current.DCSettingIndex
+            Scheme         = $scheme
+            Restored       = $false
+        } | ConvertTo-Json | Set-Content -LiteralPath $BackupPath -Encoding utf8
+        Write-Host ("已备份电源按钮动作：AC=" + $current.ACSettingIndex + " DC=" + $current.DCSettingIndex)
+    }
+
+    & powercfg.exe /setacvalueindex SCHEME_CURRENT $subgroup $setting 0 | Out-Null
+    & powercfg.exe /setdcvalueindex SCHEME_CURRENT $subgroup $setting 0 | Out-Null
+    & powercfg.exe /setactive SCHEME_CURRENT | Out-Null
+    Write-Host "电源按钮动作已设为“不采取任何操作”，Power 键交给 T1 Remote 映射。"
 }
 
 Assert-Administrator
@@ -79,6 +128,9 @@ $installedDriver = Join-Path $InstallRoot "Driver"
 Copy-DirectoryContents (Join-Path $releaseRoot "App") $installedApp
 Copy-DirectoryContents (Join-Path $releaseRoot "Native") $installedNative
 Copy-DirectoryContents (Join-Path $releaseRoot "Driver") $installedDriver
+if (-not $SkipPowerButton) {
+    Set-PowerButtonActionDoNothing -BackupPath (Join-Path ${env:ProgramData} "T1 Remote\power-button-backup.json")
+}
 Copy-Item -LiteralPath (Join-Path $releaseRoot "Start-T1Remote.bat") -Destination (Join-Path $InstallRoot "Start-T1Remote.bat") -Force
 Copy-Item -LiteralPath (Join-Path $releaseRoot "RELEASE.md") -Destination (Join-Path $InstallRoot "RELEASE.md") -Force
 

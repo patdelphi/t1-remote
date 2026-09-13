@@ -28,7 +28,34 @@ function Find-PublishedDriverName {
     return $null
 }
 
+function Restore-PowerButtonAction {
+    # 恢复安装时备份的系统电源按钮动作，并把备份标记为已恢复（不删除文件）。
+    param([string]$BackupPath)
+
+    if (-not (Test-Path -LiteralPath $BackupPath)) {
+        Write-Warning "未找到电源按钮备份，保持当前设置。"
+        return
+    }
+    $backup = Get-Content -LiteralPath $BackupPath -Raw | ConvertFrom-Json
+    if ($backup.PSObject.Properties.Name -contains 'Restored' -and $backup.Restored) {
+        return
+    }
+    $subgroup = '4f971e89-eebd-4455-a8de-9e59040e7347'
+    $setting = '7648efa3-dd9c-4e3e-b566-50f929386280'
+    & powercfg.exe /setacvalueindex SCHEME_CURRENT $subgroup $setting ([int]$backup.ACSettingIndex) | Out-Null
+    & powercfg.exe /setdcvalueindex SCHEME_CURRENT $subgroup $setting ([int]$backup.DCSettingIndex) | Out-Null
+    & powercfg.exe /setactive SCHEME_CURRENT | Out-Null
+    [pscustomobject]@{
+        ACSettingIndex = [int]$backup.ACSettingIndex
+        DCSettingIndex = [int]$backup.DCSettingIndex
+        Scheme         = $backup.Scheme
+        Restored       = $true
+    } | ConvertTo-Json | Set-Content -LiteralPath $BackupPath -Encoding utf8
+    Write-Host ("已恢复电源按钮动作：AC=" + $backup.ACSettingIndex + " DC=" + $backup.DCSettingIndex)
+}
+
 Assert-Administrator
+Restore-PowerButtonAction -BackupPath (Join-Path ${env:ProgramData} "T1 Remote\power-button-backup.json")
 if (-not $SkipDriver) {
     $publishedName = Find-PublishedDriverName
     if (-not [string]::IsNullOrWhiteSpace($publishedName)) {

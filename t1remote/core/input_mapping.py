@@ -30,6 +30,17 @@ _KEYBOARD_BUTTONS = {
     0x5D: "Menu",
 }
 
+# 驱动事件走 HID 解析器，给的是 HID Keyboard/Keypad（Usage Page 0x07）Usage，
+# 不是 Raw Input 的虚拟键码，两者数值不同，必须分开映射。
+_HID_KEYBOARD_BUTTONS = {
+    0x28: "OK",            # Keyboard Enter
+    0x4F: "Arrow Right",
+    0x50: "Arrow Left",
+    0x51: "Arrow Down",
+    0x52: "Arrow Up",
+    0x65: "Menu",          # Keyboard Application
+}
+
 _BUTTON_INPUT_KINDS = {
     **{button: "keyboard" for button in _KEYBOARD_BUTTONS.values()},
     **{button: "hid" for button in _CONSUMER_BUTTONS.values()},
@@ -77,6 +88,11 @@ class T1InputDecoder:
         normalized_collection = collection.upper()
         if raw_input_type == 1 and normalized_collection == "COL01":
             return self._decode_keyboard(normalized_collection, report)
+        if raw_input_type == 2 and normalized_collection == "COL01":
+            # 驱动路径的键盘事件是 HID 报文，不是 Raw Input 的虚拟键码结构。
+            return self._decode_keyboard_hid(
+                normalized_collection, report, usage_page, usage
+            )
         if raw_input_type == 2 and normalized_collection == "COL02":
             return self._decode_consumer(
                 normalized_collection, report, usage_page, usage
@@ -122,6 +138,36 @@ class T1InputDecoder:
             usage_page=0x07,
             usage=virtual_key,
         )
+
+    def _decode_keyboard_hid(
+        self,
+        collection: str,
+        report: bytes,
+        usage_page: int | None,
+        usage: int | None,
+    ) -> ButtonEvent:
+        """解码驱动队列里的键盘集合报文。
+
+        首字节是 Report ID，其余字节全为零表示没有按键按下；按键名只能来自
+        驱动或 parser 给出的 HID Usage，不从报文里猜键码位置。
+        """
+
+        if len(report) < 2 or usage_page not in (None, 0x07):
+            return self._unknown(collection, "keyboard", report, usage_page, usage)
+        pressed = any(byte != 0 for byte in report[1:])
+        button = _HID_KEYBOARD_BUTTONS.get(usage or 0)
+        if not pressed:
+            # 释放报告不带 Usage 时，使用驱动恢复的上一个按键名。
+            if button:
+                return self._known(
+                    button, "up", collection, "keyboard", report, 0x07, usage or 0
+                )
+            return self._unknown(collection, "keyboard", report, 0x07, usage)
+        if button:
+            return self._known(
+                button, "down", collection, "keyboard", report, 0x07, usage
+            )
+        return self._unknown(collection, "keyboard", report, 0x07, usage)
 
     def _decode_consumer(
         self,

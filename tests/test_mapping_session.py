@@ -130,7 +130,8 @@ class _ReconnectBridge(_FakeBridge):
     def start(self) -> None:
         self.start_calls += 1
         self.driver_state = "running"
-        self.lease_active = bool(self.policy and self.policy.lease_required)
+        # 常驻拦截下，驱动状态 running 即表示拦截生效，不再依赖租约。
+        self.lease_active = True
 
     def status(self) -> BridgeStatus:
         return BridgeStatus(

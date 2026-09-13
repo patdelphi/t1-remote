@@ -1015,6 +1015,135 @@ T1FilterValidPolicy(
     return TRUE;
 }
 
+/*
+ * 程序说明：拦截策略的持久化。
+ *
+ * 驱动按“常驻拦截”工作：SET_POLICY 收到的 enabled 策略写入服务
+ * Parameters 键，驱动启动时读回并直接启用过滤，不再依赖 App 会话或租约。
+ * App 运行时只负责取事件和做 mapping，退出后原生按键仍然被拦截。
+ * enabled=False 的策略只影响当前运行（临时恢复原生按键），不落盘。
+ */
+
+static NTSTATUS
+T1FilterOpenParametersKey(
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ HANDLE* KeyHandle
+)
+{
+    UNICODE_STRING path;
+    OBJECT_ATTRIBUTES attributes;
+    NTSTATUS status;
+
+    *KeyHandle = NULL;
+    RtlInitUnicodeString(
+        &path,
+        L"\\Registry\\Machine\\SYSTEM\\CurrentControlSet\\Services\\T1RemoteFilter\\Parameters"
+    );
+    InitializeObjectAttributes(
+        &attributes,
+        &path,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL
+    );
+    status = ZwCreateKey(
+        KeyHandle,
+        DesiredAccess,
+        &attributes,
+        0,
+        NULL,
+        REG_OPTION_NON_VOLATILE,
+        NULL
+    );
+    if (!NT_SUCCESS(status)) {
+        *KeyHandle = NULL;
+    }
+    return status;
+}
+
+static VOID
+T1FilterPersistPolicy(
+    _In_ const T1BRIDGE_POLICY* Policy
+)
+{
+    HANDLE key = NULL;
+    UNICODE_STRING value_name;
+    NTSTATUS status;
+
+    if (Policy == NULL) {
+        return;
+    }
+    status = T1FilterOpenParametersKey(KEY_SET_VALUE, &key);
+    if (!NT_SUCCESS(status)) {
+        return;
+    }
+    RtlInitUnicodeString(&value_name, L"Policy");
+    (void)ZwSetValueKey(
+        key,
+        &value_name,
+        0,
+        REG_BINARY,
+        (PVOID)Policy,
+        sizeof(*Policy)
+    );
+    ZwClose(key);
+}
+
+static VOID
+T1FilterLoadPersistedPolicy(
+    _In_ PT1FILTER_CONTROL_CONTEXT Context
+)
+{
+    HANDLE key = NULL;
+    UNICODE_STRING value_name;
+    struct {
+        KEY_VALUE_PARTIAL_INFORMATION header;
+        UCHAR payload[sizeof(T1BRIDGE_POLICY)];
+        /* DataOffset 除 16 字节固定头外还包含值名长度（“Policy”含 NULL 共
+         * 14 字节）与对齐，若缓冲刚好等于 16 + 数据长度，ZwQueryValueKey
+         * 会返回 STATUS_BUFFER_OVERFLOW 导致加载失败。留余量保证成功，
+         * 成功后内核保证 DataOffset + DataLength 完全落在缓冲内。 */
+        UCHAR slack[64];
+    } storage;
+    PKEY_VALUE_PARTIAL_INFORMATION info = &storage.header;
+    ULONG result_length = 0;
+    NTSTATUS status;
+    T1BRIDGE_POLICY* policy;
+
+    if (Context == NULL) {
+        return;
+    }
+    status = T1FilterOpenParametersKey(KEY_QUERY_VALUE, &key);
+    if (!NT_SUCCESS(status)) {
+        return;
+    }
+    RtlInitUnicodeString(&value_name, L"Policy");
+    status = ZwQueryValueKey(
+        key,
+        &value_name,
+        KeyValuePartialInformation,
+        info,
+        sizeof(storage),
+        &result_length
+    );
+    if (NT_SUCCESS(status) &&
+        info->Type == REG_BINARY &&
+        info->DataLength == sizeof(T1BRIDGE_POLICY)) {
+        policy = (T1BRIDGE_POLICY*)info->Data;
+        if (T1FilterValidPolicy(policy, sizeof(*policy))) {
+            WdfSpinLockAcquire(Context->lock);
+            Context->policy = *policy;
+            Context->filtering_enabled =
+                (policy->flags & T1BRIDGE_FLAG_ENABLED) != 0;
+            Context->policy_generation++;
+            Context->last_error = STATUS_SUCCESS;
+            T1FilterRefreshLeaseLocked(Context);
+            WdfSpinLockRelease(Context->lock);
+        }
+    }
+    ZwClose(key);
+}
+
 BOOLEAN
 T1FilterShouldBlockReport(
     _In_ PT1FILTER_CONTROL_CONTEXT Context,
@@ -1091,18 +1220,19 @@ T1FilterShouldBlockReport(
          * 不可用或拒绝当前报告时使用。 */
         if (UsagePage == 0x0001 && Collection == 3) {
             /* 仅支持已确认的 03 01 / 03 00，不外推其他位域。 */
-            if (ReportLength != 2 || Report[0] != 3 || Report[1] > 1) {
-                WdfSpinLockRelease(Context->lock);
-                return FALSE;
+            if (ReportLength == 2 && Report[0] == 3 && Report[1] <= 1) {
+                decoded_usage = Report[1] == 1 ? 0x0081 : 0;
+            } else {
+                decoded_usage = 0;
             }
-            decoded_usage = Report[1] == 1 ? 0x0081 : 0;
+        } else if (UsagePage == 0x000C) {
+            decoded_usage = ReportLength < 3
+                ? 0
+                : ((USHORT)Report[1] | ((USHORT)Report[2] << 8));
         } else {
-            if (ReportLength < 3) {
-                WdfSpinLockRelease(Context->lock);
-                return FALSE;
-            }
-            decoded_usage = (USHORT)Report[1] |
-                ((USHORT)Report[2] << 8);
+            /* 键盘等其他集合没有已验证的固定布局：没有 parser 时不解码，
+             * 保持 unknown，由目标集合与 DROP_UNMAPPED 决定是否拦截。 */
+            decoded_usage = 0;
         }
         pressed = decoded_usage != 0;
         /* 字节字段规则不能覆盖 System Control 的位域语义。 */
@@ -1302,8 +1432,8 @@ T1FilterRewriteReport(
         WdfSpinLockRelease(Context->lock);
         return rewritten;
     }
-    /* 无 parser 时不能把 Usage 数值直接写入 System Control 位域。 */
-    if (UsagePage == 0x0001 && Collection == 3) {
+    /* 无 parser 时只有消费者控制的字节布局经过验证，其他集合不改写。 */
+    if (UsagePage != 0x000C) {
         WdfSpinLockRelease(Context->lock);
         return FALSE;
     }
@@ -2086,8 +2216,10 @@ T1FilterEvtFileClose(
     if (context->owner_file == FileObject) {
         context->owner_file = NULL;
         was_owner = TRUE;
-        /* 所有者退出等同于 STOP，避免失联的过滤器继续吞键。 */
-        context->filtering_enabled = FALSE;
+        /*
+         * 只释放所有者与活动状态：常驻拦截由策略决定，App 退出后原生按键
+         * 仍然被拦截。要恢复原生按键需要下发 enabled=False 的策略。
+         */
         context->lease_deadline_100ns = 0;
         RtlZeroMemory(
             context->active_collections,
@@ -2145,9 +2277,9 @@ T1FilterEvtDeviceControl(
         }
         if (NT_SUCCESS(status)) {
             WdfSpinLockAcquire(context->lock);
-            BOOLEAN was_filtering = context->filtering_enabled;
+            /* 策略即真相：是否拦截由 FLAG_ENABLED 决定，常驻拦截不再依赖 START。 */
             context->policy = *(const T1BRIDGE_POLICY*)buffer;
-            context->filtering_enabled = was_filtering &&
+            context->filtering_enabled =
                 (context->policy.flags & T1BRIDGE_FLAG_ENABLED) != 0;
             RtlZeroMemory(
                 context->active_collections,
@@ -2157,6 +2289,12 @@ T1FilterEvtDeviceControl(
             T1FilterRefreshLeaseLocked(context);
             context->last_error = STATUS_SUCCESS;
             WdfSpinLockRelease(context->lock);
+            /* 常驻拦截：enabled 策略写入注册表，下次启动直接加载。
+             * enabled=False 只影响本次运行（临时恢复原生按键的手段），
+             * 不落盘，避免 dry-run 或诊断会话误关常驻拦截。 */
+            if ((context->policy.flags & T1BRIDGE_FLAG_ENABLED) != 0) {
+                T1FilterPersistPolicy((const T1BRIDGE_POLICY*)buffer);
+            }
         }
         break;
 
@@ -2276,8 +2414,12 @@ T1FilterEvtDeviceControl(
         break;
 
     case IOCTL_T1FILTER_STOP:
+        /*
+         * 常驻拦截：STOP 只清理活动按键状态，不关闭过滤。是否拦截由策略决定，
+         * 否则 App 正常退出会把原生按键放回系统，与“始终拦截”的目标冲突。
+         * 需要恢复原生按键时用 SET_POLICY(enabled=False)。
+         */
         WdfSpinLockAcquire(context->lock);
-        context->filtering_enabled = FALSE;
         context->lease_deadline_100ns = 0;
         RtlZeroMemory(
             context->active_collections,
@@ -2590,10 +2732,12 @@ T1FilterDetectCollection(
             !T1FilterCharEqualsInsensitive(property_text[index + 1], L'O') ||
             !T1FilterCharEqualsInsensitive(property_text[index + 2], L'L') ||
             property_text[index + 3] != L'0' ||
-            (property_text[index + 4] != L'2' &&
-             property_text[index + 4] != L'3')) {
+            property_text[index + 4] < L'1' ||
+            property_text[index + 4] > L'5') {
             continue;
         }
+        /* COL01=键盘、COL02=消费者、COL03=系统控制、COL04=鼠标、COL05=厂商。
+         * 是否拦截由目标集合策略决定，这里只负责识别编号。 */
         return (USHORT)(property_text[index + 4] - L'0');
     }
     return 0;
@@ -2653,7 +2797,20 @@ T1FilterEvtDeviceAdd(
     context = T1FilterGetDeviceContext(device);
     context->control = g_ControlContext;
     context->collection = T1FilterDetectCollection(device);
-    context->usage_page = context->collection == 3 ? 0x0001 : 0x000C;
+    switch (context->collection) {
+    case 1:
+        /* 键盘集合：方向键、OK、Menu 走这里。 */
+        context->usage_page = 0x0007;
+        break;
+    case 3:
+        /* 系统控制集合：Power 等。 */
+        context->usage_page = 0x0001;
+        break;
+    default:
+        /* 消费者控制集合：音量、Mute、Home、Return 等。 */
+        context->usage_page = 0x000C;
+        break;
+    }
     status = WdfSpinLockCreate(
         WDF_NO_OBJECT_ATTRIBUTES,
         &context->sent_requests_lock
@@ -2767,6 +2924,9 @@ DriverEntry(
     status = T1FilterCreateControlDevice(driver, &g_ControlDevice);
     if (!NT_SUCCESS(status)) {
         T1FilterLogStatus(DriverObject, status, 0x1002);
+        return status;
     }
-    return status;
+    /* 常驻拦截：开机加载上次保存的策略并直接启用过滤。 */
+    T1FilterLoadPersistedPolicy(g_ControlContext);
+    return STATUS_SUCCESS;
 }

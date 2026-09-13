@@ -82,7 +82,8 @@ class CaptureBridgeSession:
             bridge = self._bridge_factory()
             policy = build_default_interception_policy(
                 enabled=True,
-                lease_required=True,
+                # 常驻拦截：与 Mapping 会话一致，不依赖采集页的租约。
+                lease_required=False,
             )
             try:
                 bridge.open(policy)  # type: ignore[attr-defined]

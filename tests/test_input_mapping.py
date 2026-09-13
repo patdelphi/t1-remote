@@ -100,6 +100,37 @@ class InputMappingTests(unittest.TestCase):
         self.assertEqual(button_input_kind("Air Mouse"), "mouse")
         self.assertEqual(button_input_kind("unknown"), "unknown")
 
+    def test_driver_keyboard_events_use_hid_usages(self) -> None:
+        """驱动队列里的键盘事件用 HID Usage（0x07 页），不是虚拟键码。"""
+
+        decoder = T1InputDecoder()
+
+        pressed = decoder.feed(
+            "COL01", 2, bytes.fromhex("01 00 00 28 00 00 00 00"), usage_page=0x07, usage=0x28
+        )
+        released = decoder.feed(
+            "COL01", 2, bytes.fromhex("01 00 00 00 00 00 00 00"), usage_page=0x07, usage=0x28
+        )
+        arrow = decoder.feed(
+            "COL01", 2, bytes.fromhex("01 00 00 52 00 00 00 00"), usage_page=0x07, usage=0x52
+        )
+
+        self.assertEqual((pressed.button, pressed.state), ("OK", "down"))
+        self.assertEqual((released.button, released.state), ("OK", "up"))
+        self.assertEqual((arrow.button, arrow.state), ("Arrow Up", "down"))
+
+    def test_driver_keyboard_event_without_known_usage_stays_unknown(self) -> None:
+        """未确认的键盘 Usage 不能猜成业务按键。"""
+
+        decoder = T1InputDecoder()
+
+        event = decoder.feed(
+            "COL01", 2, bytes.fromhex("01 00 00 04 00 00 00 00"), usage_page=0x07, usage=0x04
+        )
+
+        self.assertIsNone(event.button)
+        self.assertEqual(event.state, "unknown")
+
 
 if __name__ == "__main__":
     unittest.main()

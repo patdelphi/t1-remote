@@ -200,7 +200,8 @@ class T1MappingSession:
             bridge.open(
                 build_default_interception_policy(
                     enabled=not self.dry_run,
-                    lease_required=not self.dry_run,
+                    # 常驻拦截：策略写入驱动并在下次启动时加载，不依赖 App 租约。
+                    lease_required=False,
                 )
             )
             # 新会话不消费上一次会话遗留的零报告或按下报告，避免旧队列
