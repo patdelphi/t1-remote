@@ -12,7 +12,10 @@ from pathlib import Path
 import time
 from typing import Any
 
-from t1remote.core.capture_scope import MAPPABLE_REMOTE_BUTTONS
+from t1remote.core.capture_scope import (
+    DISABLED_CAPTURE_BUTTONS,
+    MAPPABLE_REMOTE_BUTTONS,
+)
 from t1remote.core.input_mapping import ButtonEvent
 
 
@@ -368,11 +371,8 @@ class MappingConfig:
         return cls(
             mappings={
                 "Power": KeyAction("none"),
-                "Arrow Up": KeyAction("key", "UP"),
-                "Arrow Down": KeyAction("key", "DOWN"),
-                "Arrow Left": KeyAction("key", "LEFT"),
-                "Arrow Right": KeyAction("key", "RIGHT"),
-                "OK": KeyAction("key", "ENTER"),
+                # OK 与四个方向键因与背面全键盘共享 HID usage 已放行给系统，
+                # 驱动不再产生事件，默认映射里不包含这些按键。
                 "Return": KeyAction("key", "ESC"),
                 "Voice": KeyAction("none"),
                 "Mute": KeyAction("media", "VOLUME_MUTE"),
@@ -399,7 +399,9 @@ class MappingConfig:
         for button, action in mappings.items():
             if not isinstance(button, str):
                 raise MappingConfigError("映射按键名必须是字符串")
-            if button == "Air Mouse":
+            if button in DISABLED_CAPTURE_BUTTONS:
+                # 飞鼠与“与背面键盘共享 HID usage”的键（OK/方向键）不支持映射，
+                # 旧配置里的这些条目直接忽略，避免升级后无法加载配置。
                 continue
             result[button] = KeyAction.from_dict(action)
         return cls(mappings=result, version=version)

@@ -101,7 +101,7 @@ class MappingRuntimeTests(unittest.TestCase):
         runtime.process_report(
             "COL01",
             1,
-            bytes.fromhex("48 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"),
+            bytes.fromhex("5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"),
         )
 
         self.assertIsInstance(emitter.outputs[0], MouseOutput)
@@ -145,20 +145,23 @@ class MappingRuntimeTests(unittest.TestCase):
     def test_reload_emits_release_for_old_active_mapping(self) -> None:
         emitter = _FakeEmitter()
         runtime = T1MappingRuntime(emitter=emitter)
-        runtime.process_report("COL01", 1, bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00"))
+        runtime.process_report(
+            "COL01",
+            1,
+            bytes.fromhex("5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00"),
+        )
         replacement = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "Arrow Up": KeyAction("key", "W"),
+                "Menu": KeyAction("key", "W"),
             }
         )
 
         runtime.reload(replacement)
 
-        self.assertEqual(
-            [(item.virtual_key, item.flags) for item in emitter.outputs],
-            [(0x26, 0x01), (0x26, 0x03)],
-        )
+        # 按下产生右键按下，reload 必须为旧映射补发右键抬起。
+        self.assertEqual(len(emitter.outputs), 2)
+        self.assertTrue(all(isinstance(item, MouseOutput) for item in emitter.outputs))
 
     def test_command_mapping_runs_once_on_press_without_keyboard_output(self) -> None:
         emitter = _FakeEmitter()

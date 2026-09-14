@@ -28,7 +28,17 @@ REMOTE_BUTTONS: tuple[str, ...] = (
 
 # Air Mouse 会切换飞鼠模式并产生连续鼠标报文，采集界面暂不允许选择。
 # Power 由驱动层拦截后允许在 Python 采集界面中选择，避免触发 Windows 电源动作。
-DISABLED_CAPTURE_BUTTONS: tuple[str, ...] = ("Air Mouse",)
+# OK 与四个方向键与背面全键盘共享 HID usage（正面 OK=背面 Return=0x28、
+# 方向键=0x4F-0x52），驱动无法区分，已按“优先背面键盘”放行给系统，
+# 驱动不会再产生这些键的事件，采集界面因此禁用它们的标签。
+DISABLED_CAPTURE_BUTTONS: tuple[str, ...] = (
+    "Air Mouse",
+    "OK",
+    "Arrow Up",
+    "Arrow Down",
+    "Arrow Left",
+    "Arrow Right",
+)
 MAPPABLE_REMOTE_BUTTONS: tuple[str, ...] = tuple(
     button for button in REMOTE_BUTTONS if button not in DISABLED_CAPTURE_BUTTONS
 )

@@ -7,26 +7,6 @@
         "C:\\Program Files (x86)\\Yinxiang Biji\\印象笔记\\Evernote.exe"
       ]
     },
-    "Arrow Up": {
-      "type": "key",
-      "key": "UP"
-    },
-    "Arrow Down": {
-      "type": "key",
-      "key": "DOWN"
-    },
-    "Arrow Left": {
-      "type": "key",
-      "key": "LEFT"
-    },
-    "Arrow Right": {
-      "type": "key",
-      "key": "RIGHT"
-    },
-    "OK": {
-      "type": "key",
-      "key": "ENTER"
-    },
     "Return": {
       "type": "text",
       "text": "停一下，review一下当前进度，看与需求目标、项目规划有没有偏差"

@@ -605,7 +605,7 @@ class MappingSessionTests(unittest.TestCase):
                 RawInputEvent(
                     r"\\?\hid#vid_620a&pid_0407&col01#x",
                     1,
-                    bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00"),
+                    bytes.fromhex("5d 00 02 00 00 00 5d 00 00 01 00 00"),
                 )
             )
             self.assertEqual(session.status().diagnostics.mapping_events, 1)
@@ -635,7 +635,7 @@ class MappingSessionTests(unittest.TestCase):
                         RawInputEvent(
                             r"\\?\hid#vid_620a&pid_0407&col01#x",
                             1,
-                            bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00"),
+                            bytes.fromhex("5d 00 02 00 00 00 5d 00 00 01 00 00"),
                         )
                     )
                     process_report.assert_not_called()
@@ -808,7 +808,7 @@ class MappingSessionTests(unittest.TestCase):
                 RawInputEvent(
                     r"\\?\hid#vid_620a&pid_0407&col01#x",
                     1,
-                    bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00"),
+                    bytes.fromhex("5d 00 02 00 00 00 5d 00 00 01 00 00"),
                 )
             )
             assert raw.on_device_change is not None
@@ -834,14 +834,14 @@ class MappingSessionTests(unittest.TestCase):
             replacement = MappingConfig(
                 mappings={
                     **MappingConfig.default().mappings,
-                    "OK": KeyAction("key", "SPACE"),
+                    "Menu": KeyAction("key", "SPACE"),
                 }
             )
             save_mapping_config(path, replacement)
             session.reload_config()
 
             assert session._runtime is not None
-            self.assertEqual(session._runtime.config.mappings["OK"].key, "SPACE")
+            self.assertEqual(session._runtime.config.mappings["Menu"].key, "SPACE")
             self.assertTrue(any("映射配置已重新加载" in message for message in logs))
             session.stop()
 

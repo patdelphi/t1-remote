@@ -20,20 +20,22 @@ class MappingWatchTests(unittest.TestCase):
             watcher = MappingConfigWatcher(path, loaded.append, errors.append)
 
             self.assertFalse(watcher.check_once())
+            # 基准与替换用等长文本动作：内容不同、大小相同，只比较 stat
+            # 会漏检，必须靠内容摘要触发。
+            base = dict(MappingConfig.default().mappings)
+            base["Menu"] = KeyAction("text", text="AAAA")
+            save_mapping_config(path, MappingConfig(mappings=base))
+            self.assertTrue(watcher.check_once())
             original_size = path.stat().st_size
-            replacement = MappingConfig(
-                mappings={
-                    **MappingConfig.default().mappings,
-                    "OK": KeyAction("key", "SPACE"),
-                }
-            )
-            save_mapping_config(path, replacement)
-            # 替换内容与原文等长：只比较 stat 会在写入时间戳未刷新时漏检。
+            changed = dict(base)
+            changed["Menu"] = KeyAction("text", text="BBBB")
+            save_mapping_config(path, MappingConfig(mappings=changed))
             self.assertEqual(path.stat().st_size, original_size)
 
+            # 等长重写必须被检测到（内容摘要签名），并且只加载一次。
             self.assertTrue(watcher.check_once())
             self.assertFalse(watcher.check_once())
-            self.assertEqual(loaded[0].mappings["OK"].key, "SPACE")
+            self.assertEqual(loaded[-1].mappings["Menu"].text, "BBBB")
             self.assertEqual(errors, [])
 
     def test_invalid_file_reports_error_and_keeps_previous_signature(self) -> None:

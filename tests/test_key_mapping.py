@@ -34,12 +34,14 @@ class KeyMappingTests(unittest.TestCase):
     def test_default_config_contains_safe_mvp_bindings(self) -> None:
         config = MappingConfig.default()
 
-        self.assertEqual(config.mappings["Arrow Up"].key, "UP")
         self.assertEqual(config.mappings["Volume Plus"].key, "VOLUME_UP")
         self.assertEqual(config.mappings["Power"].kind, "none")
         self.assertEqual(config.mappings["Voice"].kind, "none")
         self.assertEqual(config.mappings["Menu"], KeyAction("mouse", "RIGHT_CLICK"))
         self.assertNotIn("Air Mouse", config.mappings)
+        # OK 与方向键与背面全键盘共享 HID usage，已放行给系统，不再出现在默认映射。
+        for button in ("OK", "Arrow Up", "Arrow Down", "Arrow Left", "Arrow Right"):
+            self.assertNotIn(button, config.mappings)
 
     def test_modifier_keys_can_be_configured_as_single_keys(self) -> None:
         for key in ("CTRL", "SHIFT", "ALT", "WIN"):
@@ -167,7 +169,7 @@ class KeyMappingTests(unittest.TestCase):
         config = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "OK": KeyAction(
+                "Menu": KeyAction(
                     "key",
                     "ENTER",
                     trigger=TriggerConfig("long_press", threshold_ms=700),
@@ -178,7 +180,7 @@ class KeyMappingTests(unittest.TestCase):
         loaded = MappingConfig.from_dict(config.to_dict())
 
         self.assertEqual(
-            loaded.mappings["OK"].trigger,
+            loaded.mappings["Menu"].trigger,
             TriggerConfig("long_press", threshold_ms=700),
         )
         with self.assertRaises(MappingConfigError):
@@ -201,7 +203,7 @@ class KeyMappingTests(unittest.TestCase):
         config = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "OK": KeyAction(
+                "Menu": KeyAction(
                     "key",
                     "ENTER",
                     trigger=TriggerConfig("long_press", threshold_ms=500),
@@ -210,10 +212,10 @@ class KeyMappingTests(unittest.TestCase):
         )
         engine = MappingEngine(config)
 
-        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
+        self.assertEqual(engine.handle(button_event("Menu", "down"), now=0.0), ())
         self.assertEqual(engine.tick(now=0.49), ())
         self.assertEqual(engine.tick(now=0.5)[0].state, "down")
-        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.6)[0].state, "up")
+        self.assertEqual(engine.handle(button_event("Menu", "up"), now=0.6)[0].state, "up")
 
     def test_long_press_keeps_output_until_physical_release(self) -> None:
         """长按触发后保持活动，只有真实 up 才生成释放事件。"""
@@ -240,7 +242,7 @@ class KeyMappingTests(unittest.TestCase):
         config = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "OK": KeyAction(
+                "Menu": KeyAction(
                     "key",
                     "ENTER",
                     trigger=TriggerConfig("long_press", threshold_ms=500),
@@ -249,14 +251,14 @@ class KeyMappingTests(unittest.TestCase):
         )
         engine = MappingEngine(config)
 
-        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
-        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.2), ())
+        self.assertEqual(engine.handle(button_event("Menu", "down"), now=0.0), ())
+        self.assertEqual(engine.handle(button_event("Menu", "up"), now=0.2), ())
 
     def test_double_click_emits_second_click_only(self) -> None:
         config = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "OK": KeyAction(
+                "Menu": KeyAction(
                     "key",
                     "ENTER",
                     trigger=TriggerConfig("double_click", window_ms=300),
@@ -265,16 +267,16 @@ class KeyMappingTests(unittest.TestCase):
         )
         engine = MappingEngine(config)
 
-        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0), ())
-        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.1), ())
-        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.2)[0].state, "down")
-        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.3)[0].state, "up")
+        self.assertEqual(engine.handle(button_event("Menu", "down"), now=0.0), ())
+        self.assertEqual(engine.handle(button_event("Menu", "up"), now=0.1), ())
+        self.assertEqual(engine.handle(button_event("Menu", "down"), now=0.2)[0].state, "down")
+        self.assertEqual(engine.handle(button_event("Menu", "up"), now=0.3)[0].state, "up")
 
     def test_hold_repeat_emits_repeated_down_and_final_up(self) -> None:
         config = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "OK": KeyAction(
+                "Menu": KeyAction(
                     "key",
                     "ENTER",
                     trigger=TriggerConfig("hold_repeat", interval_ms=100),
@@ -283,33 +285,33 @@ class KeyMappingTests(unittest.TestCase):
         )
         engine = MappingEngine(config)
 
-        self.assertEqual(engine.handle(button_event("OK", "down"), now=0.0)[0].state, "down")
+        self.assertEqual(engine.handle(button_event("Menu", "down"), now=0.0)[0].state, "down")
         self.assertEqual(engine.tick(now=0.09), ())
         self.assertEqual(engine.tick(now=0.1)[0].state, "down")
         self.assertEqual(engine.tick(now=0.21)[0].state, "down")
-        self.assertEqual(engine.handle(button_event("OK", "up"), now=0.3)[0].state, "up")
+        self.assertEqual(engine.handle(button_event("Menu", "up"), now=0.3)[0].state, "up")
 
     def test_engine_suppresses_duplicate_down_and_orphan_up(self) -> None:
         engine = MappingEngine(MappingConfig.default())
 
-        first_down = engine.handle(button_event("Arrow Up", "down"))
-        duplicate_down = engine.handle(button_event("Arrow Up", "down"))
-        release = engine.handle(button_event("Arrow Up", "up"))
-        orphan_release = engine.handle(button_event("Arrow Up", "up"))
+        first_down = engine.handle(button_event("Home", "down"))
+        duplicate_down = engine.handle(button_event("Home", "down"))
+        release = engine.handle(button_event("Home", "up"))
+        orphan_release = engine.handle(button_event("Home", "up"))
 
         self.assertEqual(len(first_down), 1)
-        self.assertEqual(first_down[0].action.key, "UP")
+        self.assertEqual(first_down[0].action.key, "HOME")
         self.assertEqual(duplicate_down, ())
         self.assertEqual(release[0].state, "up")
         self.assertEqual(orphan_release, ())
 
     def test_reload_returns_releases_for_active_old_actions(self) -> None:
         engine = MappingEngine(MappingConfig.default())
-        engine.handle(button_event("Arrow Up", "down"))
+        engine.handle(button_event("Home", "down"))
         replacement = MappingConfig(
             mappings={
                 **MappingConfig.default().mappings,
-                "Arrow Up": KeyAction("key", "W"),
+                "Home": KeyAction("key", "W"),
             }
         )
 
@@ -317,7 +319,7 @@ class KeyMappingTests(unittest.TestCase):
 
         self.assertEqual(len(releases), 1)
         self.assertEqual(releases[0].state, "up")
-        self.assertEqual(releases[0].action.key, "UP")
+        self.assertEqual(releases[0].action.key, "HOME")
 
 
 if __name__ == "__main__":

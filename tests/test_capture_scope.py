@@ -29,9 +29,16 @@ class CaptureScopeTests(unittest.TestCase):
         self.assertIn("Volume Plus", REMOTE_BUTTONS)
         self.assertIn("Volume Minus", REMOTE_BUTTONS)
 
-    def test_only_air_mouse_is_disabled_for_capture(self) -> None:
-        self.assertEqual(DISABLED_CAPTURE_BUTTONS, ("Air Mouse",))
+    def test_shared_keyboard_usages_are_disabled_for_capture(self) -> None:
+        """背面全键盘共享 HID usage 的按键（OK/方向键）在采集界面禁用。"""
+
+        self.assertEqual(
+            DISABLED_CAPTURE_BUTTONS,
+            ("Air Mouse", "OK", "Arrow Up", "Arrow Down", "Arrow Left", "Arrow Right"),
+        )
         self.assertNotIn("Power", DISABLED_CAPTURE_BUTTONS)
+        for button in ("OK", "Arrow Up", "Arrow Down", "Arrow Left", "Arrow Right"):
+            self.assertIsNone(selected_capture_button(button))
 
     def test_unselected_button_does_not_capture(self) -> None:
         self.assertIsNone(selected_capture_button(None))
