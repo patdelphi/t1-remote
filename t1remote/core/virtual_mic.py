@@ -15,8 +15,29 @@ from t1remote.core.pcm_sink import PcmSinkError
 from t1remote.core.sounddevice_sink import WasapiPcmSink
 
 
+def _to_stereo_pcm16le(pcm: bytes, channels: int) -> bytes:
+    """把交错 PCM16LE 单声道扩成双声道；已是双声道则原样返回。"""
+
+    if channels == 2:
+        return pcm
+    if channels != 1:
+        raise ValueError("VirtualMicrophonePcmSink 只支持单声道或双声道源")
+    if len(pcm) % 2:
+        raise ValueError("单声道 PCM 数据不是完整 sample 的整数倍")
+    output = bytearray()
+    for index in range(0, len(pcm), 2):
+        output.extend(pcm[index : index + 2])
+        output.extend(pcm[index : index + 2])
+    return bytes(output)
+
+
 class VirtualMicrophonePcmSink:
-    """将 PCM 写入指定的虚拟音频线播放端点。"""
+    """将 PCM 写入指定的虚拟音频线播放端点。
+
+    输出固定为立体声：VB-CABLE 这类虚拟音频线的播放端和录音端都是
+    双声道设备，目标应用按立体声读取 CABLE Output。若只写单声道，
+    左右声道会被错位解释成互相串扰的噪音。
+    """
 
     def __init__(
         self,
@@ -36,7 +57,7 @@ class VirtualMicrophonePcmSink:
         if pcm_format.sample_width_bytes != 2:
             raise ValueError("VirtualMicrophonePcmSink 当前只支持 PCM16LE")
         self._source_format = pcm_format
-        self._output_format = PcmFormat(output_sample_rate, pcm_format.channels)
+        self._output_format = PcmFormat(output_sample_rate, 2)
         self._sink = WasapiPcmSink(
             self._output_format,
             device=device,
@@ -47,7 +68,7 @@ class VirtualMicrophonePcmSink:
         )
 
     def write(self, chunk: bytes) -> None:
-        """重采样后写入虚拟音频线。"""
+        """重采样到立体声后写入虚拟音频线。"""
 
         converted = resample_pcm16le(
             chunk,
@@ -55,7 +76,7 @@ class VirtualMicrophonePcmSink:
             output_sample_rate=self._output_format.sample_rate,
             channels=self._source_format.channels,
         )
-        self._sink.write(converted)
+        self._sink.write(_to_stereo_pcm16le(converted, self._source_format.channels))
 
     def close(self) -> None:
         """关闭虚拟音频线端点。"""

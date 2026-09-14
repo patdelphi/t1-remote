@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 import unittest
 
 from t1remote.core.audio_buffer import PcmFormat
@@ -57,11 +58,52 @@ class VirtualMicrophonePcmSinkTests(unittest.TestCase):
 
     def test_writes_pcm_to_selected_virtual_cable_device(self) -> None:
         created: list[dict[str, object]] = []
+        streams: list[Any] = []
 
         class FakeStream:
             def __init__(self, **kwargs: object) -> None:
                 created.append(kwargs)
                 self.writes: list[bytes] = []
+                streams.append(self)
+
+            def start(self) -> None:
+                pass
+
+            def write(self, chunk: bytes) -> None:
+                self.writes.append(chunk)
+
+            def stop(self) -> None:
+                pass
+
+            def close(self) -> None:
+                pass
+
+        with VirtualMicrophonePcmSink(
+            PcmFormat(48_000, 1),
+            device="VB-CABLE Input",
+            stream_factory=FakeStream,
+            settings_factory=lambda **kwargs: ("wasapi", kwargs),
+        ) as sink:
+            sink.write(b"\x01\x00")
+
+        self.assertEqual(created[0]["device"], "VB-CABLE Input")
+        self.assertEqual(created[0]["extra_settings"], ("wasapi", {"exclusive": False}))
+        # 输出必须是立体声：CABLE 是双声道虚拟设备，单声道会被其他应用按双声道错读。
+        self.assertEqual(created[0]["channels"], 2)
+        # 48 kHz 单声道一帧 -> 双声道一帧，左右采样相同。
+        self.assertEqual(streams[0].writes, [b"\x01\x00\x01\x00"])
+
+    def test_mono_16khz_source_is_upsampled_to_stereo_48khz(self) -> None:
+        """单声道源按 48 kHz 立体声输出，保证 CABLE Output 读端不串扰。"""
+
+        created: list[dict[str, object]] = []
+        streams: list[Any] = []
+
+        class FakeStream:
+            def __init__(self, **kwargs: object) -> None:
+                created.append(kwargs)
+                self.writes: list[bytes] = []
+                streams.append(self)
 
             def start(self) -> None:
                 pass
@@ -81,10 +123,15 @@ class VirtualMicrophonePcmSinkTests(unittest.TestCase):
             stream_factory=FakeStream,
             settings_factory=lambda **kwargs: ("wasapi", kwargs),
         ) as sink:
-            sink.write(b"\x01\x00")
+            # 16 kHz 单声道两帧：每帧 2 字节 PCM16LE。
+            sink.write(b"\x00\x00\x00\x00")
 
-        self.assertEqual(created[0]["device"], "VB-CABLE Input")
-        self.assertEqual(created[0]["extra_settings"], ("wasapi", {"exclusive": False}))
+        self.assertEqual(created[0]["samplerate"], 48_000)
+        self.assertEqual(created[0]["channels"], 2)
+        # 重采样 2 帧 -> 6 帧，每帧 2 声道 2 字节 = 24 字节，左右声道完全相同。
+        self.assertEqual(len(streams[0].writes[0]), 24)
+        # 左右声道采样字节完全相同（每个 16bit 采样被复制到 L 和 R）。
+        self.assertEqual(streams[0].writes[0][0::4], streams[0].writes[0][2::4])
 
 
 if __name__ == "__main__":

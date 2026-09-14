@@ -65,8 +65,16 @@ class VoiceSessionController:
         negotiation_timeout: float = 8.0,
         queue_chunks: int = 64,
         blocksize: int = 0,
+        keepalive_interval: float = 10.0,
     ) -> None:
-        """启动新的后台语音会话。"""
+        """启动新的后台语音会话。
+
+        ``duration_seconds=0`` 表示持续收音：麦克风保持打开，直到 `stop()`
+        被调用；正数则按时长自动结束。
+
+        ``keepalive_interval`` 定期重发 MIC_OPEN 防止 T1 VAD 超时（秒），
+        0 表示关闭；T1 在无人声约 15 秒后停止音频传输。
+        """
 
         if not address.strip():
             raise ValueError("BLE 地址或设备标识不能为空")
@@ -75,6 +83,7 @@ class VoiceSessionController:
                 raise VoiceSessionError("已有一个语音会话正在运行")
             stop_event = threading.Event()
             self._stop_event = stop_event
+            self._keepalive_interval = keepalive_interval
             self._waveform_points = ()
             self._last_waveform_notification = 0.0
             self._status = VoiceSessionStatus("starting", "正在启动语音会话")
@@ -88,6 +97,7 @@ class VoiceSessionController:
                     queue_chunks,
                     blocksize,
                     stop_event,
+                    keepalive_interval,
                 ),
                 name="t1-voice-session",
                 daemon=True,
@@ -123,8 +133,16 @@ class VoiceSessionController:
         queue_chunks: int,
         blocksize: int,
         stop_event: threading.Event,
+        keepalive_interval: float = 10.0,
     ) -> None:
-        """在线程内创建事件循环，避免阻塞 Tk 主循环。"""
+        """在线程内创建事件循环，避免阻塞 Tk 主循环。
+
+        `duration_seconds=0` 时 VoiceTestRunner 会一直收音，只由
+        `stop_event` 结束本次会话。
+
+        ``keepalive_interval`` 给 VoiceTestRunner 用以定期重发
+        MIC_OPEN 防 VAD 超时。
+        """
 
         self._set_status("running", "正在连接 T1 GATT")
         try:
@@ -136,6 +154,7 @@ class VoiceSessionController:
                 queue_chunks=queue_chunks,
                 blocksize=blocksize,
                 stop_event=stop_event,
+                keepalive_interval=keepalive_interval,
                 waveform_callback=self._set_waveform,
                 progress=lambda message: self._set_status("running", message),
             )

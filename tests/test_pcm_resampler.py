@@ -42,8 +42,10 @@ class PcmResamplerTests(unittest.TestCase):
             sink.write((1000).to_bytes(2, "little", signed=True))
 
         self.assertEqual(created[0]["samplerate"], 48_000)
-        self.assertEqual(len(streams[0].writes[0]), 12)
-        self.assertEqual(len(streams[0].writes[1]), 12)
+        self.assertEqual(created[0]["channels"], 2)
+        # 输出固定立体声：单声道 8k 一帧 -> 48k 六帧 -> 双声道 24 字节。
+        self.assertEqual(len(streams[0].writes[0]), 24)
+        self.assertEqual(len(streams[0].writes[1]), 24)
 
 
 if __name__ == "__main__":

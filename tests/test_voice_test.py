@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import signal
 import threading
+import time
 import unittest
 import tempfile
 from pathlib import Path
@@ -13,6 +15,7 @@ from t1remote.core.sounddevice_sink import AudioOutputDevice
 from tools.t1_voice_test import (
     VoiceTestError,
     VoiceTestRunner,
+    _install_interrupt_stop_event,
     select_virtual_cable_output,
 )
 
@@ -141,6 +144,71 @@ class VoiceTestTests(unittest.TestCase):
             self.assertEqual(runner.controller.calls[-2:], ["close_microphone", "disconnect"])
 
         asyncio.run(scenario())
+
+    def test_runner_zero_duration_streams_until_stop_event(self) -> None:
+        """时长 0 + 停止事件 = 持续收音，直到外部请求停止。"""
+
+        async def scenario() -> None:
+            stop_event = threading.Event()
+            timer = threading.Timer(0.2, stop_event.set)
+
+            class _DelayedStopController(_FakeController):
+                async def open_microphone(self) -> None:
+                    await super().open_microphone()
+                    timer.start()
+
+            runner = VoiceTestRunner(
+                "test-address",
+                duration_seconds=0,
+                stop_event=stop_event,
+                device_index=23,
+                controller_factory=_DelayedStopController,
+                worker_factory=_FakeWorker,
+                sink_factory=lambda *_args, **_kwargs: object(),
+                transport_factory=lambda _address: object(),
+                recording_dir=None,
+                output_devices_factory=lambda: (
+                    AudioOutputDevice(
+                        23,
+                        "CABLE Input (VB-Audio Virtual Cable)",
+                        2,
+                        48000,
+                        2,
+                        "Windows WASAPI",
+                    ),
+                ),
+            )
+
+            started = time.monotonic()
+            await asyncio.wait_for(runner.run(), timeout=5.0)
+            elapsed = time.monotonic() - started
+            timer.cancel()
+
+            # 持续收音不能立刻返回，也不允许跳过收尾顺序。
+            self.assertGreaterEqual(elapsed, 0.2)
+            self.assertEqual(
+                runner.controller.calls,
+                ["connect", "negotiate:8.0", "open_microphone", "close_microphone", "disconnect"],
+            )
+            self.assertEqual(runner.worker.calls, ["start", "stop:False"])
+
+        asyncio.run(scenario())
+
+    def test_interrupt_handler_requests_graceful_stop(self) -> None:
+        """Ctrl+C 只设置停止事件，让麦克风和 GATT 按顺序关闭。"""
+
+        original_handler = signal.getsignal(signal.SIGINT)
+        try:
+            stop_event = _install_interrupt_stop_event()
+            self.assertFalse(stop_event.is_set())
+
+            handler = signal.getsignal(signal.SIGINT)
+            self.assertTrue(callable(handler))
+            handler(signal.SIGINT, None)
+
+            self.assertTrue(stop_event.is_set())
+        finally:
+            signal.signal(signal.SIGINT, original_handler)
 
     def test_runner_keeps_one_latest_voice_recording(self) -> None:
         async def scenario() -> None:

@@ -81,6 +81,63 @@ class MappingAppGuiTests(unittest.TestCase):
             else:
                 root.destroy()
 
+    def test_voice_continuous_switch_starts_session_with_zero_duration(self) -> None:
+        """持续收音开关勾选后禁用秒数输入，并按 0 秒（不限时长）启动会话。"""
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            root.update_idletasks()
+
+            def collect_checkbuttons(widget: tk.Misc) -> list[str]:
+                texts: list[str] = []
+                for child in widget.winfo_children():
+                    if isinstance(child, ttk.Checkbutton):
+                        texts.append(str(child.cget("text")))
+                    texts.extend(collect_checkbuttons(child))
+                return texts
+
+            self.assertIn(
+                "持续收音（不限时长）",
+                collect_checkbuttons(app._tab_by_name["语音测试"]),
+            )
+
+            class _RecordingVoiceSession:
+                def __init__(self) -> None:
+                    self.calls: list[dict[str, object]] = []
+
+                def start(self, address: str, **kwargs: object) -> None:
+                    self.calls.append({"address": address, **kwargs})
+
+                def stop(self, *, wait: bool = True) -> None:
+                    pass
+
+            recorder = _RecordingVoiceSession()
+            app._voice_session = recorder
+            app._voice_address_var.set("test-address")
+            app._voice_duration_var.set("25")
+
+            app._voice_continuous_var.set(True)
+            app._on_voice_continuous_toggle()
+            self.assertEqual(str(app._voice_duration_entry.cget("state")), "disabled")
+            app.start_voice_session()
+
+            app._voice_continuous_var.set(False)
+            app._on_voice_continuous_toggle()
+            self.assertEqual(str(app._voice_duration_entry.cget("state")), "normal")
+            app.start_voice_session()
+
+            self.assertEqual(recorder.calls[0]["address"], "test-address")
+            self.assertEqual(recorder.calls[0]["duration_seconds"], 0.0)
+            self.assertEqual(recorder.calls[1]["duration_seconds"], 25.0)
+        finally:
+            if app is not None:
+                app.close()
+            else:
+                root.destroy()
+
     def test_copy_diagnostics_works_without_a_running_session(self) -> None:
         root = tk.Tk()
         root.withdraw()

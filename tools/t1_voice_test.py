@@ -6,6 +6,7 @@ import argparse
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+import signal
 import threading
 from typing import Any, Callable, Iterable
 
@@ -83,6 +84,7 @@ class VoiceTestRunner:
         queue_chunks: int = 64,
         blocksize: int = 0,
         stop_event: threading.Event | None = None,
+        keepalive_interval: float = 10.0,
         controller_factory: ControllerFactory = AtvvV04GattAudioController,
         worker_factory: WorkerFactory = PcmSinkWorker,
         sink_factory: SinkFactory = VirtualMicrophonePcmSink,
@@ -109,6 +111,7 @@ class VoiceTestRunner:
         self.queue_chunks = queue_chunks
         self.blocksize = blocksize
         self.stop_event = stop_event
+        self.keepalive_interval = keepalive_interval
         self._controller_factory = controller_factory
         self._worker_factory = worker_factory
         self._sink_factory = sink_factory
@@ -120,6 +123,25 @@ class VoiceTestRunner:
         self.controller: Any | None = None
         self.worker: Any | None = None
 
+    async def _keep_alive(self, controller: Any) -> None:
+        """定期重发 MIC_OPEN 防止 T1 VAD 超时静音。
+
+        T1 在无人声约 15 秒后自动关闭麦克风传输（VAD 省电）。理论上
+        MIC_OPEN 只需要一次，但实测重发可以重置 T1 的内部计时器。
+        """
+
+        if self.keepalive_interval <= 0:
+            return
+        try:
+            while True:
+                await asyncio.sleep(self.keepalive_interval)
+                if not hasattr(controller, "open_microphone"):
+                    break
+                await controller.open_microphone()
+                self._report("MIC_OPEN keep-alive")
+        except asyncio.CancelledError:
+            pass
+
     async def run(self) -> VoiceTestResult:
         """连接、协商、开麦、输出指定时长，并按安全顺序清理。"""
 
@@ -127,6 +149,7 @@ class VoiceTestRunner:
         transport = self._transport_factory(self.address)
         controller = self._controller_factory(transport, queue)
         self.controller = controller
+        self._keep_alive_task: asyncio.Task[None] | None = None
         worker: Any | None = None
         sink: PcmSink | None = None
         recording_path: Path | None = None
@@ -178,6 +201,8 @@ class VoiceTestRunner:
             worker.start()
             self._report("发送 MIC_OPEN，开始接收语音")
             await controller.open_microphone()
+            if self.keepalive_interval > 0:
+                self._keep_alive_task = asyncio.create_task(self._keep_alive(controller))
             await self._wait_for_completion()
             self._report("测试时长结束")
         except BaseException as error:
@@ -186,6 +211,12 @@ class VoiceTestRunner:
         finally:
             cleanup_errors: list[BaseException] = []
             if controller is not None:
+                if self._keep_alive_task is not None:
+                    self._keep_alive_task.cancel()
+                    try:
+                        await self._keep_alive_task
+                    except asyncio.CancelledError:
+                        pass
                 try:
                     if controller.snapshot.microphone_open:
                         await controller.close_microphone()
@@ -223,7 +254,11 @@ class VoiceTestRunner:
         return self._recording_dir / "t1-voice-latest.wav"
 
     async def _wait_for_completion(self) -> None:
-        """按时长等待，或响应 GUI 的停止事件。"""
+        """按时长等待，或响应 GUI 的停止事件。
+
+        传入 ``stop_event`` 时 ``duration_seconds == 0`` 表示持续收音（无限等待），
+        直到外部设置停止事件；没有停止事件时 0 秒仍按“立即结束”处理。
+        """
 
         if self.stop_event is None:
             if self.duration_seconds:
@@ -273,6 +308,22 @@ def _format_capabilities(capabilities: AtvvCapabilityResponse | None) -> str:
     )
 
 
+def _install_interrupt_stop_event() -> threading.Event:
+    """把 Ctrl+C 转成停止事件，让麦克风和 GATT 按顺序收尾。
+
+    ``--duration 0`` 的持续收音只能靠 Ctrl+C 结束；如果直接抛出
+    ``KeyboardInterrupt``，会跳过 close_microphone 和 disconnect。
+    非主线程或不支持信号的平台退回默认行为。
+    """
+
+    stop_event = threading.Event()
+    try:
+        signal.signal(signal.SIGINT, lambda *_args: stop_event.set())
+    except (ValueError, OSError):
+        pass
+    return stop_event
+
+
 def main() -> int:
     """执行真实 T1 语音录入测试。"""
 
@@ -280,7 +331,12 @@ def main() -> int:
         description="连接 T1，接收 ATVV v0.4 语音并写入 VB-CABLE"
     )
     parser.add_argument("address", help="Bleak 支持的 BLE 地址或设备标识")
-    parser.add_argument("--duration", type=float, default=10.0, help="开麦时长，默认 10 秒")
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=10.0,
+        help="开麦时长（秒）；0 表示持续收音直到 Ctrl+C，默认 10 秒",
+    )
     parser.add_argument(
         "--device-index",
         type=int,
@@ -296,10 +352,14 @@ def main() -> int:
     parser.add_argument("--queue-chunks", type=int, default=64)
     parser.add_argument("--blocksize", type=int, default=0)
     args = parser.parse_args()
+    stop_event = _install_interrupt_stop_event()
+    if args.duration == 0:
+        print("持续收音：按 Ctrl+C 结束并正常收尾", flush=True)
     try:
         runner = VoiceTestRunner(
             args.address,
             duration_seconds=args.duration,
+            stop_event=stop_event,
             device_index=args.device_index,
             negotiation_timeout=args.negotiation_timeout,
             queue_chunks=args.queue_chunks,

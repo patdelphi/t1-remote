@@ -84,6 +84,9 @@ class MappingMonitorApp:
         self._voice_ble_choice_var = tk.StringVar(value="")
         self._voice_ble_discovery_var = tk.StringVar(value="BLE 设备：尚未扫描")
         self._voice_duration_var = tk.StringVar(value="10")
+        # 持续收音：时长为 0 时麦克风一直打开，直到点击“停止语音测试”。
+        self._voice_continuous_var = tk.BooleanVar(value=False)
+        self._voice_continuous_active = False
         self._voice_device_var = tk.StringVar(value="")
         self._voice_status_var = tk.StringVar(value="状态：未启动")
         self._voice_stats_var = tk.StringVar(value="PCM 输出：暂无数据")
@@ -92,6 +95,7 @@ class MappingMonitorApp:
         self._voice_stop_button: ttk.Button | None = None
         self._voice_replay_button: ttk.Button | None = None
         self._voice_scan_button: ttk.Button | None = None
+        self._voice_duration_entry: ttk.Entry | None = None
         self._voice_ble_combo: ttk.Combobox | None = None
         self._voice_ble_devices: dict[str, str] = {}
         self._voice_last_recording_path: Path | None = None
@@ -309,9 +313,16 @@ class MappingMonitorApp:
             row=2, column=0, columnspan=3, sticky="w", padx=8, pady=(0, 8)
         )
         ttk.Label(form, text="时长（秒）").grid(row=3, column=0, sticky="w", padx=8, pady=8)
-        ttk.Entry(form, textvariable=self._voice_duration_var, width=12).grid(
-            row=3, column=1, sticky="w", padx=8, pady=8
+        self._voice_duration_entry = ttk.Entry(
+            form, textvariable=self._voice_duration_var, width=12
         )
+        self._voice_duration_entry.grid(row=3, column=1, sticky="w", padx=8, pady=8)
+        ttk.Checkbutton(
+            form,
+            text="持续收音（不限时长）",
+            variable=self._voice_continuous_var,
+            command=self._on_voice_continuous_toggle,
+        ).grid(row=3, column=2, sticky="w", padx=(4, 8), pady=8)
         ttk.Label(form, text="输出设备编号（可选）").grid(
             row=4, column=0, sticky="w", padx=8, pady=8
         )
@@ -323,6 +334,11 @@ class MappingMonitorApp:
             text="留空时自动选择 Windows WASAPI 的 CABLE Input；目标应用麦克风请选择 CABLE Output。",
             foreground="#52606d",
         ).grid(row=5, column=0, columnspan=3, sticky="w", padx=8, pady=(0, 8))
+        ttk.Label(
+            form,
+            text="勾选持续收音后 T1 麦克风保持打开，直到点击“停止语音测试”，其他应用可一直从 CABLE Output 取声。",
+            foreground="#52606d",
+        ).grid(row=6, column=0, columnspan=3, sticky="w", padx=8, pady=(0, 8))
 
         actions = ttk.Frame(parent)
         actions.grid(row=3, column=0, sticky="new", padx=16, pady=8)
@@ -597,6 +613,14 @@ class MappingMonitorApp:
         except Exception as error:
             self._queue_error(error)
 
+    def _on_voice_continuous_toggle(self) -> None:
+        """持续收音时不接受秒数输入，避免两个时长来源互相矛盾。"""
+
+        if self._voice_duration_entry is None:
+            return
+        state = "disabled" if self._voice_continuous_var.get() else "normal"
+        self._voice_duration_entry.configure(state=state)
+
     def start_voice_session(self) -> None:
         """从表单读取参数并在后台启动真实语音会话。"""
 
@@ -604,8 +628,12 @@ class MappingMonitorApp:
         if not address:
             self._append_log("语音测试失败：请填写 BLE 地址或设备标识")
             return
+        continuous = bool(self._voice_continuous_var.get())
         try:
-            duration = float(self._voice_duration_var.get().strip() or "10")
+            # 持续收音用 0 秒启动：会话只由“停止语音测试”结束。
+            duration = 0.0 if continuous else float(
+                self._voice_duration_var.get().strip() or "10"
+            )
             if duration < 0:
                 raise ValueError("时长不能为负数")
             device_text = self._voice_device_var.get().strip()
@@ -618,9 +646,16 @@ class MappingMonitorApp:
                 address,
                 duration_seconds=duration,
                 device_index=device_index,
+                keepalive_interval=10.0,
             )
         except (ValueError, VoiceSessionError) as error:
             self._append_log(f"语音测试启动失败：{error}")
+            return
+        self._voice_continuous_active = continuous
+        if continuous:
+            self._append_log(
+                "持续收音已启动：T1 麦克风保持打开，直到点击“停止语音测试”"
+            )
 
     def scan_voice_devices(self) -> None:
         """后台扫描 BLE 设备，并优先预填名称包含 T1 的设备地址。"""
@@ -781,6 +816,14 @@ class MappingMonitorApp:
         if status.waveform_points:
             self._append_voice_waveform(status.waveform_points)
         active = status.state in VoiceSessionController._ACTIVE_STATES
+        if self._voice_continuous_active:
+            if active:
+                # 持续收音没有结束时间，明确提示用户需要手动停止。
+                self._voice_status_var.set(
+                    f"状态：{status.state}（{status.message}）持续收音中"
+                )
+            else:
+                self._voice_continuous_active = False
         if self._voice_start_button is not None:
             self._voice_start_button.configure(state="disabled" if active else "normal")
         if self._voice_stop_button is not None:

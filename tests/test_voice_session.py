@@ -22,6 +22,7 @@ class _FakeRunner:
         self.started = threading.Event()
         self.finished = threading.Event()
         self.progress = _kwargs.get("progress")
+        self.duration_seconds = _kwargs.get("duration_seconds")
         self.__class__.instances.append(self)
 
     async def run(self) -> object:
@@ -75,6 +76,27 @@ class VoiceSessionTests(unittest.TestCase):
             controller.start("another-address", duration_seconds=10)
 
         controller.stop(wait=True)
+
+    def test_zero_duration_keeps_session_active_until_stop(self) -> None:
+        """时长 0 表示持续收音：会话保持运行，直到外部调用停止。"""
+
+        controller = VoiceSessionController(runner_factory=_FakeRunner)
+        controller.start("test-address", duration_seconds=0)
+        self.assertTrue(_wait_until(lambda: bool(_FakeRunner.instances)))
+        runner = _FakeRunner.instances[0]
+        self.assertTrue(runner.started.wait(1.0))
+        self.assertEqual(runner.duration_seconds, 0)
+
+        # 持续收音不会自行结束。
+        self.assertFalse(
+            _wait_until(lambda: controller.status().state == "stopped", timeout=0.3)
+        )
+        self.assertIn(controller.status().state, {"running", "stopping"})
+
+        controller.stop(wait=True)
+
+        self.assertTrue(runner.finished.is_set())
+        self.assertEqual(controller.status().state, "stopped")
 
     def test_waveform_callback_is_exposed_in_status(self) -> None:
         statuses = []
