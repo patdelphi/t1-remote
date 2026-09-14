@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+import time
 from types import SimpleNamespace
 
 from tools.t1_inspector_gui import (
@@ -102,6 +103,45 @@ class CaptureBridgeSessionTests(unittest.TestCase):
             session.start(lambda _event: None)
 
         self.assertEqual(bridge.calls[-2:], ["stop", "close"])
+
+    def test_capture_session_accepts_running_persistent_filter_without_lease(self) -> None:
+        """常驻拦截状态运行时不应错误要求租约有效。"""
+        bridge = _FakeBridge()
+        bridge.status_value = SimpleNamespace(
+            state="running",
+            lease_active=False,
+            attached_collections=(1 << 2) | (1 << 3),
+        )
+        session = CaptureBridgeSession(lambda: bridge)
+
+        session.start(lambda _event: None)
+        try:
+            self.assertTrue(bridge.policy is not None)
+            assert bridge.policy is not None
+            self.assertFalse(bridge.policy.lease_required)
+        finally:
+            session.stop()
+
+    def test_capture_session_keeps_persistent_filter_after_heartbeat(self) -> None:
+        """常驻拦截的后台心跳不能因 lease_active=false 自动关闭桥接。"""
+        bridge = _FakeBridge()
+        bridge.status_value = SimpleNamespace(
+            state="running",
+            lease_active=False,
+            attached_collections=(1 << 2) | (1 << 3),
+        )
+        errors: list[Exception] = []
+        session = CaptureBridgeSession(lambda: bridge)
+
+        session.start(lambda _event: None, errors.append)
+        try:
+            # 心跳周期为 1 秒，等待一次后台心跳验证实际运行路径。
+            time.sleep(1.15)
+            self.assertEqual(errors, [])
+            self.assertIsNotNone(session._bridge)
+            self.assertGreaterEqual(bridge.calls.count("heartbeat"), 2)
+        finally:
+            session.stop()
 
     def test_capture_session_stop_is_idempotent(self) -> None:
         bridge = _FakeBridge()

@@ -331,6 +331,10 @@ class T1MappingSession:
             runtime = self._runtime if self._state == "running" else None
         if collection != "COL01" or runtime is None:
             return
+        if not self.dry_run:
+            # 正式会话中 COL01 已由 Bridge 驱动事件提供；Raw Input 仅保留
+            # 设备/电源通知，不能再次把同一按键送入 Mapping。
+            return
         try:
             self._log_mapping_events(
                 runtime.process_report(collection, event.raw_input_type, event.raw_data)

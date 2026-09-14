@@ -64,6 +64,8 @@ class CaptureBridgeSession:
         self._on_event: Callable[[object], None] | None = None
         self._on_error: Callable[[Exception], None] | None = None
         self._status: BridgeStatus | None = None
+        # 保存本次会话的策略，常驻拦截模式不应被后台线程误判为租约失效。
+        self._lease_required = False
 
     def start(
         self,
@@ -98,7 +100,9 @@ class CaptureBridgeSession:
                 # 租约策略必须在启动后立即刷新一次，避免首个报告到达前失租约。
                 bridge.heartbeat()  # type: ignore[attr-defined]
                 status = bridge.status()  # type: ignore[attr-defined]
-                if status.state != "running" or not status.lease_active:
+                if status.state != "running" or (
+                    policy.lease_required and not status.lease_active
+                ):
                     raise RuntimeError(
                         "驱动未进入有效拦截态："
                         f"状态={status.state}，租约={'有效' if status.lease_active else '无效'}"
@@ -108,6 +112,7 @@ class CaptureBridgeSession:
                 raise
             self._bridge = bridge
             self._status = status
+            self._lease_required = policy.lease_required
             self._on_event = on_event
             self._on_error = on_error
             self._stop_requested.clear()
@@ -133,6 +138,7 @@ class CaptureBridgeSession:
             bridge = self._bridge
             self._bridge = None
             self._status = None
+            self._lease_required = False
             self._on_event = None
             self._on_error = None
         if bridge is not None:
@@ -151,7 +157,9 @@ class CaptureBridgeSession:
                 if now >= next_heartbeat:
                     bridge.heartbeat()  # type: ignore[attr-defined]
                     status = bridge.status()  # type: ignore[attr-defined]
-                    if status.state != "running" or not status.lease_active:
+                    if status.state != "running" or (
+                        self._lease_required and not status.lease_active
+                    ):
                         raise RuntimeError(
                             "驱动拦截租约已失效："
                             f"状态={status.state}，租约={'有效' if status.lease_active else '无效'}"

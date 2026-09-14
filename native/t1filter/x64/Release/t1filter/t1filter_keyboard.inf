@@ -76,4 +76,3 @@ ProviderName            = "T1 Remote"
 DiskName                = "T1 Remote Driver Package"
 T1RemoteFilter.DeviceDesc = "T1 Remote Keyboard Filter"
 T1RemoteFilter.SvcDesc  = "T1 Remote HID Filter"
-
