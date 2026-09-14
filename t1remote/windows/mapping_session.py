@@ -329,11 +329,14 @@ class T1MappingSession:
         collection = collection_from_device_path(event.device_path)
         with self._state_lock:
             runtime = self._runtime if self._state == "running" else None
+            # 驱动未附着 COL01 时不能屏蔽 Raw Input，否则键盘集合的按键
+            # 既没有 Bridge 事件也不会进 Mapping，方向键会静默丢失。
+            col01_attached = bool(self._attached_collections & (1 << 1))
         if collection != "COL01" or runtime is None:
             return
-        if not self.dry_run:
-            # 正式会话中 COL01 已由 Bridge 驱动事件提供；Raw Input 仅保留
-            # 设备/电源通知，不能再次把同一按键送入 Mapping。
+        if not self.dry_run and col01_attached:
+            # COL01 已由 Bridge 驱动事件提供；Raw Input 仅保留设备/电源通知，
+            # 不能再次把同一按键送入 Mapping。
             return
         try:
             self._log_mapping_events(
@@ -548,9 +551,13 @@ class T1MappingSession:
             )
 
     def _update_driver_status(self, status: object) -> None:
-        self._driver_state = str(getattr(status, "state", "unknown"))
-        self._attached_collections = int(getattr(status, "attached_collections", 0))
-        self._lease_active = bool(getattr(status, "lease_active", False))
+        # 与 _handle_raw_event 的读取共用锁，避免读线程看到半更新的状态。
+        with self._state_lock:
+            self._driver_state = str(getattr(status, "state", "unknown"))
+            self._attached_collections = int(
+                getattr(status, "attached_collections", 0)
+            )
+            self._lease_active = bool(getattr(status, "lease_active", False))
 
     def _cleanup(self) -> None:
         """清理所有已部分启动的资源；每个边界单独处理异常。"""

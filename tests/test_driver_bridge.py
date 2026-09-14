@@ -681,15 +681,15 @@ class DriverBridgeTests(unittest.TestCase):
         policy = build_default_interception_policy()
         usages = {(item.usage_page, item.usage, item.collection) for item in policy.blocked_usages}
 
-        self.assertEqual(len(usages), 13)
+        self.assertEqual(len(usages), 8)
         self.assertIn((0x0C, 0x223, "COL02"), usages)
         self.assertIn((0x01, 0x81, "COL03"), usages)
-        # 键盘集合：OK、方向键和 Menu 也必须由驱动拦截。
-        # 键位来自 Raw Input 快照反推的 HID Usage（0x28=Enter、0x4F-0x52=箭头、0x65=Application）。
-        self.assertIn((0x07, 0x28, "COL01"), usages)
-        self.assertIn((0x07, 0x4F, "COL01"), usages)
-        self.assertIn((0x07, 0x51, "COL01"), usages)
+        # 键盘集合只拦 Menu：正面 OK/方向键与背面 Return/方向键共享 HID usage
+        # （0x28、0x4F-0x52），按“优先背面键盘”的取舍放行给系统，不再映射。
         self.assertIn((0x07, 0x65, "COL01"), usages)
+        self.assertNotIn((0x07, 0x28, "COL01"), usages)
+        self.assertNotIn((0x07, 0x4F, "COL01"), usages)
+        self.assertNotIn((0x07, 0x52, "COL01"), usages)
         # 常驻拦截：默认不依赖 App 会话租约。
         self.assertFalse(policy.lease_required)
         # 方案 B：只拦确认键，键盘面其余键放行给系统（背面键盘可打字）。

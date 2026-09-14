@@ -8740,8 +8740,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 233,
-      "capture_channel": "bridge",
-      "sequence": 1
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:14.567+00:00",
@@ -8753,8 +8753,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 4
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:15.535+00:00",
@@ -8766,8 +8766,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 233,
-      "capture_channel": "bridge",
-      "sequence": 7
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:15.767+00:00",
@@ -8779,8 +8779,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 10
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:17.327+00:00",
@@ -8792,8 +8792,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 234,
-      "capture_channel": "bridge",
-      "sequence": 13
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:17.542+00:00",
@@ -8805,8 +8805,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 16
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:17.932+00:00",
@@ -8818,8 +8818,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 234,
-      "capture_channel": "bridge",
-      "sequence": 19
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:18.122+00:00",
@@ -8831,8 +8831,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 22
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:18.468+00:00",
@@ -8844,8 +8844,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 234,
-      "capture_channel": "bridge",
-      "sequence": 25
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:18.625+00:00",
@@ -8857,8 +8857,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 28
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:20.782+00:00",
@@ -8870,8 +8870,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 545,
-      "capture_channel": "bridge",
-      "sequence": 31
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:20.845+00:00",
@@ -8883,8 +8883,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 34
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:21.159+00:00",
@@ -8896,8 +8896,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 545,
-      "capture_channel": "bridge",
-      "sequence": 37
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:21.287+00:00",
@@ -8909,8 +8909,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 40
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:22.246+00:00",
@@ -8922,8 +8922,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 547,
-      "capture_channel": "bridge",
-      "sequence": 43
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:22.454+00:00",
@@ -8935,8 +8935,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 46
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:28.428+00:00",
@@ -8948,8 +8948,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 548,
-      "capture_channel": "bridge",
-      "sequence": 49
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:28.570+00:00",
@@ -8961,8 +8961,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 52
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:29.105+00:00",
@@ -8974,8 +8974,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 548,
-      "capture_channel": "bridge",
-      "sequence": 55
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:29.327+00:00",
@@ -8987,8 +8987,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 58
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:30.936+00:00",
@@ -9000,8 +9000,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 226,
-      "capture_channel": "bridge",
-      "sequence": 61
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:31.156+00:00",
@@ -9013,8 +9013,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 64
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:31.452+00:00",
@@ -9026,8 +9026,8 @@
       "state": "down",
       "usage_page": 12,
       "usage": 226,
-      "capture_channel": "bridge",
-      "sequence": 67
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:31.735+00:00",
@@ -9039,8 +9039,8 @@
       "state": "up",
       "usage_page": 12,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 70
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:33.498+00:00",
@@ -9052,8 +9052,8 @@
       "state": "down",
       "usage_page": 1,
       "usage": 1,
-      "capture_channel": "bridge",
-      "sequence": 73
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:33.743+00:00",
@@ -9065,8 +9065,8 @@
       "state": "up",
       "usage_page": 1,
       "usage": 0,
-      "capture_channel": "bridge",
-      "sequence": 74
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:34.810+00:00",
@@ -9078,8 +9078,8 @@
       "state": "down",
       "usage_page": 1,
       "usage": 1,
-      "capture_channel": "bridge",
-      "sequence": 75
+      "capture_channel": null,
+      "sequence": null
     },
     {
       "timestamp_utc": "2026-09-13T23:33:34.997+00:00",
@@ -9091,8 +9091,632 @@
       "state": "up",
       "usage_page": 1,
       "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:10.194+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 01",
+      "state": "down",
+      "usage_page": 1,
+      "usage": 1,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:10.270+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 00",
+      "state": "up",
+      "usage_page": 1,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:12.510+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 52 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:12.589+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:13.766+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 51 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:13.925+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:14.812+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 50 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:14.966+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:15.934+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 4f 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:16.136+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:17.174+00:00",
+      "button": "OK",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 28 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:17.344+00:00",
+      "button": "OK",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:19.003+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 24 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 548,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:19.157+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:20.417+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e2 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 226,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:20.622+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:27.207+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 21 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 545,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:27.239+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:29.799+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 23 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 547,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:29.889+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:31.792+00:00",
+      "button": "Menu",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 65 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T11:47:31.978+00:00",
+      "button": "Menu",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": null,
+      "sequence": null
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:44.702+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e9 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 233,
       "capture_channel": "bridge",
-      "sequence": 76
+      "sequence": 137
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:44.764+00:00",
+      "button": "Volume Plus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 140
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:46.072+00:00",
+      "button": "Volume Minus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 ea 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 234,
+      "capture_channel": "bridge",
+      "sequence": 141
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:46.241+00:00",
+      "button": "Volume Minus",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 144
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:48.569+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 21 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 545,
+      "capture_channel": "bridge",
+      "sequence": 145
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:48.570+00:00",
+      "button": "Voice",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 148
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:50.302+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 23 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 547,
+      "capture_channel": "bridge",
+      "sequence": 149
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:50.582+00:00",
+      "button": "Home",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 152
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:52.014+00:00",
+      "button": "Menu",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 65 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 153
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:52.259+00:00",
+      "button": "Menu",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 154
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:57.778+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 01",
+      "state": "down",
+      "usage_page": 1,
+      "usage": 1,
+      "capture_channel": "bridge",
+      "sequence": 155
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:57.902+00:00",
+      "button": "Power",
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "device_family": "T1-Remote/COL03",
+      "raw_data_hex": "03 00",
+      "state": "up",
+      "usage_page": 1,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 156
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:58.772+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 52 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 157
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:38:58.911+00:00",
+      "button": "Arrow Up",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 158
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:00.088+00:00",
+      "button": "OK",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 28 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 159
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:00.270+00:00",
+      "button": "OK",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 160
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:01.124+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 51 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 161
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:01.339+00:00",
+      "button": "Arrow Down",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 162
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:02.754+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 50 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 163
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:02.939+00:00",
+      "button": "Arrow Left",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 164
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:03.831+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 4f 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 165
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:04.033+00:00",
+      "button": "Arrow Right",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "01 00 00 00 00 00 00 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 166
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:05.391+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 24 02",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 548,
+      "capture_channel": "bridge",
+      "sequence": 167
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:05.512+00:00",
+      "button": "Return",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 170
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:07.001+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 e2 00",
+      "state": "down",
+      "usage_page": 12,
+      "usage": 226,
+      "capture_channel": "bridge",
+      "sequence": 171
+    },
+    {
+      "timestamp_utc": "2026-09-14T12:39:07.189+00:00",
+      "button": "Mute",
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "device_family": "T1-Remote/COL02",
+      "raw_data_hex": "02 00 00",
+      "state": "up",
+      "usage_page": 12,
+      "usage": 0,
+      "capture_channel": "bridge",
+      "sequence": 174
     }
   ],
   "logical_actions": [
@@ -15688,6 +16312,390 @@
       "raw_input_type": 2,
       "collection": "COL03",
       "signature": "hid:03:01"
+    },
+    {
+      "action_id": 422,
+      "button": "Power",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:10.194+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:10.270+00:00",
+      "duration_ms": 76,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        700,
+        701
+      ],
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "signature": "hid:03:01"
+    },
+    {
+      "action_id": 423,
+      "button": "Arrow Up",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:12.510+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:12.589+00:00",
+      "duration_ms": 79,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        702,
+        703
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000520000000000"
+    },
+    {
+      "action_id": 424,
+      "button": "Arrow Down",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:13.766+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:13.925+00:00",
+      "duration_ms": 159,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        704,
+        705
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000510000000000"
+    },
+    {
+      "action_id": 425,
+      "button": "Arrow Left",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:14.812+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:14.966+00:00",
+      "duration_ms": 154,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        706,
+        707
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000500000000000"
+    },
+    {
+      "action_id": 426,
+      "button": "Arrow Right",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:15.934+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:16.136+00:00",
+      "duration_ms": 202,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        708,
+        709
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:00004f0000000000"
+    },
+    {
+      "action_id": 427,
+      "button": "OK",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:17.174+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:17.344+00:00",
+      "duration_ms": 170,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        710,
+        711
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000280000000000"
+    },
+    {
+      "action_id": 428,
+      "button": "Return",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:19.003+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:19.157+00:00",
+      "duration_ms": 154,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        712,
+        713
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2402"
+    },
+    {
+      "action_id": 429,
+      "button": "Mute",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:20.417+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:20.622+00:00",
+      "duration_ms": 205,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        714,
+        715
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e200"
+    },
+    {
+      "action_id": 430,
+      "button": "Voice",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:27.207+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:27.239+00:00",
+      "duration_ms": 32,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        716,
+        717
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2102"
+    },
+    {
+      "action_id": 431,
+      "button": "Home",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:29.799+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:29.889+00:00",
+      "duration_ms": 90,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        718,
+        719
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2302"
+    },
+    {
+      "action_id": 432,
+      "button": "Menu",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T11:47:31.792+00:00",
+      "up_timestamp_utc": "2026-09-14T11:47:31.978+00:00",
+      "duration_ms": 186,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        720,
+        721
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000650000000000"
+    },
+    {
+      "action_id": 433,
+      "button": "Volume Plus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:44.702+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:44.764+00:00",
+      "duration_ms": 62,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        722,
+        723
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e900"
+    },
+    {
+      "action_id": 434,
+      "button": "Volume Minus",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:46.072+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:46.241+00:00",
+      "duration_ms": 169,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        724,
+        725
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:ea00"
+    },
+    {
+      "action_id": 435,
+      "button": "Voice",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:48.569+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:48.570+00:00",
+      "duration_ms": 1,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        726,
+        727
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2102"
+    },
+    {
+      "action_id": 436,
+      "button": "Home",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:50.302+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:50.582+00:00",
+      "duration_ms": 280,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        728,
+        729
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2302"
+    },
+    {
+      "action_id": 437,
+      "button": "Menu",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:52.014+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:52.259+00:00",
+      "duration_ms": 245,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        730,
+        731
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000650000000000"
+    },
+    {
+      "action_id": 438,
+      "button": "Power",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:57.778+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:57.902+00:00",
+      "duration_ms": 124,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        732,
+        733
+      ],
+      "raw_input_type": 2,
+      "collection": "COL03",
+      "signature": "hid:03:01"
+    },
+    {
+      "action_id": 439,
+      "button": "Arrow Up",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:38:58.772+00:00",
+      "up_timestamp_utc": "2026-09-14T12:38:58.911+00:00",
+      "duration_ms": 139,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        734,
+        735
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000520000000000"
+    },
+    {
+      "action_id": 440,
+      "button": "OK",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:00.088+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:00.270+00:00",
+      "duration_ms": 182,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        736,
+        737
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000280000000000"
+    },
+    {
+      "action_id": 441,
+      "button": "Arrow Down",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:01.124+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:01.339+00:00",
+      "duration_ms": 215,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        738,
+        739
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000510000000000"
+    },
+    {
+      "action_id": 442,
+      "button": "Arrow Left",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:02.754+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:02.939+00:00",
+      "duration_ms": 185,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        740,
+        741
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:0000500000000000"
+    },
+    {
+      "action_id": 443,
+      "button": "Arrow Right",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:03.831+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:04.033+00:00",
+      "duration_ms": 202,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        742,
+        743
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:01:00004f0000000000"
+    },
+    {
+      "action_id": 444,
+      "button": "Return",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:05.391+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:05.512+00:00",
+      "duration_ms": 121,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        744,
+        745
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:2402"
+    },
+    {
+      "action_id": 445,
+      "button": "Mute",
+      "state": "press_release",
+      "down_timestamp_utc": "2026-09-14T12:39:07.001+00:00",
+      "up_timestamp_utc": "2026-09-14T12:39:07.189+00:00",
+      "duration_ms": 188,
+      "packet_count": 2,
+      "raw_event_indexes": [
+        746,
+        747
+      ],
+      "raw_input_type": 2,
+      "collection": "COL02",
+      "signature": "hid:02:e200"
     }
   ],
   "capture_coverage": {
@@ -15775,7 +16783,7 @@
           "usage": "0x223"
         }
       ],
-      "paired_actions": 21,
+      "paired_actions": 23,
       "sample_reports": [
         "03 01",
         "03 00",
@@ -15786,10 +16794,12 @@
       "button": "Arrow Up",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -15801,20 +16811,23 @@
           "usage": "0x26"
         }
       ],
-      "paired_actions": 3,
+      "paired_actions": 5,
       "sample_reports": [
         "48 00 02 00 00 00 26 00 00 01 00 00 00 00 00 00",
-        "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00"
+        "48 00 03 00 00 00 26 00 01 01 00 00 00 00 00 00",
+        "01 00 00 52 00 00 00 00 00"
       ]
     },
     {
       "button": "Arrow Down",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -15826,20 +16839,23 @@
           "usage": "0x28"
         }
       ],
-      "paired_actions": 3,
+      "paired_actions": 5,
       "sample_reports": [
         "50 00 02 00 00 00 28 00 00 01 00 00 00 00 00 00",
-        "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00"
+        "50 00 03 00 00 00 28 00 01 01 00 00 00 00 00 00",
+        "01 00 00 51 00 00 00 00 00"
       ]
     },
     {
       "button": "Arrow Left",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -15851,20 +16867,23 @@
           "usage": "0x25"
         }
       ],
-      "paired_actions": 3,
+      "paired_actions": 5,
       "sample_reports": [
         "4b 00 02 00 00 00 25 00 00 01 00 00 00 00 00 00",
-        "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00"
+        "4b 00 03 00 00 00 25 00 01 01 00 00 00 00 00 00",
+        "01 00 00 50 00 00 00 00 00"
       ]
     },
     {
       "button": "Arrow Right",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -15876,20 +16895,23 @@
           "usage": "0x27"
         }
       ],
-      "paired_actions": 4,
+      "paired_actions": 6,
       "sample_reports": [
         "4d 00 02 00 00 00 27 00 00 01 00 00 00 00 00 00",
-        "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00"
+        "4d 00 03 00 00 00 27 00 01 01 00 00 00 00 00 00",
+        "01 00 00 4f 00 00 00 00 00"
       ]
     },
     {
       "button": "OK",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -15901,10 +16923,11 @@
           "usage": "0xD"
         }
       ],
-      "paired_actions": 3,
+      "paired_actions": 5,
       "sample_reports": [
         "1c 00 00 00 00 00 0d 00 00 01 00 00 00 00 00 00",
-        "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00"
+        "1c 00 01 00 00 00 0d 00 01 01 00 00 00 00 00 00",
+        "01 00 00 28 00 00 00 00 00"
       ]
     },
     {
@@ -15926,7 +16949,7 @@
           "usage": "0x224"
         }
       ],
-      "paired_actions": 8,
+      "paired_actions": 10,
       "sample_reports": [
         "02 24 02",
         "02 00 00",
@@ -15952,7 +16975,7 @@
           "usage": "0x221"
         }
       ],
-      "paired_actions": 24,
+      "paired_actions": 26,
       "sample_reports": [
         "02 21 02",
         "02 00 00",
@@ -15981,7 +17004,7 @@
           "usage": "0xE2"
         }
       ],
-      "paired_actions": 8,
+      "paired_actions": 10,
       "sample_reports": [
         "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00 00 00 00",
         "00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00",
@@ -16011,7 +17034,7 @@
           "usage": "0x223"
         }
       ],
-      "paired_actions": 18,
+      "paired_actions": 20,
       "sample_reports": [
         "02 23 02",
         "02 00 00",
@@ -16022,10 +17045,12 @@
       "button": "Menu",
       "status": "confirmed",
       "collections": [
-        "COL01"
+        "COL01",
+        "COL02"
       ],
       "raw_input_types": [
-        1
+        1,
+        2
       ],
       "states": [
         "down",
@@ -16037,10 +17062,11 @@
           "usage": "0x5D"
         }
       ],
-      "paired_actions": 15,
+      "paired_actions": 17,
       "sample_reports": [
         "5d 00 02 00 00 00 5d 00 00 01 00 00 00 00 00 00",
-        "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00"
+        "5d 00 03 00 00 00 5d 00 01 01 00 00 00 00 00 00",
+        "01 00 00 65 00 00 00 00 00"
       ]
     },
     {
@@ -16072,7 +17098,7 @@
           "usage": "0xE9"
         }
       ],
-      "paired_actions": 15,
+      "paired_actions": 16,
       "sample_reports": [
         "02 e9 00",
         "02 00 00",
@@ -16102,7 +17128,7 @@
           "usage": "0xEA"
         }
       ],
-      "paired_actions": 14,
+      "paired_actions": 15,
       "sample_reports": [
         "02 ea 00",
         "02 00 00",

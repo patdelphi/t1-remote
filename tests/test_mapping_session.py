@@ -642,6 +642,42 @@ class MappingSessionTests(unittest.TestCase):
             finally:
                 session.stop()
 
+    def test_real_session_falls_back_to_raw_input_without_col01_attachment(self) -> None:
+        """驱动未附着 COL01 时必须回退 Raw Input，否则方向键会静默丢失。"""
+
+        bridge = _FakeBridge()
+        # 模拟驱动只附着 COL02/COL03（无 COL01 位）。
+        bridge.status = lambda: SimpleNamespace(
+            state="running",
+            lease_active=False,
+            attached_collections=(1 << 2) | (1 << 3),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mapping.json"
+            save_mapping_config(path, MappingConfig.default())
+            session = T1MappingSession(
+                path,
+                dry_run=False,
+                bridge_factory=lambda: bridge,
+                raw_listener_factory=_FakeRawListener,
+                hid_listener_factory=_FakeHidListener,
+                instance_name=f"T1RemoteTestSession-{id(bridge)}",
+            )
+            session.start()
+            try:
+                assert session._runtime is not None
+                with patch.object(session._runtime, "process_report") as process_report:
+                    session._handle_raw_event(
+                        RawInputEvent(
+                            r"\\?\hid#vid_620a&pid_0407&col01#x",
+                            1,
+                            bytes.fromhex("48 00 02 00 00 00 26 00 00 01 00 00"),
+                        )
+                    )
+                    process_report.assert_called_once()
+            finally:
+                session.stop()
+
     def test_long_press_is_emitted_by_session_polling(self) -> None:
         """桥接队列空闲时，长按计时器仍应按轮询及时触发。"""
 

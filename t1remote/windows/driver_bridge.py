@@ -426,16 +426,11 @@ def build_default_interception_policy(
         HidUsage(0x0C, 0xE9, "COL02"),  # Volume Plus
         HidUsage(0x0C, 0xEA, "COL02"),  # Volume Minus
         HidUsage(0x01, 0x81, "COL03"),  # System Power Down；T1 业务名称 Power
-        # 键盘集合（COL01）的 HID Usage 按 captures/t1-remote-control.json 的
-        # Raw Input 快照反推：VK_UP(0x26)←HID 0x52、VK_LEFT(0x25)←0x50、
-        # VK_RIGHT(0x27)←0x4F、VK_DOWN(0x28)←0x51、VK_RETURN(0x0D)←0x28、
-        # VK_APPS(0x5D)←0x65。0x25-0x28 不是本设备的箭头键，不能照搬 VK。
-        HidUsage(0x07, 0x28, "COL01"),  # OK（HID 键盘 Enter）
-        HidUsage(0x07, 0x4F, "COL01"),  # Arrow Right
-        HidUsage(0x07, 0x50, "COL01"),  # Arrow Left
-        HidUsage(0x07, 0x51, "COL01"),  # Arrow Down
-        HidUsage(0x07, 0x52, "COL01"),  # Arrow Up
-        HidUsage(0x07, 0x65, "COL01"),  # Menu（HID 键盘 Application）
+        # 键盘集合（COL01）只保留 Menu：正面 OK 与背面 Return 都是 HID 0x28，
+        # 正面方向键与背面方向键都是 0x4F-0x52，HID 层无法区分（2026-09-14 真机
+        # 实测）。按“优先背面键盘”的取舍，这五组 usage 放行给系统，背面全键盘
+        # 正常打字；正面的 OK/方向键走系统原生行为（回车/移动焦点），不再映射。
+        HidUsage(0x07, 0x65, "COL01"),  # Menu（HID 键盘 Application，背面无此键）
     )
     return InterceptionPolicy(
         blocked_usages=blocked_usages,
