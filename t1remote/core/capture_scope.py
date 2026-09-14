@@ -60,6 +60,10 @@ class CaptureEvent:
     state: str = "unknown"
     usage_page: int | None = None
     usage: int | None = None
+    # 事件来源通道（bridge/direct/raw），用于排查同一物理按键的重复采集。
+    capture_channel: str | None = None
+    # 驱动事件队列序号（仅桥接通道），用于排查连发帧合并行为。
+    sequence: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """转换为 JSON 可序列化对象。"""
@@ -183,9 +187,16 @@ def build_logical_actions(events: list[CaptureEvent]) -> list[LogicalAction]:
         if state == "down":
             if key in active:
                 action = mutable_actions[active[key]]
-                action["packet_count"] += 1
-                action["raw_event_indexes"].append(event_index)
-                continue
+                # 设备对短间隔连按会发 repeat 帧流（一次长按 = 多帧 repeat）。
+                # 与上一次按下间隔超过 120ms 的重复按下按新的一次按压记录，
+                # 否则并入上一条（三次连发帧会在输入层合并，不在这里算）。
+                repeat_gap_ms = _duration_ms(
+                    action["down_timestamp_utc"], event.timestamp_utc
+                )
+                if repeat_gap_ms is None or repeat_gap_ms <= 120:
+                    action["packet_count"] += 1
+                    action["raw_event_indexes"].append(event_index)
+                    continue
             action_index = len(mutable_actions)
             mutable_actions.append(
                 {

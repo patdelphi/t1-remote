@@ -132,7 +132,11 @@ def _append_capture_if_nonempty(
     return True
 
 
-def _build_event(raw_event: RawInputEvent, button: str) -> CaptureEvent:
+def _build_event(
+    raw_event: RawInputEvent,
+    button: str,
+    capture_channel: str | None = None,
+) -> CaptureEvent:
     """把底层事件转换为不包含蓝牙地址的采集记录。"""
 
     collection = collection_from_device_path(raw_event.device_path)
@@ -152,6 +156,8 @@ def _build_event(raw_event: RawInputEvent, button: str) -> CaptureEvent:
         state=state,
         usage_page=usage_page,
         usage=usage,
+        capture_channel=capture_channel,
+        sequence=getattr(raw_event, "sequence", None),
     )
 
 

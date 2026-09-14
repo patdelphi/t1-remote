@@ -1229,8 +1229,34 @@ T1FilterShouldBlockReport(
             decoded_usage = ReportLength < 3
                 ? 0
                 : ((USHORT)Report[1] | ((USHORT)Report[2] << 8));
+        } else if (UsagePage == 0x0007) {
+            /*
+             * 键盘集合（COL01）：HID 能力为 report_id=1、修饰键位域
+             * 0xE0-0xE7、键码数组 0x00-0xFF（preparsed data 实测），
+             * 按 boot 键盘布局解码。Report[0]=Report ID，Report[1]=修饰
+             * 键，Report[2..]=键码数组，取第一个按下的键码；只有修饰键
+             * 按下时用 0xE0 + 位号。无 parser 时也依赖此布局，否则方向键
+             * 在 App 未运行时无法解码、会漏放给系统。
+             */
+            decoded_usage = 0;
+            if (ReportLength >= 3) {
+                for (ULONG index = 2; index < ReportLength; ++index) {
+                    if (Report[index] != 0) {
+                        decoded_usage = Report[index];
+                        break;
+                    }
+                }
+                if (decoded_usage == 0 && Report[1] != 0) {
+                    for (ULONG bit = 0; bit < 8; ++bit) {
+                        if ((Report[1] & (1U << bit)) != 0) {
+                            decoded_usage = (USHORT)(0x00E0 + bit);
+                            break;
+                        }
+                    }
+                }
+            }
         } else {
-            /* 键盘等其他集合没有已验证的固定布局：没有 parser 时不解码，
+            /* 其他集合没有已验证的固定布局：没有 parser 时不解码，
              * 保持 unknown，由目标集合与 DROP_UNMAPPED 决定是否拦截。 */
             decoded_usage = 0;
         }

@@ -72,7 +72,22 @@
     <ClInclude Include="..\t1bridge\t1bridge_protocol.h" />
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="t1filter.inf" />
+    <!-- Inf2Cat 按 UTC 校验 DriverVer；本地时间领先 UTC 的时区（如 UTC+8 凌晨）
+         会被判成“未来日期”。固定一个 UTC 已过的日期并手动递增版本号。 -->
+    <Inf Include="t1filter.inf">
+      <SpecifyDriverVerDirectiveDate>true</SpecifyDriverVerDirectiveDate>
+      <DateStamp>09/13/2026</DateStamp>
+      <SpecifyDriverVerDirectiveVersion>true</SpecifyDriverVerDirectiveVersion>
+      <!-- 版本段要高于历史包（旧包用构建时刻的 hh.mm.ss.mmm 格式），
+           否则系统会优先选中含键盘集合匹配的旧包导致安装失败。 -->
+      <TimeStamp>23.59.59.999</TimeStamp>
+    </Inf>
+    <Inf Include="t1filter_keyboard.inf">
+      <SpecifyDriverVerDirectiveDate>true</SpecifyDriverVerDirectiveDate>
+      <DateStamp>09/13/2026</DateStamp>
+      <SpecifyDriverVerDirectiveVersion>true</SpecifyDriverVerDirectiveVersion>
+      <TimeStamp>23.59.59.999</TimeStamp>
+    </Inf>
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(OutDir)$(TargetName)$(TargetExt)" />

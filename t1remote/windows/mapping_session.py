@@ -431,7 +431,9 @@ class T1MappingSession:
         if not callable(getter):
             raise MappingSessionError("驱动缺少 HID parser 接口，未启用过滤")
         parser_data = {}
-        for collection in ("COL02", "COL03"):
+        # 键盘集合（COL01）也加载 parser：有 parser 时驱动用官方解析结果，
+        # 无 parser 时驱动有 boot 布局解码兜底，所以它的缺失不阻断会话。
+        for collection in ("COL02", "COL03", "COL01"):
             try:
                 preparsed_data = bytes(getter(collection))
                 if not preparsed_data:
@@ -441,6 +443,11 @@ class T1MappingSession:
                     collection=collection,
                 )
             except (BridgeError, OSError, RuntimeError, TypeError, ValueError) as error:
+                if collection == "COL01":
+                    self._log(
+                        f"{collection} HID parser 不可用，改用驱动内置键盘解码：{error}"
+                    )
+                    continue
                 raise MappingSessionError(
                     f"{collection} HID parser 不可用，未启用过滤：{error}"
                 ) from error

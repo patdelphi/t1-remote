@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FILTER_SOURCE = ROOT / "native" / "t1filter" / "t1filter.c"
 FILTER_HEADER = ROOT / "native" / "t1filter" / "t1filter.h"
 FILTER_INF = ROOT / "native" / "t1filter" / "t1filter.inf"
+FILTER_KEYBOARD_INF = ROOT / "native" / "t1filter" / "t1filter_keyboard.inf"
 BRIDGE_SOURCE = ROOT / "native" / "t1bridge" / "t1bridge.c"
 BRIDGE_PROTOCOL = ROOT / "native" / "t1bridge" / "t1bridge_protocol.h"
 
@@ -504,15 +505,32 @@ def test_control_session_owner_guards_mutating_ioctls() -> None:
 
 
 def test_filter_attaches_to_keyboard_collection_with_correct_usage_page() -> None:
-    """键盘集合必须挂过滤器，并使用 HID Usage Page 0x07 解码。"""
+    """键盘集合用独立 INF（Keyboard 类 + 继承键盘安装）挂载过滤器。"""
 
     source = FILTER_SOURCE.read_text(encoding="utf-8")
     inf = FILTER_INF.read_text(encoding="utf-8")
+    keyboard_inf = FILTER_KEYBOARD_INF.read_text(encoding="utf-8")
     device_add = source[source.index("T1FilterEvtDeviceAdd("):]
 
-    assert "&Col01" in inf
+    # HID 包只匹配消费者控制与系统控制集合。
+    assert "&Col01" not in inf
     assert "&Col02" in inf
     assert "&Col03" in inf
+    # 键盘包必须声明 Keyboard 类（否则设备离开键盘类，kbdclass 不再绑定），
+    # 且安装段 Include/Needs 微软 keyboard.inf 的键盘安装步骤（否则 kbdhid
+    # 的安装会被过滤器 INF 替换，键盘完全失效）。
+    assert "Class       = Keyboard" in keyboard_inf
+    assert "&Col01" in keyboard_inf
+    # 安装段/HW 段/Services 段都要继承 keyboard.inf 的键盘安装步骤
+    # （官方 kbfiltr 样例结构）。
+    assert "Include = keyboard.inf" in keyboard_inf
+    assert "Needs   = HID_Keyboard_Inst.NT" in keyboard_inf
+    assert "Needs   = HID_Keyboard_Inst.NT.HW" in keyboard_inf
+    assert "Needs   = HID_Keyboard_Inst.NT.Services" in keyboard_inf
+    # 过滤器用 AddReg 写设备驱动键的 LowerFilters（官方 kbfiltr 用 UpperFilters，
+    # 这里要挂在 kbdhid 之下，因此用 LowerFilters）。
+    assert 'HKR,,"LowerFilters",0x00010000,"T1RemoteFilter"' in keyboard_inf
+    assert "KmdfService = T1RemoteFilter" in keyboard_inf
     assert "case 1:" in device_add
     assert "context->usage_page = 0x0007;" in device_add
     assert "context->usage_page = 0x0001;" in device_add
@@ -537,8 +555,8 @@ def test_policy_is_persisted_and_loaded_at_driver_start() -> None:
     assert "T1FilterLoadPersistedPolicy(g_ControlContext);" in driver_entry
 
 
-def test_byte_fallback_only_applies_to_consumer_control() -> None:
-    """无 parser 时只有消费者控制的字节布局可以解码，其他集合不猜测。"""
+def test_byte_fallback_decodes_consumer_and_keyboard_layouts_only() -> None:
+    """无 parser 时只解码已验证的消费者字节布局与键盘 boot 布局，其他集合不猜测。"""
 
     source = FILTER_SOURCE.read_text(encoding="utf-8")
     share_block = source[
@@ -548,6 +566,11 @@ def test_byte_fallback_only_applies_to_consumer_control() -> None:
     ]
 
     assert "} else if (UsagePage == 0x000C) {" in share_block
+    # 键盘集合按 boot 布局解码：Report[1] 修饰键位域 + Report[2..] 键码数组。
+    # 无 parser（App 未运行）时也必须能解出方向键，否则会漏放给系统。
+    assert "} else if (UsagePage == 0x0007) {" in share_block
+    assert "0x00E0 + bit" in share_block
+    # 报告改写仍然只允许消费者控制，键盘与系统控制不改写字段。
     assert "只有消费者控制的字节布局经过验证" in source
 
 

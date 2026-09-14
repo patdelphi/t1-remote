@@ -96,6 +96,8 @@ class RawInputEvent:
     device_path: str
     raw_input_type: int
     raw_data: bytes
+    # 驱动事件队列的序号（仅桥接通道提供），用于排查连发帧的合并行为。
+    sequence: int | None = None
 
 
 def build_raw_input_registrations(hwnd: int) -> list[RawInputDevice]:

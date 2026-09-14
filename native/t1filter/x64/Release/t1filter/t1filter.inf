@@ -7,7 +7,7 @@ Class       = HIDClass
 ClassGuid   = {745A17A0-74D3-11D0-B6FE-00A0C90F57DA}
 Provider    = %ProviderName%
 PnpLockdown = 1
-DriverVer   = 09/10/2026,1.0.2.0
+DriverVer = 09/13/2026,23.59.59.999
 CatalogFile = T1RemoteFilter.cat
 
 [DestinationDirs]

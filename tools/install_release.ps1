@@ -85,6 +85,29 @@ function Set-PowerButtonActionDoNothing {
     Write-Host "电源按钮动作已设为“不采取任何操作”，Power 键交给 T1 Remote 映射。"
 }
 
+function Remove-KeyboardCollectionFilter {
+    # 键盘集合（Col01）的过滤器由 INF 声明（Include=keyboard.inf 继承键盘安装
+    # 步骤 + AddFilter）。早期版本曾在键盘类设备实例子键手写 LowerFilters，
+    # 现代 Windows 的声明式过滤器不读取该值（2026-09-14 实测），这里清理遗留。
+    $classRoot = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4D36E96B-E325-11CE-BFC1-08002BE10318}'
+    $instances = @(Get-ChildItem $classRoot -ErrorAction SilentlyContinue | Where-Object {
+        $deviceId = (Get-ItemProperty -Path $_.PSPath -Name MatchingDeviceId -ErrorAction SilentlyContinue).MatchingDeviceId
+        $null -ne $deviceId -and $deviceId -match 'HID_DEVICE_SYSTEM_KEYBOARD'
+    })
+    foreach ($instance in $instances) {
+        $current = (Get-ItemProperty -Path $instance.PSPath -Name LowerFilters -ErrorAction SilentlyContinue).LowerFilters
+        if ($null -eq $current) {
+            continue
+        }
+        $values = @($current | Where-Object { $_ -ne 'T1RemoteFilter' })
+        if ($values.Count -gt 0) {
+            Set-ItemProperty -Path $instance.PSPath -Name LowerFilters -Value $values -Type MultiString
+        } else {
+            Remove-ItemProperty -Path $instance.PSPath -Name LowerFilters -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 Assert-Administrator
 $driverRoot = Join-Path $releaseRoot "Driver"
 $driverInf = Get-ChildItem -LiteralPath $driverRoot -File -Filter "*.inf" | Select-Object -First 1
@@ -120,6 +143,8 @@ if (-not $SkipDriver) {
     if ($LASTEXITCODE -eq 3010) {
         Write-Warning "驱动已暂存，Windows 要求重启后加载。"
     }
+    # 键盘集合的过滤器由 INF 声明，这里只清理早期版本手写的遗留值。
+    Remove-KeyboardCollectionFilter
 }
 
 $installedApp = Join-Path $InstallRoot "App"

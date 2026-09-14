@@ -54,8 +54,31 @@ function Restore-PowerButtonAction {
     Write-Host ("已恢复电源按钮动作：AC=" + $backup.ACSettingIndex + " DC=" + $backup.DCSettingIndex)
 }
 
+function Remove-KeyboardCollectionFilter {
+    # 移除安装时写入键盘集合设备实例子键的 LowerFilters 绑定。
+    $classRoot = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{745A17A0-74D3-11D0-B6FE-00A0C90F57DA}'
+    $instances = @(Get-ChildItem $classRoot -ErrorAction SilentlyContinue | Where-Object {
+        $deviceId = (Get-ItemProperty -Path $_.PSPath -Name MatchingDeviceId -ErrorAction SilentlyContinue).MatchingDeviceId
+        $null -ne $deviceId -and $deviceId -match 'Col01'
+    })
+    foreach ($instance in $instances) {
+        $current = (Get-ItemProperty -Path $instance.PSPath -Name LowerFilters -ErrorAction SilentlyContinue).LowerFilters
+        if ($null -eq $current) {
+            continue
+        }
+        $values = @($current | Where-Object { $_ -ne 'T1RemoteFilter' })
+        if ($values.Count -gt 0) {
+            Set-ItemProperty -Path $instance.PSPath -Name LowerFilters -Value $values -Type MultiString
+        } else {
+            Remove-ItemProperty -Path $instance.PSPath -Name LowerFilters -ErrorAction SilentlyContinue
+        }
+    }
+    Write-Host "键盘集合过滤器绑定已移除。"
+}
+
 Assert-Administrator
 Restore-PowerButtonAction -BackupPath (Join-Path ${env:ProgramData} "T1 Remote\power-button-backup.json")
+Remove-KeyboardCollectionFilter
 if (-not $SkipDriver) {
     $publishedName = Find-PublishedDriverName
     if (-not [string]::IsNullOrWhiteSpace($publishedName)) {

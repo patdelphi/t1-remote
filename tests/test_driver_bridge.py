@@ -6,6 +6,7 @@ import ctypes
 import unittest
 
 from t1remote.windows.driver_bridge import (
+    ERROR_NO_MORE_ITEMS,
     BridgeCapabilities,
     BridgeError,
     BridgeProtocolError,
@@ -45,6 +46,39 @@ class _FakeOpenFunction(_FakeFunction):
     def __call__(self, *args: object) -> int:
         result = super().__call__(*args)
         ctypes.cast(args[1], ctypes.POINTER(ctypes.c_void_p)).contents.value = 1
+        return result
+
+
+class _ScriptedReadEventFunction(_FakeFunction):
+    """按脚本输出事件序列，用尽后返回 ERROR_NO_MORE_ITEMS。
+
+    每个条目是 (usage_page, usage, collection, timestamp_100ns)。
+    """
+
+    def __init__(self, items: list[tuple[int, int, int, int]]) -> None:
+        super().__init__(0)
+        self.items = list(items)
+        self._sent = 0
+
+    def __call__(self, *args: object) -> int:
+        if not self.items:
+            return ERROR_NO_MORE_ITEMS
+        usage_page, usage, collection, timestamp = self.items.pop(0)
+        result = super().__call__(*args)
+        event = ctypes.cast(args[1], ctypes.POINTER(NativeBridgeEvent)).contents
+        event.size = ctypes.sizeof(NativeBridgeEvent)
+        event.abi_version = 2
+        # sequence 必须严格递增：真实设备连发帧的序列相邻（差 1）。
+        event.sequence = 1000 + self._sent
+        self._sent += 1
+        event.usage_page = usage_page
+        event.usage = usage
+        event.collection = collection
+        event.report_length = 3
+        event.report[0] = 0x02
+        event.report[1] = usage & 0xFF
+        event.report[2] = 0x00
+        event.timestamp_100ns = timestamp
         return result
 
 
@@ -556,6 +590,40 @@ class DriverBridgeTests(unittest.TestCase):
     def test_native_event_layout_is_fixed_size(self) -> None:
         self.assertEqual(ctypes.sizeof(NativeBridgeEvent), 96)
 
+    def test_client_read_event_dedupes_device_frame_repeats(self) -> None:
+        library = _FakeBridgeLibrary()
+        # T1 一次按压连发 3 个相同帧（同 usage 同时间戳），随后 3 个释放帧；
+        # 超过 100ms 窗口的再次按压必须保留（长按重复）。
+        library.read_event = library.T1Bridge_ReadEvent = _ScriptedReadEventFunction(
+            [
+                (0x0C, 0xE9, 2, 1_000),        # 按下帧 1（保留）
+                (0x0C, 0xE9, 2, 1_000),        # 按下帧 2（合并）
+                (0x0C, 0xE9, 2, 100_000),      # 按下帧 3（仍在 100ms 内）
+                (0x0C, 0x0000, 2, 100_000),    # 抬起帧 1（保留，usage 不同）
+                (0x0C, 0x0000, 2, 100_000),    # 抬起帧 2（合并）
+                (0x0C, 0xE9, 2, 2_000_000),    # 200ms 后再次按压（保留）
+            ]
+        )
+        client = T1BridgeClient(
+            library_loader=lambda _path: library,
+            is_windows=True,
+        )
+        client.open(InterceptionPolicy())
+
+        first = client.read_event()
+        second = client.read_event()
+        third = client.read_event()
+
+        self.assertIsNotNone(first)
+        self.assertIsNotNone(second)
+        self.assertIsNotNone(third)
+        assert first is not None and second is not None and third is not None
+        self.assertEqual((first.usage, first.timestamp_100ns), (0xE9, 1_000))
+        self.assertEqual((second.usage, second.timestamp_100ns), (0x0000, 100_000))
+        self.assertEqual((third.usage, third.timestamp_100ns), (0xE9, 2_000_000))
+        self.assertIsNone(client.read_event())
+        client.close()
+
     def test_client_reads_original_blocked_event(self) -> None:
         library = _FakeBridgeLibrary()
         client = T1BridgeClient(
@@ -624,6 +692,8 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertIn((0x07, 0x65, "COL01"), usages)
         # 常驻拦截：默认不依赖 App 会话租约。
         self.assertFalse(policy.lease_required)
+        # 方案 B：只拦确认键，键盘面其余键放行给系统（背面键盘可打字）。
+        self.assertFalse(policy.drop_unmapped)
 
     def test_default_interception_policy_can_be_disabled_for_dry_run(self) -> None:
         policy = build_default_interception_policy(enabled=False, lease_required=False)

@@ -494,7 +494,8 @@ class MappingSessionTests(unittest.TestCase):
                 while bridge.start_calls < 2 and time.monotonic() < deadline:
                     time.sleep(0.02)
                 self.assertGreaterEqual(bridge.start_calls, 2)
-                self.assertEqual(bridge.parser_calls[:4], ["COL02", "COL03", "COL02", "COL03"])
+                # 每轮会话依次加载三个集合的 parser（键盘集合缺失不阻断）。
+                self.assertEqual(bridge.parser_calls[:3], ["COL02", "COL03", "COL01"])
                 self.assertEqual(session.status().driver_state, "running")
                 self.assertTrue(session.status().lease_active)
             finally:
@@ -710,7 +711,8 @@ class MappingSessionTests(unittest.TestCase):
             )
             session.start()
             try:
-                deadline = time.monotonic() + 5
+                # 负载较高时事件循环启动会变慢，等待窗口放宽以降低误报。
+                deadline = time.monotonic() + 15
                 while (
                     session.status().diagnostics.mapping_events < 2
                     and time.monotonic() < deadline

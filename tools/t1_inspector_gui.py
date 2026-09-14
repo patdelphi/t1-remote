@@ -649,10 +649,14 @@ def build_capture_tab(
             f"原始包：{len(events)} | 逻辑操作：{len(actions)}"
         )
 
-    def handle_raw_event(raw_event: RawInputEvent, button: str) -> None:
+    def handle_raw_event(
+        raw_event: RawInputEvent,
+        button: str,
+        capture_channel: str | None = None,
+    ) -> None:
         """在 UI 线程中更新表格，避免跨线程操作 Tkinter 控件。"""
 
-        event = _build_event(raw_event, button)
+        event = _build_event(raw_event, button, capture_channel=capture_channel)
         events.append(event)
         refresh_action_table()
         status_label.set("状态：监听中")
@@ -686,8 +690,9 @@ def build_capture_tab(
         ):
             # 主动直读或驱动桥接已经提供完整报文，Raw Input 只会造成重复。
             return
+        channel = "bridge" if from_bridge else "direct" if from_direct_hid else "raw"
         try:
-            root.after(0, handle_raw_event, raw_event, button)
+            root.after(0, handle_raw_event, raw_event, button, channel)
         except RuntimeError:
             # 窗口关闭后，消息线程可能仍收到最后一条输入。
             pass
@@ -727,6 +732,7 @@ def build_capture_tab(
             ),
             raw_input_type=2,
             raw_data=bytes(getattr(event, "report", b"")),
+            sequence=getattr(event, "sequence", None),
         )
 
     def bridge_event_callback(event: object) -> None:

@@ -1,0 +1,79 @@
+; 程序说明：把 T1RemoteFilter 安装为 T1 键盘集合（Col01）的设备专属下层过滤器。
+;
+; 结构参照微软官方键盘过滤驱动样例 kbfiltr（Windows-driver-samples/input/kbfiltr）：
+;   * Class 必须是 Keyboard，否则设备离开键盘类，kbdclass 不再绑定；
+;   * 安装段、HW 段、Services 段都要 Include/Needs 微软 keyboard.inf 的键盘安装
+;     步骤，否则过滤器 INF 会替换键盘功能驱动（kbdhid）的安装，键盘完全失效；
+;   * 过滤器通过 AddReg 写设备驱动键的 LowerFilters 值声明（HKR = 设备的驱动键），
+;     由 PnP 在设备安装时写入并在构建设备栈时读取；手写注册表值不会被采用。
+; 过滤器本体与 HID 集合版本共用同一个服务与驱动文件（t1filter.sys）。
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Keyboard
+ClassGuid   = {4D36E96B-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+PnpLockdown = 1
+CatalogFile = T1RemoteFilterKeyboard.cat
+DriverVer = 09/13/2026,23.59.59.999
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+t1filter.sys = 1
+
+[Manufacturer]
+%ProviderName% = Standard, NTamd64.10.0...18362
+
+[Standard.NTamd64.10.0...18362]
+%T1RemoteFilter.DeviceDesc% = T1RemoteFilter_KeyboardInstall, HID\{00001812-0000-1000-8000-00805f9b34fb}_Dev_VID&01620A_PID&0407_REV&0000&Col01
+
+[T1RemoteFilter_KeyboardInstall.NT]
+; 继承键盘安装（功能驱动 kbdhid、类绑定与键盘相关注册都由 keyboard.inf 完成）。
+Include = keyboard.inf
+Needs   = HID_Keyboard_Inst.NT
+CopyFiles = T1RemoteFilter_CopyFiles
+
+[T1RemoteFilter_KeyboardInstall.NT.Services]
+AddService = T1RemoteFilter, , T1RemoteFilter_Service
+Include = keyboard.inf
+Needs   = HID_Keyboard_Inst.NT.Services
+
+[T1RemoteFilter_KeyboardInstall.NT.HW]
+; HKR 指设备驱动键：把过滤器登记为设备的下层过滤器。
+AddReg = T1RemoteFilter_Keyboard.HW.AddReg
+Include = keyboard.inf
+Needs   = HID_Keyboard_Inst.NT.HW
+
+[T1RemoteFilter_Keyboard.HW.AddReg]
+HKR,,"LowerFilters",0x00010000,"T1RemoteFilter"
+
+[T1RemoteFilter_KeyboardInstall.NT.Wdf]
+KmdfService = T1RemoteFilter, T1RemoteFilter_Wdf
+
+[T1RemoteFilter_CopyFiles]
+t1filter.sys
+
+[T1RemoteFilter_Service]
+DisplayName   = %T1RemoteFilter.SvcDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %13%\t1filter.sys
+
+[T1RemoteFilter_Filter]
+FilterPosition = Lower
+
+[T1RemoteFilter_Wdf]
+KmdfLibraryVersion = 1.33
+
+[Strings]
+ProviderName            = "T1 Remote"
+DiskName                = "T1 Remote Driver Package"
+T1RemoteFilter.DeviceDesc = "T1 Remote Keyboard Filter"
+T1RemoteFilter.SvcDesc  = "T1 Remote HID Filter"
+

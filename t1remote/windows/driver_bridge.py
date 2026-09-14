@@ -441,9 +441,10 @@ def build_default_interception_policy(
         blocked_usages=blocked_usages,
         target_collections=("COL01", "COL02", "COL03"),
         enabled=enabled,
-        # 常驻拦截全部原生按键：目标集合内未解析出 Usage 的报告也拦截，
-        # 否则键盘集合在没有 parser 缓存时会漏放。
-        drop_unmapped=True,
+        # 只拦截清单内的确认键：遥控键（方向/OK/Menu/音量/Power 等）被驱动
+        # 拦截并交给 App 映射；键盘面其余键（字母数字）原样放行给系统，
+        # 背面全键盘保持可打字。释放帧由驱动按活动按键状态跟随拦截。
+        drop_unmapped=False,
         remap_enabled=False,
         lease_required=lease_required,
     )
@@ -617,6 +618,12 @@ class T1BridgeClient:
         self._library: object | None = None
         self._handle = ctypes.c_void_p()
         self._policy: InterceptionPolicy | None = None
+        # T1 遥控器每次按压会连发 3 个相同的 HID report，系统路径会合并
+        # 它们（音量键从来只动一级）。read_event 也要在消费侧去重，否则
+        # 采集页和映射会看到一条事件出现 3 次。
+        self._dedup_key: tuple[str, int, int, bool] | None = None
+        self._dedup_sequence: int = -1
+        self._dedup_timestamp_100ns: int = -1
 
     @property
     def is_open(self) -> bool:
@@ -833,7 +840,55 @@ class T1BridgeClient:
         return bytes(native.data[:data_length])
 
     def read_event(self) -> DriverInputEvent | None:
-        """读取一条被驱动拦截前保存的原始事件；队列为空时返回 None。"""
+        """读取一条被驱动拦截前保存的原始事件；队列为空时返回 None。
+
+        T1 的一次物理按压会连发 3 个按下帧 + 3 个抬起帧共 6 条事件（系统
+        路径会把它们合并成一次按键，音量键不会跳三级）。这里把序列相邻、
+        属于同一物理按下的重复帧合并，只透出第一条；按下→抬起的状态转换
+        必须保留。判定按下/抬起用报告载荷（除 Report ID 外全零 = 抬起），
+        不依赖 usage：驱动会把抬起帧的 usage 恢复为按下的键名用于配对。
+        """
+
+        while True:
+            event = self._read_native_event()
+            if event is None:
+                return None
+            report = bytes(event.report)
+            # 报告除 Report ID 外全零视为抬起帧（即使驱动恢复的 usage 非零）。
+            pressed = any(byte != 0 for byte in report[1:])
+            key = (
+                event.collection,
+                event.usage_page,
+                event.usage if pressed else 0,
+                pressed,
+            )
+            sequence = int(event.sequence)
+            interval_100ns = event.timestamp_100ns - self._dedup_timestamp_100ns
+            if (
+                key == self._dedup_key
+                and sequence > 0
+                and self._dedup_sequence > 0
+                and 0 < sequence - self._dedup_sequence <= 1
+                and (
+                    # 三次连发帧落在同一 10ms 时间桶；repeat 帧间隔远大于
+                    # 40ms，必须透出（系统对 repeat 帧逐级调音量）。
+                    event.timestamp_100ns <= 0
+                    or self._dedup_timestamp_100ns <= 0
+                    or interval_100ns <= 400_000
+                )
+            ):
+                # 同一次物理按下的三连帧：跳过，不下发给消费者；同时推进
+                # 序号与时间戳，让连发的第 3 帧也能继续合并。
+                self._dedup_sequence = sequence
+                self._dedup_timestamp_100ns = event.timestamp_100ns
+                continue
+            self._dedup_key = key
+            self._dedup_sequence = sequence
+            self._dedup_timestamp_100ns = event.timestamp_100ns
+            return event
+
+    def _read_native_event(self) -> DriverInputEvent | None:
+        """读取并校验一条原生驱动事件（不去重）。"""
 
         self._require_open()
         assert self._library is not None
@@ -883,6 +938,9 @@ class T1BridgeClient:
             self._handle = ctypes.c_void_p()
             self._library = None
             self._policy = None
+            self._dedup_key = None
+            self._dedup_sequence = -1
+            self._dedup_timestamp_100ns = -1
 
     def __enter__(self) -> "T1BridgeClient":
         return self
