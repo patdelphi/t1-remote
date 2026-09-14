@@ -464,3 +464,32 @@
 - [ ] COL01 恢复后的真实 HID Usage 验证
 - [ ] 本轮全部改动未提交，待用户确认后 commit
 
+## 2026-09-14 COL01 驱动根因修复 + 音频环境就绪
+
+### COL01 键盘：根因与最终修复
+- 根因：过滤器 INF 匹配 Col01 且 `Class = HIDClass`，被 Windows 选为键盘集合的设备安装包，
+  替换了微软键盘安装步骤 → kbdhid/kbdclass 绑定不完整 → 键盘在系统层面完全失效（三层实测确认）。
+- 修复（结构对齐微软官方 kbfiltr 键盘过滤样例）：
+  - 新增 `t1filter_keyboard.inf`：`Class = Keyboard` + `Include=keyboard.inf` +
+    `Needs=HID_Keyboard_Inst.NT`（含 .HW / .Services 三段继承）+ `AddReg` 写设备驱动键 LowerFilters。
+  - `t1filter.inf` 只保留 Col02/Col03（声明式 AddFilter，原本工作正常）。
+  - 驱动新增无 parser 时的键盘 boot 布局解码（app 未运行时方向键也能拦截）。
+  - 最终栈（蓝牙重连后保持）：`kbdclass → kbdhid → T1RemoteFilter → mshidumdf`。
+- 共享 HID usage 取舍（真机实测：正面 OK 与背面 Return 同为 0x28；方向键同为 0x4F-0x52，
+  HID 层无法区分）→ 选择"优先背面键盘"：
+  - 放行 0x28 与 0x4F-0x52；采集页禁用 OK/方向键标签；默认映射与用户配置移除这 5 键
+    （旧配置加载时自动忽略，不阻断启动）。
+  - 仍拦截并可映射：Menu(0x65)、音量±、Mute、Voice、Home、正面 Return(消费者)、Power。
+- 驱动包版本策略：DriverVer 固定为 09/13/2026,23.59.59.999（高于历史包，避免系统回选旧包）。
+
+### 音频（T1 语音链路）
+- 环境：VB-Cable 45 已安装（设备 OK，输入→输出闭环实测通过）；sounddevice 0.5.6、bleak 3.0.2 已装。
+- 链路实测：命令行 `python -m tools.t1_voice_test <addr> --duration 20` 收到 481KB / 20s
+  音频（16kHz 单声道，录音峰值 0.96）；app"语音测试"页同样测试成功。
+- T1 BLE 地址：`75:66:B4:93:93:82`。注意 app 的"扫描并预填"看不到已连接的遥控器
+  （BLE 连接后停止广播），需手填地址；可改进为枚举系统已配对设备。
+
+### 遗留优化点
+- app 语音页：扫描列表纳入已配对 BLE 设备。
+- 早期文档遗留项（C-3/C-5 锁粒度、C-8 计数语义、L-4 raw-capture）仍待办。
+
