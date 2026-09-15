@@ -137,8 +137,14 @@ class VoiceTestRunner:
                 await asyncio.sleep(self.keepalive_interval)
                 if not hasattr(controller, "open_microphone"):
                     break
-                await controller.open_microphone()
-                self._report("MIC_OPEN keep-alive")
+                try:
+                    await controller.open_microphone()
+                    self._report("MIC_OPEN keep-alive")
+                except Exception as error:
+                    # 重发失败不能终止 keep-alive 循环：临时无响应时继续
+                    # 尝试，否则 task 以异常结束，run() 的 finally 会因
+                    # await 该 task 重新抛出异常，打断麦克风/GATT 清理。
+                    self._report(f"MIC_OPEN keep-alive 失败：{error}")
         except asyncio.CancelledError:
             pass
 
