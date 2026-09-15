@@ -24,6 +24,20 @@ param(
 $ErrorActionPreference = "Stop"
 $releaseRoot = $PSScriptRoot
 
+Write-Host ""
+Write-Host "================================================"
+Write-Host "  T1 Remote 安装引导"
+Write-Host "================================================"
+Write-Host ""
+Write-Host "  T1 Remote 是一个 Windows 蓝牙 HID 遥控助手："
+Write-Host "  · KMDF 过滤驱动拦截 T1 遥控按键并转给 App"
+Write-Host "  · App 负责按键映射、捕获和语音测试"
+Write-Host "  · 可选安装 VB-CABLE 虚拟声卡，让其他应用接收语音"
+Write-Host ""
+Write-Host "  环境要求：Windows 10/11 x64、管理员权限；"
+Write-Host "  驱动安装需要签名（正式签名或测试签名）。"
+Write-Host ""
+
 function Assert-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
@@ -163,21 +177,80 @@ function Invoke-VbCableInstall {
     }
 }
 
-function Show-InstallMenu {
-    # 交互式安装菜单：默认全选（直接回车），支持数字多选。
+function Get-InstallerEnvironment {
+    # 收集环境检测结果，供交互菜单展示：系统、权限、签名、已装状态。
     param(
-        [bool]$DriverAvailable,
+        [System.IO.FileInfo]$DriverInf,
         [bool]$VbCableAvailable,
         [bool]$VbCableInstalled
     )
 
+    $lines = New-Object System.Collections.Generic.List[string]
+    $osInfo = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    if ($null -ne $osInfo) {
+        $lines.Add(("系统：{0}（{1}）" -f $osInfo.Caption, $osInfo.OSArchitecture))
+    }
+    $lines.Add("权限：管理员（已确认）")
+
+    if ($null -eq $DriverInf) {
+        $lines.Add("驱动包：未找到 Driver/*.inf")
+    } else {
+        $driverSignature = "未签名"
+        $driverFiles = @(Get-ChildItem -LiteralPath $DriverInf.DirectoryName -File |
+            Where-Object { $_.Extension -in @(".sys", ".cat") })
+        if ($driverFiles.Count -gt 0) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $driverFiles[0].FullName
+            $driverSignature = if ($signature.Status -eq "Valid") { "签名有效" } else { "签名无效/测试签名" }
+        }
+        $lines.Add("驱动包：$($DriverInf.Name)（$driverSignature）")
+    }
+
+    if (Test-Path -LiteralPath $InstallRoot -PathType Container) {
+        $lines.Add("App：已安装于 $InstallRoot")
+    } else {
+        $lines.Add("App：未安装，将复制到 $InstallRoot")
+    }
+
+    if ($VbCableInstalled) {
+        $lines.Add("VB-CABLE：已安装")
+    } elseif ($VbCableAvailable) {
+        $lines.Add("VB-CABLE：未安装，发布包已自带安装器")
+    } else {
+        $lines.Add("VB-CABLE：未安装，发布包未附带安装器")
+    }
+
+    if (-not $NonInteractive) {
+        $appEntry = Get-ChildItem -LiteralPath (Join-Path $releaseRoot "App") -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -in @("T1Remote.exe", "t1_app.py") } | Select-Object -First 1
+        if ($null -eq $appEntry) {
+            $lines.Add("App 启动入口：未找到 T1Remote.exe 或 t1_app.py")
+        } else {
+            $lines.Add("App 启动入口：$($appEntry.Name)")
+        }
+    }
+    return $lines
+}
+
+function Show-InstallMenu {
+    # 交互式安装菜单：先显示环境检测结果，再选择安装项。
+    # 直接回车=全部默认；输入 1,2,3 数字多选；输入 0 或 q 退出。
+    param(
+        [string[]]$EnvironmentLines,
+        [bool]$VbCableAvailable,
+        [bool]$VbCableInstalled
+    )
+
+    Write-Host "==== 环境检测 ===="
+    foreach ($line in $EnvironmentLines) {
+        Write-Host "  $line"
+    }
     Write-Host ""
-    Write-Host "==== T1 Remote 安装引导 ===="
+    Write-Host "==== 选择安装项 ===="
     Write-Host "  1) HID 过滤驱动（拦截遥控按键，需要管理员权限）"
     Write-Host "  2) App 本体（复制到 $InstallRoot）"
     if ($VbCableAvailable) {
         if ($VbCableInstalled) {
-            Write-Host "  3) VB-CABLE 虚拟声卡（已检测到已安装）"
+            Write-Host "  3) VB-CABLE 虚拟声卡（已检测到已安装，跳过即可）"
         } else {
             Write-Host "  3) VB-CABLE 虚拟声卡（发布包自带安装器）"
         }
@@ -185,20 +258,26 @@ function Show-InstallMenu {
         Write-Host "  3) VB-CABLE 虚拟声卡（发布包未附带安装器，跳过）"
     }
     Write-Host "  4) 全部默认安装（驱动 + App + VB-CABLE）"
+    Write-Host "  0) 退出安装"
     Write-Host ""
-    $selection = Read-Host "请选择安装项（可输入 1,2,3 或直接回车选 4）"
+    $selection = Read-Host "请选择安装项（输入 1,2,3 多选；直接回车选 4；0 或 q 退出）"
     if ([string]::IsNullOrWhiteSpace($selection)) {
-        return @($true, $true, $VbCableAvailable)
+        return [pscustomobject]@{ Driver = $true; App = $true; VbCable = $VbCableAvailable; Exit = $false }
     }
-    if ($selection.Trim() -eq '4') {
-        return @($true, $true, $VbCableAvailable)
+    $trimmed = $selection.Trim()
+    if ($trimmed -in @('0', 'q', 'Q', 'quit')) {
+        return [pscustomobject]@{ Driver = $false; App = $false; VbCable = $false; Exit = $true }
     }
-    $numbers = @($selection -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    return @(
-        ($numbers -contains '1'),
-        ($numbers -contains '2'),
-        ($numbers -contains '3' -and $VbCableAvailable)
-    )
+    if ($trimmed -eq '4') {
+        return [pscustomobject]@{ Driver = $true; App = $true; VbCable = $VbCableAvailable; Exit = $false }
+    }
+    $numbers = @($trimmed -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    return [pscustomobject]@{
+        Driver = $numbers -contains '1'
+        App = $numbers -contains '2'
+        VbCable = $numbers -contains '3' -and $VbCableAvailable
+        Exit = $false
+    }
 }
 
 Assert-Administrator
@@ -213,12 +292,20 @@ if ($AllowUnsignedDriver -and -not $EnableTestSigning) {
 
 $vbCableInstaller = Find-VbCableInstaller
 $vbCableInstalled = Test-VbCableInstalled
-$menuSelected = @($true, $true, $null -ne $vbCableInstaller)
+$environmentLines = Get-InstallerEnvironment `
+    -DriverInf $driverInf `
+    -VbCableAvailable ($null -ne $vbCableInstaller) `
+    -VbCableInstalled $vbCableInstalled
+$menuSelected = [pscustomobject]@{ Driver = $true; App = $true; VbCable = $null -ne $vbCableInstaller; Exit = $false }
 if (-not $NonInteractive) {
     $menuSelected = Show-InstallMenu `
-        -DriverAvailable (-not $SkipDriver) `
+        -EnvironmentLines $environmentLines `
         -VbCableAvailable ($null -ne $vbCableInstaller) `
         -VbCableInstalled $vbCableInstalled
+    if ($menuSelected.Exit) {
+        Write-Host "已退出安装，未做任何更改。"
+        exit 0
+    }
 }
 
 if ($EnableTestSigning) {
@@ -229,7 +316,7 @@ if ($EnableTestSigning) {
     Write-Warning "已请求开启测试签名；Windows 可能需要重启后驱动才能加载。"
 }
 
-if ($menuSelected[0] -and -not $SkipDriver) {
+if ($menuSelected.Driver -and -not $SkipDriver) {
     $driverFiles = @(Get-ChildItem -LiteralPath $driverRoot -File | Where-Object { $_.Extension -in @(".sys", ".cat") })
     $invalidSignatures = @($driverFiles | Where-Object {
         (Get-AuthenticodeSignature -LiteralPath $_.FullName).Status -ne "Valid"
@@ -253,7 +340,7 @@ if ($menuSelected[0] -and -not $SkipDriver) {
     Write-Warning "已跳过 HID 过滤驱动安装。"
 }
 
-if ($menuSelected[1] -and -not $SkipApp) {
+if ($menuSelected.App -and -not $SkipApp) {
     $installedApp = Join-Path $InstallRoot "App"
     $installedNative = Join-Path $InstallRoot "Native"
     $installedDriver = Join-Path $InstallRoot "Driver"
@@ -282,7 +369,7 @@ if ($menuSelected[1] -and -not $SkipApp) {
     Write-Warning "已跳过 App 本体安装。"
 }
 
-if ($menuSelected[2] -and -not $SkipVbCable) {
+if ($menuSelected.VbCable -and -not $SkipVbCable) {
     if ($null -eq $vbCableInstaller) {
         Write-Warning "发布包未附带 VB-CABLE 安装器，跳过。"
     } elseif ($vbCableInstalled) {
@@ -297,9 +384,9 @@ if ($menuSelected[2] -and -not $SkipVbCable) {
 
 Write-Host ""
 Write-Host "==== 安装汇总 ===="
-Write-Host ("  HID 过滤驱动：{0}" -f $(if ($menuSelected[0] -and -not $SkipDriver) { "已安装" } else { "跳过" }))
-Write-Host ("  App 本体：{0}" -f $(if ($menuSelected[1] -and -not $SkipApp) { "已安装到 $InstallRoot" } else { "跳过" }))
-Write-Host ("  VB-CABLE：{0}" -f $(if ($menuSelected[2] -and -not $SkipVbCable) { "已安装" } else { "跳过" }))
-if ($menuSelected[0] -and -not $SkipDriver) {
+Write-Host ("  HID 过滤驱动：{0}" -f $(if ($menuSelected.Driver -and -not $SkipDriver) { "已安装" } else { "跳过" }))
+Write-Host ("  App 本体：{0}" -f $(if ($menuSelected.App -and -not $SkipApp) { "已安装到 $InstallRoot" } else { "跳过" }))
+Write-Host ("  VB-CABLE：{0}" -f $(if ($menuSelected.VbCable -and -not $SkipVbCable) { "已安装" } else { "跳过" }))
+if ($menuSelected.Driver -and -not $SkipDriver) {
     Write-Host "  下一步：运行开始菜单中的 T1 Remote 启动 App；语音测试前把目标应用麦克风设为 CABLE Output。"
 }
