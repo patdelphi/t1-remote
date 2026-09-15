@@ -41,7 +41,19 @@ function Resolve-MSBuild {
 }
 
 function Resolve-CMake {
-    # 顺序：PATH → Program Files 下的标准安装目录。
+    # 顺序：VS 安装目录（带 VS 生成器支持）→ PATH → Program Files 标准安装目录。
+    # Strawberry 等工具链自带的 cmake 不支持 Visual Studio 生成器，PATH 优先会
+    # 误选它导致 CMake 配置失败，因此先查 VS 自带的 CMake。
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path -LiteralPath $vswhere -PathType Leaf) {
+        $vsInstall = & $vswhere -latest -property installationPath 2>$null | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($vsInstall)) {
+            $candidate = Join-Path $vsInstall "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                return $candidate
+            }
+        }
+    }
     $command = Get-Command "cmake.exe" -ErrorAction SilentlyContinue
     if ($null -ne $command) {
         return $command.Source

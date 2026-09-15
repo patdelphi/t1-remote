@@ -103,7 +103,9 @@ $driverRoot = Join-Path $packageRoot "Driver"
 $buildRoot = Join-Path $releaseOutputRoot ".build-$packageName"
 
 if (-not $SkipTests) {
-    Invoke-External $PythonPath @("-m", "pytest", "-q")
+    # 项目测试全部使用 unittest.TestCase；pytest 环境下 tkinter 测试
+    # 会因 Tcl 库初始化失败而误报，因此发布构建统一走 unittest discover。
+    Invoke-External $PythonPath @("-m", "unittest", "discover", "-s", "tests", "-q")
 }
 
 New-Item -ItemType Directory -Force -Path $appRoot, $nativeRoot, $driverRoot | Out-Null
@@ -124,8 +126,14 @@ if (-not $SkipNativeBuild) {
         } else {
             $cmakeArguments += @("-A", "x64")
         }
-        Invoke-External $cmake $cmakeArguments
-        Invoke-External $cmake @("--build", $bridgeBuildRoot, "--config", "Release")
+        try {
+            Invoke-External $cmake $cmakeArguments
+            Invoke-External $cmake @("--build", $bridgeBuildRoot, "--config", "Release")
+        } catch {
+            # Strawberry 等工具链自带的 cmake 不支持 VS 生成器时会在这里失败；
+            # 桥接 DLL 不是本包核心，失败时降级到 cl.exe 直编或复用已有 DLL。
+            Write-Warning "CMake 构建桥接 DLL 失败：$($_.Exception.Message)"
+        }
         $builtBridge = Join-Path $bridgeBuildRoot "Release/t1bridge.dll"
         if (Test-Path -LiteralPath $builtBridge -PathType Leaf) {
             $bridgeSource = $builtBridge
