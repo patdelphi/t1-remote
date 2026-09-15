@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 import threading
 from typing import Callable
@@ -22,10 +23,38 @@ NIM_DELETE = 0x00000002
 NIF_MESSAGE = 0x00000001
 NIF_ICON = 0x00000002
 NIF_TIP = 0x00000004
+NIF_INFO = 0x00000010
+NIIF_INFO = 0x00000001
+NIIF_WARNING = 0x00000002
+NIIF_ERROR = 0x00000003
 MF_STRING = 0x00000000
+MF_SEPARATOR = 0x00000800
+MF_CHECKED = 0x00000008
 TPM_RIGHTBUTTON = 0x0002
+# 用返回值直接取用户选项，不依赖 WM_COMMAND 投递，避免托盘命令丢失。
+TPM_RETURNCMD = 0x0100
 ID_SHOW = 1001
 ID_EXIT = 1002
+
+
+@dataclass(frozen=True)
+class TrayMenuItem:
+    """托盘菜单中的一个自定义命令项。
+
+    ``is_checked`` 在菜单弹出时调用，用于显示勾选状态；``on_select`` 在
+    用户点击该项时调用。两者都运行在托盘消息线程，不能直接操作 Tk。
+    """
+
+    label: str
+    item_id: int
+    on_select: Callable[[], None]
+    is_checked: Callable[[], bool] | None = None
+
+    def __post_init__(self) -> None:
+        if not self.label.strip():
+            raise ValueError("托盘菜单项标题不能为空")
+        if self.item_id in (ID_SHOW, ID_EXIT) or self.item_id <= 0:
+            raise ValueError("托盘菜单项编号与内置命令冲突")
 
 
 class TrayIcon:
@@ -37,13 +66,18 @@ class TrayIcon:
         on_show: Callable[[], None],
         on_exit: Callable[[], None],
         icon_path: str | os.PathLike[str] | None = None,
+        menu_items: tuple[TrayMenuItem, ...] = (),
     ) -> None:
         normalized_title = title.strip()
         if not normalized_title:
             raise ValueError("托盘标题不能为空")
+        item_ids = [item.item_id for item in menu_items]
+        if len(set(item_ids)) != len(item_ids):
+            raise ValueError("托盘菜单项编号不能重复")
         self.title = normalized_title
         self._on_show = on_show
         self._on_exit = on_exit
+        self._menu_items = tuple(menu_items)
         self.icon_path = os.fspath(icon_path) if icon_path else None
         self._thread: threading.Thread | None = None
         self._hwnd: int | None = None
@@ -74,6 +108,36 @@ class TrayIcon:
         """返回托盘消息线程是否正在运行。"""
 
         return bool(self._thread and self._thread.is_alive() and self._hwnd)
+
+    def notify(self, message: str, *, level: str = "info") -> None:
+        """用托盘气泡显示一条结果提示，让托盘命令不再静默失败。"""
+
+        if not message.strip() or not self._hwnd:
+            return
+        info_flags = {
+            "info": NIIF_INFO,
+            "warning": NIIF_WARNING,
+            "error": NIIF_ERROR,
+        }.get(level, NIIF_INFO)
+        try:
+            import win32gui
+
+            win32gui.Shell_NotifyIcon(
+                NIM_MODIFY,
+                (
+                    self._hwnd,
+                    0,
+                    NIF_ICON | NIF_TIP | NIF_INFO,
+                    WM_TRAYICON,
+                    self._icon_handle,
+                    self.title,
+                    message,
+                    info_flags,
+                ),
+            )
+        except Exception:
+            # 气泡失败不能影响托盘本身。
+            pass
 
     def start(self) -> None:
         """创建托盘图标并启动消息循环。"""
@@ -217,12 +281,7 @@ class TrayIcon:
         elif message == WM_TRAYICON_SET_ICON:
             self._replace_icon()
         elif message == WM_COMMAND:
-            command = wparam & 0xFFFF
-            if command == ID_SHOW:
-                self._on_show()
-            elif command == ID_EXIT:
-                self._on_exit()
-                win32gui.DestroyWindow(hwnd)
+            self._dispatch_command(hwnd, wparam & 0xFFFF)
         elif message == WM_CLOSE:
             win32gui.DestroyWindow(hwnd)
         elif message == WM_DESTROY:
@@ -233,13 +292,82 @@ class TrayIcon:
         import win32gui
 
         menu = win32gui.CreatePopupMenu()
-        win32gui.AppendMenu(menu, MF_STRING, ID_SHOW, "显示窗口")
+        win32gui.AppendMenu(menu, MF_STRING, ID_SHOW, "打开主窗口")
+        try:
+            self._append_menu_items(menu)
+        except Exception:
+            # 自定义项（含 is_checked 回调）失败时降级为最小菜单，
+            # 保证用户仍能打开窗口或退出。
+            pass
         win32gui.AppendMenu(menu, MF_STRING, ID_EXIT, "退出")
         x, y = win32gui.GetCursorPos()
         win32gui.SetForegroundWindow(hwnd)
-        win32gui.TrackPopupMenu(menu, TPM_RIGHTBUTTON, x, y, 0, hwnd, None)
+        # TPM_RETURNCMD 让 TrackPopupMenu 直接返回用户选择的命令号：托盘菜单
+        # 在部分机器上收不到 WM_COMMAND，依赖消息投递会出现“点了没反应”。
+        command = win32gui.TrackPopupMenu(
+            menu,
+            TPM_RIGHTBUTTON | TPM_RETURNCMD,
+            x,
+            y,
+            0,
+            hwnd,
+            None,
+        )
         # 让菜单消息正确派发，同时避免销毁托盘消息窗口和通知区域图标。
         win32gui.PostMessage(hwnd, WM_NULL, 0, 0)
+        if command:
+            self._dispatch_command(hwnd, command)
+
+    def _dispatch_command(self, hwnd: int, command: int) -> None:
+        """执行一个托盘菜单命令；回调运行在托盘消息线程。"""
+
+        import win32gui
+
+        if command == ID_SHOW:
+            self._on_show()
+            return
+        if command == ID_EXIT:
+            self._on_exit()
+            win32gui.DestroyWindow(hwnd)
+            return
+        for item in self._menu_items:
+            if item.item_id == command:
+                # 自定义命令回调运行在托盘线程，调用方负责切回 Tk 主线程。
+                try:
+                    item.on_select()
+                except Exception:
+                    pass
+                return
+
+    def _append_menu_items(self, menu: int) -> None:
+        """把自定义菜单项追加到弹出菜单，勾选态在弹出时实时读取。"""
+
+        import win32gui
+
+        if not self._menu_items:
+            return
+        win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")
+        for item in self._menu_items:
+            flags = MF_STRING
+            if item.is_checked is not None and item.is_checked():
+                flags |= MF_CHECKED
+            win32gui.AppendMenu(menu, flags, item.item_id, item.label)
+        win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")
 
 
-__all__ = ["NIM_ADD", "TrayIcon", "WM_LBUTTONUP", "WM_NULL"]
+__all__ = [
+    "MF_CHECKED",
+    "MF_SEPARATOR",
+    "MF_STRING",
+    "NIF_INFO",
+    "NIIF_INFO",
+    "NIIF_WARNING",
+    "NIIF_ERROR",
+    "NIM_ADD",
+    "NIM_MODIFY",
+    "TrayIcon",
+    "TrayMenuItem",
+    "TPM_RETURNCMD",
+    "WM_LBUTTONUP",
+    "WM_NULL",
+]

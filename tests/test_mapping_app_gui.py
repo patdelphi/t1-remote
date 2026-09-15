@@ -42,7 +42,7 @@ class MappingAppGuiTests(unittest.TestCase):
         app = None
         try:
             app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
-            root.update_idletasks()
+            root.update()
 
             def collect_buttons(widget: tk.Misc) -> list[str]:
                 button_texts: list[str] = []
@@ -89,7 +89,7 @@ class MappingAppGuiTests(unittest.TestCase):
         app = None
         try:
             app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
-            root.update_idletasks()
+            root.update()
 
             def collect_checkbuttons(widget: tk.Misc) -> list[str]:
                 texts: list[str] = []
@@ -184,7 +184,7 @@ class MappingAppGuiTests(unittest.TestCase):
             app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
             app.tray = StoppedTray()
             app._monitor_tray()
-            root.update_idletasks()
+            root.update()
             self.assertEqual(root.state(), "normal")
         finally:
             if app is not None:
@@ -253,6 +253,133 @@ class MappingAppGuiTests(unittest.TestCase):
             if app is not None and not app._closed:
                 app.close()
             elif app is None:
+                root.destroy()
+
+    def test_tray_mapping_toggle_starts_session_when_idle(self) -> None:
+        """托盘「Mapping 开关」在没有运行会话时启动 mapping。"""
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            self.assertFalse(app._tray_mapping_active())
+            with patch.object(app, "start_session") as start, patch.object(
+                app, "stop_session"
+            ) as stop:
+                app._tray_toggle_mapping()
+                root.update()
+            start.assert_called_once_with()
+            stop.assert_not_called()
+        finally:
+            if app is not None:
+                app.close()
+            else:
+                root.destroy()
+
+    def test_tray_mapping_toggle_stops_running_session(self) -> None:
+        """托盘「Mapping 开关」在会话运行时是勾选态，再次点击停止。"""
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            class _RunningSession:
+                """运行中的假会话：close() 会调用 stop()，必须提供。"""
+
+                def status(self) -> object:
+                    return type("Status", (), {"state": "running"})()
+
+                def stop(self) -> None:
+                    pass
+
+            app._session = _RunningSession()
+            self.assertTrue(app._tray_mapping_active())
+            with patch.object(app, "start_session") as start, patch.object(
+                app, "stop_session"
+            ) as stop:
+                app._tray_toggle_mapping()
+                root.update()
+            stop.assert_called_once_with()
+            start.assert_not_called()
+        finally:
+            if app is not None:
+                app.close()
+            else:
+                root.destroy()
+
+    def test_tray_reports_mapping_failure_instead_of_silence(self) -> None:
+        """映射启动失败时必须用托盘气泡说明原因，不能静默无反应。"""
+
+        class _RecordingTray:
+            is_running = True
+
+            def __init__(self) -> None:
+                self.notices: list[tuple[str, str]] = []
+
+            def notify(self, message: str, *, level: str = "info") -> None:
+                self.notices.append((message, level))
+
+        class _FailingSession:
+            def __init__(self) -> None:
+                self._status = type(
+                    "Status",
+                    (),
+                    {
+                        "state": "error",
+                        "message": "T1Bridge_GetPreparsedData 失败，错误码：21",
+                    },
+                )()
+
+            def status(self) -> object:
+                return self._status
+
+            def stop(self) -> None:
+                pass
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            tray = _RecordingTray()
+            app.tray = tray
+            app._session = _FailingSession()
+
+            app._report_mapping_result(True)
+
+            self.assertEqual(len(tray.notices), 1)
+            message, level = tray.notices[0]
+            self.assertEqual(level, "error")
+            self.assertIn("错误码：21", message)
+        finally:
+            if app is not None:
+                app.close()
+            else:
+                root.destroy()
+
+    def test_tray_continuous_voice_toggle_requires_address(self) -> None:
+        """托盘「持续收音」在地址为空时引导用户去语音页，不空转启动。"""
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            app._voice_address_var.set("")
+            with patch.object(app, "start_voice_session") as start, patch.object(
+                app, "stop_voice_session"
+            ) as stop, patch.object(app, "show_window") as show:
+                app._tray_toggle_continuous_voice()
+                root.update()
+            start.assert_not_called()
+            stop.assert_not_called()
+            show.assert_called_once_with()
+        finally:
+            if app is not None:
+                app.close()
+            else:
                 root.destroy()
 
 

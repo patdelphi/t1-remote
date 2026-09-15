@@ -31,7 +31,7 @@ from t1remote.windows.app_icon import (
     set_window_icons,
 )
 from t1remote.windows.single_instance import SingleInstanceGuard, activate_window_by_title
-from t1remote.windows.tray import TrayIcon
+from t1remote.windows.tray import TrayIcon, TrayMenuItem
 from t1remote.windows.voice_session import (
     VoiceSessionController,
     VoiceSessionError,
@@ -918,6 +918,128 @@ class MappingMonitorApp:
             self.show_window()
         self._schedule_ui(1000, self._monitor_tray)
 
+    def _tray_mapping_active(self) -> bool:
+        """托盘菜单的 Mapping 开关勾选状态：会话运行中即为勾选。"""
+
+        with self._session_lock:
+            session = self._session
+        if session is None:
+            return False
+        return session.status().state in {"starting", "running"}
+
+    def _notify_tray(self, message: str, *, level: str = "info") -> None:
+        """通过托盘气泡反馈托盘命令结果，避免“点了没反应”。"""
+
+        tray = self.tray
+        if tray is None or not tray.is_running:
+            return
+        try:
+            tray.notify(message, level=level)
+        except Exception:
+            pass
+
+    def _report_mapping_result(self, expect_running: bool) -> None:
+        """延迟检查映射会话结果并用气泡反馈真实状态。"""
+
+        if self._closed:
+            return
+        with self._session_lock:
+            session = self._session
+        if session is None:
+            self._notify_tray("Mapping 未启动", level="warning")
+            return
+        status = session.status()
+        if status.state == "running":
+            self._notify_tray("Mapping 已启动")
+        elif status.state == "error":
+            # 常见原因：T1 未连接、驱动未附着或缺少管理员权限。
+            self._notify_tray(f"Mapping 启动失败：{status.message}", level="error")
+        elif expect_running:
+            self._notify_tray(f"Mapping 状态：{status.state}", level="warning")
+
+    def _tray_toggle_mapping(self) -> None:
+        """在托盘线程切换 Mapping 会话：运行则停止，停止则启动。"""
+
+        def switch() -> None:
+            active = self._tray_mapping_active()
+            if active:
+                self._append_log("托盘：已请求停止 Mapping")
+                self._notify_tray("Mapping 正在停止……")
+                self.stop_session()
+                self._schedule_ui(1500, self._notify_tray, "Mapping 已停止")
+                return
+            self._append_log("托盘：正在启动 Mapping")
+            self._notify_tray("Mapping 正在启动……")
+            self.start_session()
+            # 启动是异步的，稍后回读真实状态再提示成功或失败原因。
+            self._schedule_ui(2500, self._report_mapping_result, True)
+
+        # 托盘线程不能直接碰 Tk，统一回到主线程事件循环执行。
+        try:
+            self.root.after(0, switch)
+        except RuntimeError as error:
+            self._append_log(f"托盘：Mapping 回调调度失败（{error}）")
+
+    def _tray_voice_continuous_active(self) -> bool:
+        """托盘菜单的持续收音开关勾选状态：以语音会话的真实状态为准。"""
+
+        if not self._voice_continuous_active:
+            return False
+        return self._voice_session.status().state in {"starting", "running"}
+
+    def _report_voice_result(self) -> None:
+        """延迟检查语音会话结果并用气泡反馈真实状态。"""
+
+        if self._closed:
+            return
+        status = self._voice_session.status()
+        if status.state in VoiceSessionController._ACTIVE_STATES:
+            self._notify_tray("持续收音已开启")
+        elif status.state == "error":
+            self._notify_tray(f"持续收音启动失败：{status.message}", level="error")
+        else:
+            self._notify_tray("持续收音已停止")
+
+    def _tray_toggle_continuous_voice(self) -> None:
+        """在托盘线程切换持续收音：运行则停止，否则以持续模式启动。"""
+
+        def switch() -> None:
+            state = self._voice_session.status().state
+            active = state in VoiceSessionController._ACTIVE_STATES
+            if active:
+                self.stop_voice_session()
+                self._append_log("托盘：正在停止语音会话")
+                self._notify_tray("持续收音正在停止……")
+                self._schedule_ui(2000, self._report_voice_result)
+                return
+            # 持续收音需要 BLE 地址；地址为空时引导用户去语音页填写。
+            address = self._voice_address_var.get().strip()
+            if not address:
+                self._append_log("持续收音需要 BLE 地址：请先在语音测试页扫描并选择设备")
+                self._notify_tray("持续收音需要先选择 T1 设备", level="warning")
+                self.show_window()
+                return
+            self._voice_continuous_var.set(True)
+            self._on_voice_continuous_toggle()
+            self._append_log("托盘：正在启动持续收音")
+            self._notify_tray("持续收音正在启动……")
+            self.start_voice_session()
+            # 连接 BLE 需要时间，稍后回读真实状态。
+            self._schedule_ui(4000, self._report_voice_result)
+
+        try:
+            self.root.after(0, switch)
+        except RuntimeError as error:
+            self._append_log(f"托盘：收音回调调度失败（{error}）")
+
+    def _tray_reload_config(self) -> None:
+        """在托盘线程重新加载映射配置。"""
+
+        try:
+            self._schedule_ui(0, self.reload_config)
+        except RuntimeError:
+            self.reload_config()
+
     def _refresh_status(self) -> None:
         """定时刷新会话状态和最近事件表。"""
 
@@ -1044,6 +1166,26 @@ def run_app(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
             on_show=lambda: root.after(0, app.show_window),
             on_exit=lambda: root.after(0, app.close),
             icon_path=APP_ICON_PATH,
+            menu_items=(
+                TrayMenuItem(
+                    label="Mapping 开关",
+                    item_id=2001,
+                    # 回调运行在托盘消息线程，方法内部统一切回 Tk 主线程。
+                    on_select=app._tray_toggle_mapping,
+                    is_checked=app._tray_mapping_active,
+                ),
+                TrayMenuItem(
+                    label="持续收音",
+                    item_id=2002,
+                    on_select=app._tray_toggle_continuous_voice,
+                    is_checked=app._tray_voice_continuous_active,
+                ),
+                TrayMenuItem(
+                    label="重新加载映射配置",
+                    item_id=2003,
+                    on_select=app._tray_reload_config,
+                ),
+            ),
         )
         try:
             tray.start()
