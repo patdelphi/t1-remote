@@ -56,7 +56,7 @@ Power、Consumer Control 等目标键由过滤器桥接提供报告。使用捕�
 ## 测试
 
 ```powershell
-python -m pytest -q
+python -m unittest discover -s tests
 ```
 
 完整测试包含 Tkinter GUI 测试。若本机 Python 的 Tcl/Tk 安装缺少 `tk.tcl` 或 `ttk/ttk.tcl`，GUI 测试会在创建窗口阶段失败；这属于环境问题，不代表业务断言失败。
@@ -70,6 +70,50 @@ pwsh -File .\tools\build_release.ps1 -PythonPath C:\Python313\python.exe
 ```
 
 本机缺少 PyInstaller 时，可用 `-SourceApp` 生成需要 Python 环境的源码 App 包。
+
+## 发布包安装（最终用户）
+
+发布包是带时间戳的 ZIP（如 `dist/T1Remote-v0.2.0-win-x64-20260915-140114.zip`），**不需要 Python 环境**，直接给最终用户安装。
+
+### 所需条件
+
+- Windows 10/11 x64；
+- 管理员权限（驱动安装必需）；
+- 驱动签名：正式包自带有效签名，可直接安装；测试签名包需在目标机器导入测试证书并开启测试签名；
+- 语音功能可选：发布包 `VBCable/` 目录自带 VB-CABLE 安装器时，可一并安装虚拟声卡。
+
+### 安装步骤
+
+1. 解压 ZIP 到任意目录；
+2. 右键 `Install-T1Remote.ps1` →「使用 PowerShell 运行」，或管理员 PowerShell 执行：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1
+   ```
+
+3. 脚本先打印项目说明和环境检测（系统、权限、驱动签名、App/VB-CABLE 状态），再显示安装项菜单：
+   - `1` HID 过滤驱动　`2` App 本体　`3` VB-CABLE 虚拟声卡　`4` 全部默认　`0` 退出；
+   - 直接回车=全部默认，或输入 `1,2` 等数字多选；
+4. 逐项安装完成后打印汇总；驱动如提示 `pnputil` 返回码 3010，需重启 Windows 后驱动才加载；
+5. 从开始菜单「T1 Remote」启动 App。
+
+### 无人值守安装
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1 -NonInteractive
+```
+
+### 卸载
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Uninstall-T1Remote.ps1
+```
+
+卸载会删除已安装的驱动、App 文件和开始菜单快捷方式，并恢复安装时备份的电源按钮设置。
+
+### 语音测试（可选）
+
+语音功能需要 VB-CABLE 虚拟声卡。安装完成后在 App 的「语音测试」页启动会话，**目标应用（录音机、微信等）的麦克风选择 `CABLE Output`** 即可接收 T1 的语音；`CABLE Input` 是 T1 语音写入端，本程序自动选择。
 
 ## Windows 原生组件
 
