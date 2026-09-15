@@ -9,7 +9,8 @@
 | `App/` | PyInstaller 单目录 App，或可回退的 Python 源码 App |
 | `Native/t1bridge.dll` | 用户态驱动桥接 DLL |
 | `Driver/` | `t1filter.inf`、`t1filter.sys` 和目录中的 `.cat` 驱动目录文件 |
-| `Install-T1Remote.ps1` | 安装 App、驱动和开始菜单快捷方式 |
+| `VBCable/`（可选） | VB-CABLE 虚拟声卡安装器，由 `build_release.ps1 -VbCableInstaller` 或自动扫描打入 |
+| `Install-T1Remote.ps1` | 交互引导安装 App、驱动和开始菜单快捷方式，可选手动装 VB-CABLE |
 | `Uninstall-T1Remote.ps1` | 卸载驱动、App 和快捷方式 |
 | `Start-T1Remote.bat` | 启动 EXE 或源码 App |
 | `SHA256SUMS.txt` | 包内文件和 ZIP 的 SHA-256 校验值 |
@@ -38,7 +39,19 @@ pwsh -File .\tools\build_release.ps1 -SourceApp -PythonPath C:\Python313\python.
 powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1
 ```
 
-安装脚本会把 App 放到 `%ProgramFiles%\T1 Remote`，调用 `pnputil` 安装 `Driver` 中的 HID 过滤驱动，并创建开始菜单快捷方式。驱动安装完成后按提示重启 Windows，具体以 `pnputil` 返回码为准。
+安装脚本默认**交互引导**：先检测环境（管理员、驱动签名、VB-CABLE 是否已装），再分步选择安装项：
+
+1. **HID 过滤驱动**——拦截遥控按键，需要管理员权限；
+2. **App 本体**——复制到 `%ProgramFiles%\T1 Remote` 并创建开始菜单快捷方式；
+3. **VB-CABLE 虚拟声卡**——可选，发布包 `VBCable/` 自带安装器时可直接引导运行；没打包则提示跳过。
+
+直接回车默认全选，或输入 `1,2` 等数字选择。驱动安装完成后按提示重启 Windows，具体以 `pnputil` 返回码为准。CI 或无人值守使用静默模式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1 -NonInteractive
+```
+
+卸载：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Uninstall-T1Remote.ps1
@@ -51,6 +64,10 @@ powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1 -EnableTestSigni
 ```
 
 测试签名会改变系统启动配置，可能要求重启；正式 Release 不应使用这两个参数。
+
+## 语音测试
+
+语音功能需要虚拟声卡：脚本在 `VBCable/` 目录存在安装器时可选择安装 VB-CABLE。安装完成后，在 App 的“语音测试”页启动会话，目标应用（录音机、微信等）的麦克风选择 **CABLE Output** 即可接收 T1 的语音。
 
 ## 发布验收
 

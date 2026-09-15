@@ -57,10 +57,28 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("pnputil.exe", install_text)
         self.assertIn("Start-T1Remote.bat", install_text)
         self.assertIn("$releaseRoot = $PSScriptRoot", install_text)
+        # 交互式安装引导：环境检测、安装项选择、VB-CABLE 可选安装。
+        self.assertIn("NonInteractive", install_text)
+        self.assertIn("Show-InstallMenu", install_text)
+        self.assertIn("VB-CABLE", install_text)
+        self.assertIn("VBCABLE_Setup", install_text)
 
         uninstall_text = uninstall_script.read_text(encoding="utf-8-sig")
         self.assertIn("/delete-driver", uninstall_text)
         self.assertIn("ProgramFiles", uninstall_text)
+
+    def test_release_build_packages_vb_cable_installer(self) -> None:
+        """发布包构建脚本必须支持把 VB-CABLE 安装器一起打包进 VBCable/。"""
+
+        release_script = PROJECT_ROOT / "tools" / "build_release.ps1"
+        release_text = release_script.read_text(encoding="utf-8-sig")
+        self.assertIn("VbCableInstaller", release_text)
+        self.assertIn('"VBCable"', release_text)
+        self.assertIn("vb_cable_installer", release_text)
+
+        release_doc = PROJECT_ROOT / "Docs" / "release.md"
+        doc_text = release_doc.read_text(encoding="utf-8-sig")
+        self.assertIn("VBCable/", doc_text)
 
     def test_main_app_declares_integrated_tabs(self) -> None:
         self.assertEqual(MAIN_TAB_LABELS, ("捕获", "Mapping 设置", "Mapping 服务", "语音测试"))

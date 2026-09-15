@@ -1,15 +1,24 @@
 ﻿# 程序说明：安装已解压的 T1 Remote Release 包。
-# 脚本复制 App/Native/Driver 到 Program Files，并用 pnputil 安装 HID 过滤驱动。
+# 脚本默认按交互菜单分步安装驱动、App 和可选的 VB-CABLE 虚拟声卡；
+# 指定 -NonInteractive 时退化为静默参数模式，供 CI 或无人值守使用。
 # 驱动安装需要管理员权限；脚本不会默认开启 Windows 测试签名。
+# VB-CABLE 安装器（VBCABLE_Setup*.exe）由发布者放入发布包 VBCable/ 目录，
+# 脚本不联网下载。
 
 [CmdletBinding()]
 param(
     [string]$InstallRoot = (Join-Path ${env:ProgramFiles} "T1 Remote"),
     [switch]$SkipDriver,
+    [switch]$SkipApp,
+    [switch]$SkipVbCable,
     [switch]$EnableTestSigning,
     [switch]$AllowUnsignedDriver,
     # 电源键由 T1 接管后，系统电源按钮动作被设为“不采取任何操作”；此开关可跳过。
-    [switch]$SkipPowerButton
+    [switch]$SkipPowerButton,
+    # 跳过交互菜单，使用参数静默安装（默认 false = 交互引导）。
+    [switch]$NonInteractive,
+    # VB-CABLE 安装器是 GUI 安装包；指定 -Gui 时不带 /S 参数，由用户手动点击完成。
+    [switch]$Gui
 )
 
 $ErrorActionPreference = "Stop"
@@ -108,6 +117,90 @@ function Remove-KeyboardCollectionFilter {
     }
 }
 
+function Test-VbCableInstalled {
+    # 检测 VB-CABLE 是否已安装：音频端点设备或卸载注册表任一路命中即视为已装。
+    $endpoint = Get-PnpDevice -Class AudioEndpoint -ErrorAction SilentlyContinue |
+        Where-Object { $_.FriendlyName -match 'CABLE (Input|Output)' }
+    if ($null -ne $endpoint) {
+        return $true
+    }
+    $registry = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
+        -ErrorAction SilentlyContinue |
+        Where-Object { (Get-ItemProperty $_.PSPath -Name DisplayName -ErrorAction SilentlyContinue).DisplayName -match 'VB-Audio Virtual Cable' }
+    return $null -ne $registry
+}
+
+function Find-VbCableInstaller {
+    # 在发布包 VBCable/ 目录找 VB-CABLE 安装器；找不到返回 $null。
+    $directory = Join-Path $releaseRoot "VBCable"
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        return $null
+    }
+    $installer = Get-ChildItem -LiteralPath $directory -File -Filter "VBCABLE_Setup*.exe" |
+        Select-Object -First 1
+    return $installer
+}
+
+function Invoke-VbCableInstall {
+    # 以管理员运行 VB-CABLE 安装器；GUI 模式由用户手动完成。
+    param([System.IO.FileInfo]$Installer)
+
+    if ($null -eq $Installer) {
+        return
+    }
+    $arguments = if ($Gui) { @() } else { @("/S") }
+    Write-Host ("运行 VB-CABLE 安装器：{0} {1}" -f $Installer.Name, ($arguments -join ' '))
+    if (-not $Gui) {
+        $process = Start-Process -FilePath $Installer.FullName -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -notin @(0, 3010)) {
+            Write-Warning ("VB-CABLE 安装器退出码：{0}，请检查是否安装成功。" -f $process.ExitCode)
+        }
+    } else {
+        Start-Process -FilePath $Installer.FullName -ArgumentList $arguments
+        Write-Host "请在 VB-CABLE 安装窗口中完成安装，完成后按回车继续……"
+        Read-Host | Out-Null
+    }
+}
+
+function Show-InstallMenu {
+    # 交互式安装菜单：默认全选（直接回车），支持数字多选。
+    param(
+        [bool]$DriverAvailable,
+        [bool]$VbCableAvailable,
+        [bool]$VbCableInstalled
+    )
+
+    Write-Host ""
+    Write-Host "==== T1 Remote 安装引导 ===="
+    Write-Host "  1) HID 过滤驱动（拦截遥控按键，需要管理员权限）"
+    Write-Host "  2) App 本体（复制到 $InstallRoot）"
+    if ($VbCableAvailable) {
+        if ($VbCableInstalled) {
+            Write-Host "  3) VB-CABLE 虚拟声卡（已检测到已安装）"
+        } else {
+            Write-Host "  3) VB-CABLE 虚拟声卡（发布包自带安装器）"
+        }
+    } else {
+        Write-Host "  3) VB-CABLE 虚拟声卡（发布包未附带安装器，跳过）"
+    }
+    Write-Host "  4) 全部默认安装（驱动 + App + VB-CABLE）"
+    Write-Host ""
+    $selection = Read-Host "请选择安装项（可输入 1,2,3 或直接回车选 4）"
+    if ([string]::IsNullOrWhiteSpace($selection)) {
+        return @($true, $true, $VbCableAvailable)
+    }
+    if ($selection.Trim() -eq '4') {
+        return @($true, $true, $VbCableAvailable)
+    }
+    $numbers = @($selection -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    return @(
+        ($numbers -contains '1'),
+        ($numbers -contains '2'),
+        ($numbers -contains '3' -and $VbCableAvailable)
+    )
+}
+
 Assert-Administrator
 $driverRoot = Join-Path $releaseRoot "Driver"
 $driverInf = Get-ChildItem -LiteralPath $driverRoot -File -Filter "*.inf" | Select-Object -First 1
@@ -118,6 +211,16 @@ if ($AllowUnsignedDriver -and -not $EnableTestSigning) {
     throw "AllowUnsignedDriver 仅能和 EnableTestSigning 一起使用。"
 }
 
+$vbCableInstaller = Find-VbCableInstaller
+$vbCableInstalled = Test-VbCableInstalled
+$menuSelected = @($true, $true, $null -ne $vbCableInstaller)
+if (-not $NonInteractive) {
+    $menuSelected = Show-InstallMenu `
+        -DriverAvailable (-not $SkipDriver) `
+        -VbCableAvailable ($null -ne $vbCableInstaller) `
+        -VbCableInstalled $vbCableInstalled
+}
+
 if ($EnableTestSigning) {
     & bcdedit.exe /set testsigning on
     if ($LASTEXITCODE -ne 0) {
@@ -126,7 +229,7 @@ if ($EnableTestSigning) {
     Write-Warning "已请求开启测试签名；Windows 可能需要重启后驱动才能加载。"
 }
 
-if (-not $SkipDriver) {
+if ($menuSelected[0] -and -not $SkipDriver) {
     $driverFiles = @(Get-ChildItem -LiteralPath $driverRoot -File | Where-Object { $_.Extension -in @(".sys", ".cat") })
     $invalidSignatures = @($driverFiles | Where-Object {
         (Get-AuthenticodeSignature -LiteralPath $_.FullName).Status -ne "Valid"
@@ -145,32 +248,58 @@ if (-not $SkipDriver) {
     }
     # 键盘集合的过滤器由 INF 声明，这里只清理早期版本手写的遗留值。
     Remove-KeyboardCollectionFilter
+    Write-Host "驱动安装完成。"
+} else {
+    Write-Warning "已跳过 HID 过滤驱动安装。"
 }
 
-$installedApp = Join-Path $InstallRoot "App"
-$installedNative = Join-Path $InstallRoot "Native"
-$installedDriver = Join-Path $InstallRoot "Driver"
-Copy-DirectoryContents (Join-Path $releaseRoot "App") $installedApp
-Copy-DirectoryContents (Join-Path $releaseRoot "Native") $installedNative
-Copy-DirectoryContents (Join-Path $releaseRoot "Driver") $installedDriver
-if (-not $SkipPowerButton) {
-    Set-PowerButtonActionDoNothing -BackupPath (Join-Path ${env:ProgramData} "T1 Remote\power-button-backup.json")
+if ($menuSelected[1] -and -not $SkipApp) {
+    $installedApp = Join-Path $InstallRoot "App"
+    $installedNative = Join-Path $InstallRoot "Native"
+    $installedDriver = Join-Path $InstallRoot "Driver"
+    Copy-DirectoryContents (Join-Path $releaseRoot "App") $installedApp
+    Copy-DirectoryContents (Join-Path $releaseRoot "Native") $installedNative
+    Copy-DirectoryContents (Join-Path $releaseRoot "Driver") $installedDriver
+    if (-not $SkipPowerButton) {
+        Set-PowerButtonActionDoNothing -BackupPath (Join-Path ${env:ProgramData} "T1 Remote\power-button-backup.json")
+    }
+    Copy-Item -LiteralPath (Join-Path $releaseRoot "Start-T1Remote.bat") -Destination (Join-Path $InstallRoot "Start-T1Remote.bat") -Force
+    Copy-Item -LiteralPath (Join-Path $releaseRoot "RELEASE.md") -Destination (Join-Path $InstallRoot "RELEASE.md") -Force
+
+    $startMenuRoot = Join-Path ${env:ProgramData} "Microsoft\Windows\Start Menu\Programs\T1 Remote"
+    New-Item -ItemType Directory -Force -Path $startMenuRoot | Out-Null
+    $shortcutPath = Join-Path $startMenuRoot "T1 Remote.lnk"
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = Join-Path $InstallRoot "Start-T1Remote.bat"
+    $shortcut.WorkingDirectory = $InstallRoot
+    $shortcut.Description = "T1 Remote Mapping"
+    $shortcut.Save()
+
+    Write-Host "T1 Remote App 已安装到：$InstallRoot"
+    Write-Host "开始菜单快捷方式：$shortcutPath"
+} else {
+    Write-Warning "已跳过 App 本体安装。"
 }
-Copy-Item -LiteralPath (Join-Path $releaseRoot "Start-T1Remote.bat") -Destination (Join-Path $InstallRoot "Start-T1Remote.bat") -Force
-Copy-Item -LiteralPath (Join-Path $releaseRoot "RELEASE.md") -Destination (Join-Path $InstallRoot "RELEASE.md") -Force
 
-$startMenuRoot = Join-Path ${env:ProgramData} "Microsoft\Windows\Start Menu\Programs\T1 Remote"
-New-Item -ItemType Directory -Force -Path $startMenuRoot | Out-Null
-$shortcutPath = Join-Path $startMenuRoot "T1 Remote.lnk"
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = Join-Path $InstallRoot "Start-T1Remote.bat"
-$shortcut.WorkingDirectory = $InstallRoot
-$shortcut.Description = "T1 Remote Mapping"
-$shortcut.Save()
+if ($menuSelected[2] -and -not $SkipVbCable) {
+    if ($null -eq $vbCableInstaller) {
+        Write-Warning "发布包未附带 VB-CABLE 安装器，跳过。"
+    } elseif ($vbCableInstalled) {
+        Write-Host "检测到 VB-CABLE 已安装，跳过。"
+    } else {
+        Invoke-VbCableInstall -Installer $vbCableInstaller
+        Write-Host "VB-CABLE 安装完成。其他应用的麦克风请选择 CABLE Output。"
+    }
+} else {
+    Write-Warning "已跳过 VB-CABLE 虚拟声卡安装。"
+}
 
-Write-Host "T1 Remote App 已安装到：$InstallRoot"
-Write-Host "开始菜单快捷方式：$shortcutPath"
-if ($SkipDriver) {
-    Write-Warning "已跳过驱动安装。"
+Write-Host ""
+Write-Host "==== 安装汇总 ===="
+Write-Host ("  HID 过滤驱动：{0}" -f $(if ($menuSelected[0] -and -not $SkipDriver) { "已安装" } else { "跳过" }))
+Write-Host ("  App 本体：{0}" -f $(if ($menuSelected[1] -and -not $SkipApp) { "已安装到 $InstallRoot" } else { "跳过" }))
+Write-Host ("  VB-CABLE：{0}" -f $(if ($menuSelected[2] -and -not $SkipVbCable) { "已安装" } else { "跳过" }))
+if ($menuSelected[0] -and -not $SkipDriver) {
+    Write-Host "  下一步：运行开始菜单中的 T1 Remote 启动 App；语音测试前把目标应用麦克风设为 CABLE Output。"
 }

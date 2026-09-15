@@ -12,7 +12,9 @@ param(
     [switch]$SkipNativeBuild,
     # 以下两项只用于本机编译校验：正式包不应关闭 Spectre 缓解或驱动签名。
     [switch]$SkipSpectreMitigation,
-    [switch]$SkipDriverSigning
+    [switch]$SkipDriverSigning,
+    # 显式指定要打包进 VBCable/ 的 VB-CABLE 安装器；缺省时自动扫描仓库根/tools/native。
+    [string]$VbCableInstaller = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -245,6 +247,34 @@ Copy-Item -LiteralPath (Join-Path $projectRoot "tools/install_release.ps1") -Des
 Copy-Item -LiteralPath (Join-Path $projectRoot "tools/uninstall_release.ps1") -Destination (Join-Path $packageRoot "Uninstall-T1Remote.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "Docs/release.md") -Destination (Join-Path $packageRoot "RELEASE.md") -Force
 
+# VB-CABLE 安装器可选打包：显式参数优先，否则扫描仓库根/tools/native。
+$vbCableSource = $null
+if (-not [string]::IsNullOrWhiteSpace($VbCableInstaller)) {
+    if (-not (Test-Path -LiteralPath $VbCableInstaller -PathType Leaf)) {
+        throw "VbCableInstaller 指定的文件不存在：$VbCableInstaller"
+    }
+    $vbCableSource = Get-Item -LiteralPath $VbCableInstaller
+} else {
+    foreach ($scanRoot in @($projectRoot, (Join-Path $projectRoot "tools"), (Join-Path $projectRoot "native"))) {
+        $found = Get-ChildItem -LiteralPath $scanRoot -File -Filter "VBCABLE_Setup*.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($null -ne $found) {
+            $vbCableSource = $found
+            break
+        }
+    }
+}
+$vbCableInstallerName = $null
+if ($null -ne $vbCableSource) {
+    $vbCableDir = Join-Path $packageRoot "VBCable"
+    New-Item -ItemType Directory -Force -Path $vbCableDir | Out-Null
+    $vbCableInstallerName = "VBCABLE_Setup_x64.exe"
+    Copy-Item -LiteralPath $vbCableSource.FullName -Destination (Join-Path $vbCableDir $vbCableInstallerName) -Force
+    Write-Host ("已打包 VB-CABLE 安装器：{0}" -f $vbCableInstallerName)
+} else {
+    Write-Warning "未找到 VB-CABLE 安装器，跳过 VBCable/ 目录；语音功能需要用户自行安装虚拟声卡。"
+}
+
 $manifest = [ordered]@{
     project = "t1-remote"
     version = $Version
@@ -253,6 +283,7 @@ $manifest = [ordered]@{
     app_mode = $appMode
     driver = @("t1filter.inf", "t1filter.sys", $driverPackage.Cat.Name)
     bridge = "t1bridge.dll"
+    vb_cable_installer = $vbCableInstallerName
     built_at = (Get-Date).ToString("o")
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $packageRoot "release-manifest.json") -Encoding utf8
