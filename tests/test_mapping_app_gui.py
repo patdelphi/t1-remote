@@ -3,16 +3,29 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 import tkinter as tk
 from tkinter import ttk
 import unittest
 from unittest.mock import patch
 
-from tools.t1_app import APP_ICON_PATH, MappingMonitorApp, _newest_first_records
+from tools.t1_app import (
+    APP_ICON_PATH,
+    MappingMonitorApp,
+    _newest_first_records,
+    _resolve_runtime_root,
+)
 from tools.t1_inspector_gui import CaptureTabController
 
 
 class MappingAppGuiTests(unittest.TestCase):
+    def test_runtime_root_uses_pyinstaller_internal_directory(self) -> None:
+        """PyInstaller 包内的资源应从 _internal 目录读取。"""
+
+        bundled_root = Path("C:/T1Remote/_internal")
+        with patch.object(sys, "_MEIPASS", str(bundled_root), create=True):
+            self.assertEqual(_resolve_runtime_root(), bundled_root)
+
     def test_diagnostics_records_are_newest_first(self) -> None:
         self.assertEqual(_newest_first_records(("old", "middle", "new")), ("new", "middle", "old"))
 
@@ -103,6 +116,8 @@ class MappingAppGuiTests(unittest.TestCase):
                 "持续收音（不限时长）",
                 collect_checkbuttons(app._tab_by_name["语音测试"]),
             )
+            self.assertTrue(app._voice_continuous_var.get())
+            self.assertEqual(str(app._voice_duration_entry.cget("state")), "disabled")
 
             class _RecordingVoiceSession:
                 def __init__(self) -> None:
@@ -192,20 +207,39 @@ class MappingAppGuiTests(unittest.TestCase):
             else:
                 root.destroy()
 
-    def test_close_button_keeps_main_window_taskbar_entry_minimized(self) -> None:
+    def test_minimize_to_tray_hides_main_window_from_taskbar(self) -> None:
         root = tk.Tk()
         root.withdraw()
         app = None
         try:
             app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
             app.tray = type("RunningTray", (), {"is_running": True})()
-            with patch.object(root, "iconify") as iconify, patch.object(
-                root, "withdraw"
-            ) as withdraw:
+            with patch.object(root, "iconify") as iconify, patch.object(root, "withdraw") as withdraw:
                 app.minimize_to_tray()
 
-            iconify.assert_called_once_with()
-            withdraw.assert_not_called()
+            withdraw.assert_called_once_with()
+            iconify.assert_not_called()
+        finally:
+            if app is not None:
+                app.close()
+            else:
+                root.destroy()
+
+    def test_title_bar_minimize_is_forwarded_to_tray(self) -> None:
+        """标题栏最小化完成后，主窗口应改为隐藏到托盘。"""
+
+        root = tk.Tk()
+        root.withdraw()
+        app = None
+        try:
+            app = MappingMonitorApp(root, Path("config") / "t1-key-mapping.json")
+            with patch.object(root, "state", return_value="iconic"), patch.object(
+                app, "minimize_to_tray"
+            ) as minimize:
+                app._on_window_unmap(object())
+                root.update()
+
+            minimize.assert_called_once_with()
         finally:
             if app is not None:
                 app.close()

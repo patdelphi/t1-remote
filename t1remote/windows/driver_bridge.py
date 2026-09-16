@@ -950,7 +950,8 @@ class T1BridgeClient:
         if loader is None:
             loader = getattr(ctypes, "WinDLL")
 
-        project_root = Path(__file__).resolve().parents[2]
+        # 不解析 Windows 应用沙箱的重定向路径，保证源码 App 能找到项目内 DLL。
+        project_root = Path(__file__).absolute().parents[2]
         candidates: list[str] = []
         if self._dll_path:
             candidates.append(str(self._dll_path))
@@ -960,7 +961,7 @@ class T1BridgeClient:
                     project_root
                     / "native"
                     / "t1bridge"
-                    / "build-vs2022"
+                    / "x64"
                     / "Release"
                     / "t1bridge.dll"
                 ),
@@ -970,7 +971,7 @@ class T1BridgeClient:
                     project_root
                     / "native"
                     / "t1bridge"
-                    / "x64"
+                    / "build-vs2022"
                     / "Release"
                     / "t1bridge.dll"
                 ),

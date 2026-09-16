@@ -52,6 +52,7 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("Scripts/pyinstaller.exe", release_text)
         self.assertIn("APPDATA", release_text)
         self.assertIn("--icon", release_text)
+        self.assertIn("--uac-admin", release_text)
 
         install_text = install_script.read_text(encoding="utf-8-sig")
         self.assertIn("pnputil.exe", install_text)
@@ -63,9 +64,18 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("VB-CABLE", install_text)
         self.assertIn("VBCABLE_Setup", install_text)
 
+        launcher_text = launcher.read_text(encoding="utf-8-sig")
+        self.assertLess(
+            launcher_text.index('"%APP_ROOT%\\Source\\tools\\t1_app.py"'),
+            launcher_text.index('"%APP_ROOT%\\T1Remote\\T1Remote.exe"'),
+        )
+        self.assertIn("-Verb RunAs", launcher_text)
+
         uninstall_text = uninstall_script.read_text(encoding="utf-8-sig")
         self.assertIn("/delete-driver", uninstall_text)
-        self.assertIn("ProgramFiles", uninstall_text)
+        # App 与录音文件必须落在当前用户可写的 LocalAppData，而不是 Program Files。
+        self.assertIn("LOCALAPPDATA", install_text)
+        self.assertIn("LOCALAPPDATA", uninstall_text)
 
     def test_release_build_packages_vb_cable_installer(self) -> None:
         """发布包构建脚本必须支持把 VB-CABLE 安装器一起打包进 VBCable/。"""

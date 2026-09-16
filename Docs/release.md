@@ -42,7 +42,7 @@ powershell -ExecutionPolicy Bypass -File .\Install-T1Remote.ps1
 安装脚本默认**交互引导**：先检测环境（管理员、驱动签名、VB-CABLE 是否已装），再分步选择安装项：
 
 1. **HID 过滤驱动**——拦截遥控按键，需要管理员权限；
-2. **App 本体**——复制到 `%ProgramFiles%\T1 Remote` 并创建开始菜单快捷方式；
+2. **App 本体**——复制到当前用户的 `%LOCALAPPDATA%\T1 Remote` 并创建开始菜单快捷方式；
 3. **VB-CABLE 虚拟声卡**——可选，发布包 `VBCable/` 自带安装器时可直接引导运行；没打包则提示跳过。
 
 直接回车默认全选，或输入 `1,2` 等数字选择。驱动安装完成后按提示重启 Windows，具体以 `pnputil` 返回码为准。CI 或无人值守使用静默模式：

@@ -543,8 +543,8 @@ class DriverBridgeTests(unittest.TestCase):
         self.assertIn("native\\t1bridge\\x64\\Release\\t1bridge.dll", attempted[-1])
         client.close()
 
-    def test_loader_prefers_current_cmake_release_output(self) -> None:
-        """运行时优先加载包含最新 ABI 导出的 CMake Release 产物。"""
+    def test_loader_uses_legacy_build_only_after_current_outputs(self) -> None:
+        """旧 VS 构建产物只能作为新版 DLL 不可用时的回退。"""
 
         library = _FakeBridgeLibrary()
         attempted: list[str] = []
@@ -562,10 +562,10 @@ class DriverBridgeTests(unittest.TestCase):
 
         client.open(InterceptionPolicy())
 
-        self.assertEqual(len(attempted), 1)
+        self.assertGreater(len(attempted), 1)
         self.assertIn(
             "native\\t1bridge\\build-vs2022\\Release\\t1bridge.dll",
-            attempted[0],
+            attempted[-1],
         )
         client.close()
 

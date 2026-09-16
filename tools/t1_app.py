@@ -7,7 +7,10 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
+import os
 from pathlib import Path
+import subprocess
 import sys
 import threading
 import tkinter as tk
@@ -40,7 +43,48 @@ from t1remote.windows.voice_session import (
 from t1remote.core.voice_replay import play_wav_file
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+def _resolve_runtime_root() -> Path:
+    """解析源码和 PyInstaller 运行时共用的资源根目录。"""
+
+    # PyInstaller 单目录包把 config/assets 放在 _internal；源码运行时则沿用项目根目录。
+    bundled_root = getattr(sys, "_MEIPASS", None)
+    if bundled_root:
+        return Path(str(bundled_root))
+    # 使用 absolute 而不是 resolve，避免 Windows 应用沙箱把 LocalAppData
+    # 重定向到虚拟目录后，资源路径跟着指向不存在的位置。
+    return Path(__file__).absolute().parents[1]
+
+
+def _relaunch_as_administrator() -> bool:
+    """非管理员直接运行 App 时请求 UAC 并以管理员权限重新启动。"""
+
+    if os.name != "nt":
+        return False
+    try:
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            return False
+        executable = sys.executable
+        arguments = list(sys.argv[1:])
+        if not getattr(sys, "frozen", False):
+            arguments.insert(0, str(Path(sys.argv[0]).absolute()))
+        parameters = subprocess.list2cmdline(arguments)
+        result = ctypes.windll.shell32.ShellExecuteW(
+            None,
+            "runas",
+            executable,
+            parameters,
+            str(Path.cwd()),
+            1,
+        )
+    except (AttributeError, OSError, TypeError, ValueError) as error:
+        raise RuntimeError(f"请求管理员权限失败：{error}") from error
+    if int(result) <= 32:
+        raise RuntimeError(f"用户未授予管理员权限，ShellExecuteW 返回码：{result}")
+    return True
+
+
+PROJECT_ROOT = _resolve_runtime_root()
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "t1-key-mapping.json"
 DEFAULT_CAPTURE_PATH = PROJECT_ROOT / "captures" / "t1-remote-control.json"
 APP_ICON_PATH = PROJECT_ROOT / "assets" / "t1-remote-icon.ico"
@@ -72,6 +116,7 @@ class MappingMonitorApp:
         self._session_lock = threading.Lock()
         self._closed = False
         self._pending_after_ids: set[str] = set()
+        self._window_unmap_pending = False
         self._capture_controller = None
         self._mapping_editor = None
         self._main_notebook: ttk.Notebook | None = None
@@ -85,7 +130,7 @@ class MappingMonitorApp:
         self._voice_ble_discovery_var = tk.StringVar(value="BLE 设备：尚未扫描")
         self._voice_duration_var = tk.StringVar(value="10")
         # 持续收音：时长为 0 时麦克风一直打开，直到点击“停止语音测试”。
-        self._voice_continuous_var = tk.BooleanVar(value=False)
+        self._voice_continuous_var = tk.BooleanVar(value=True)
         self._voice_continuous_active = False
         self._voice_device_var = tk.StringVar(value="")
         self._voice_status_var = tk.StringVar(value="状态：未启动")
@@ -121,6 +166,8 @@ class MappingMonitorApp:
             pass
         self.root.geometry("1520x900")
         self.root.minsize(1280, 760)
+        # 标题栏最小化不会触发 WM_DELETE_WINDOW，需要监听 Unmap 才能把窗口转入托盘。
+        self.root.bind("<Unmap>", self._on_window_unmap, add="+")
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         self._configure_app_styles()
@@ -323,6 +370,8 @@ class MappingMonitorApp:
             variable=self._voice_continuous_var,
             command=self._on_voice_continuous_toggle,
         ).grid(row=3, column=2, sticky="w", padx=(4, 8), pady=8)
+        # 默认勾选持续收音时，同步禁用固定时长输入框，避免界面状态不一致。
+        self._on_voice_continuous_toggle()
         ttk.Label(form, text="输出设备编号（可选）").grid(
             row=4, column=0, sticky="w", padx=8, pady=8
         )
@@ -891,14 +940,29 @@ class MappingMonitorApp:
         self._select_tab("捕获")
 
     def minimize_to_tray(self) -> None:
-        """关闭窗口时隐藏到托盘；没有托盘时直接退出。"""
+        """把主窗口隐藏到托盘；没有托盘时直接退出。"""
 
         if not self.tray or not self.tray.is_running:
             self.close()
             return
-        # 保留任务栏窗口项，只把主窗最小化；withdraw 会让任务栏按钮一起消失。
-        self.root.iconify()
+        # withdraw 会同时移除任务栏窗口项，只保留通知区域托盘图标。
+        self.root.withdraw()
         self._append_log("窗口已最小化到托盘")
+
+    def _on_window_unmap(self, _event: object) -> None:
+        """标题栏最小化后转入托盘，避免只停留在任务栏。"""
+
+        if self._closed or self._window_unmap_pending:
+            return
+        self._window_unmap_pending = True
+
+        def handle() -> None:
+            self._window_unmap_pending = False
+            if not self._closed and self.root.state() == "iconic":
+                self.minimize_to_tray()
+
+        # 等 Tk 完成 iconify 状态切换后再判断，避免读取到旧状态。
+        self._schedule_ui(0, handle)
 
     def show_window(self) -> None:
         """从托盘恢复主窗口。"""
@@ -1206,6 +1270,9 @@ def run_app(config_path: Path = DEFAULT_CONFIG_PATH) -> int:
 def main() -> int:
     """解析命令行参数并启动主前台。"""
 
+    if _relaunch_as_administrator():
+        # 当前非管理员进程交给 UAC 重启实例后退出，避免出现两个主前台。
+        return 0
     parser = argparse.ArgumentParser(description="T1 Remote Mapping 主前台")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     args = parser.parse_args()

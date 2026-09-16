@@ -7,7 +7,8 @@
 
 [CmdletBinding()]
 param(
-    [string]$InstallRoot = (Join-Path ${env:ProgramFiles} "T1 Remote"),
+    # App 与录音文件放在当前用户可写目录，避免 Program Files 的权限限制。
+    [string]$InstallRoot = (Join-Path ${env:LOCALAPPDATA} "T1 Remote"),
     [switch]$SkipDriver,
     [switch]$SkipApp,
     [switch]$SkipVbCable,
@@ -282,8 +283,9 @@ function Show-InstallMenu {
 
 Assert-Administrator
 $driverRoot = Join-Path $releaseRoot "Driver"
-$driverInf = Get-ChildItem -LiteralPath $driverRoot -File -Filter "*.inf" | Select-Object -First 1
-if (-not $SkipDriver -and $null -eq $driverInf) {
+$driverInfs = @(Get-ChildItem -LiteralPath $driverRoot -File -Filter "*.inf" | Sort-Object Name)
+$driverInf = $driverInfs | Select-Object -First 1
+if (-not $SkipDriver -and $driverInfs.Count -eq 0) {
     throw "发布包缺少 Driver/*.inf。"
 }
 if ($AllowUnsignedDriver -and -not $EnableTestSigning) {
@@ -326,12 +328,17 @@ if ($menuSelected.Driver -and -not $SkipDriver) {
         throw "驱动签名无效：$names；正式包请提供有效签名，测试包需显式指定 -EnableTestSigning -AllowUnsignedDriver。"
     }
 
-    & pnputil.exe /add-driver $driverInf.FullName /install
-    if ($LASTEXITCODE -notin @(0, 3010)) {
-        throw "pnputil 安装驱动失败，退出码：$LASTEXITCODE"
-    }
-    if ($LASTEXITCODE -eq 3010) {
-        Write-Warning "驱动已暂存，Windows 要求重启后加载。"
+    # 同一个 SYS 可能对应多个设备类 INF；逐个安装，确保键盘集合与
+    # Consumer/System Control 集合都建立各自的设备栈绑定。
+    foreach ($driverInfEntry in $driverInfs) {
+        & pnputil.exe /add-driver $driverInfEntry.FullName /install
+        if ($LASTEXITCODE -notin @(0, 3010)) {
+            throw "pnputil 安装驱动失败（$($driverInfEntry.Name)），退出码：$LASTEXITCODE"
+        }
+        if ($LASTEXITCODE -eq 3010) {
+            Write-Warning "驱动已暂存，Windows 要求重启后加载：$($driverInfEntry.Name)"
+        }
+        Write-Host "驱动安装完成：$($driverInfEntry.Name)"
     }
     # 键盘集合的过滤器由 INF 声明，这里只清理早期版本手写的遗留值。
     Remove-KeyboardCollectionFilter

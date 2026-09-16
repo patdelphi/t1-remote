@@ -3,7 +3,8 @@
 
 [CmdletBinding()]
 param(
-    [string]$InstallRoot = (Join-Path ${env:ProgramFiles} "T1 Remote"),
+    # 与安装脚本保持一致，卸载当前用户 LocalAppData 下的 App 文件。
+    [string]$InstallRoot = (Join-Path ${env:LOCALAPPDATA} "T1 Remote"),
     [switch]$SkipDriver
 )
 

@@ -73,15 +73,17 @@ function Find-DriverPackage {
             continue
         }
         $files = @(Get-ChildItem -LiteralPath $candidate -File)
-        $inf = $files | Where-Object Extension -ieq ".inf" | Select-Object -First 1
+        # 一个驱动服务可能由多个设备类 INF 共用同一个 SYS；必须把所有
+        # INF 和 CAT 一起放入发布包，否则第二个 INF 的 CatalogFile 会失配。
+        $infs = @($files | Where-Object Extension -ieq ".inf")
         $sys = $files | Where-Object Extension -ieq ".sys" | Select-Object -First 1
-        $cat = $files | Where-Object Extension -ieq ".cat" | Select-Object -First 1
-        if ($null -ne $inf -and $null -ne $sys -and $null -ne $cat) {
+        $cats = @($files | Where-Object Extension -ieq ".cat")
+        if ($infs.Count -gt 0 -and $null -ne $sys -and $cats.Count -gt 0) {
             return [pscustomobject]@{
                 Root = $candidate
-                Inf = $inf
+                Infs = $infs
                 Sys = $sys
-                Cat = $cat
+                Cats = $cats
             }
         }
     }
@@ -151,8 +153,8 @@ if (-not $SkipNativeBuild) {
 }
 if ($null -eq $bridgeSource) {
     $bridgeCandidates = @(
-        (Join-Path $projectRoot "native/t1bridge/build-vs2022/Release/t1bridge.dll"),
         (Join-Path $projectRoot "native/t1bridge/x64/Release/t1bridge.dll"),
+        (Join-Path $projectRoot "native/t1bridge/build-vs2022/Release/t1bridge.dll"),
         (Join-Path $projectRoot "native/t1bridge.dll")
     )
     $bridgeSource = $bridgeCandidates | Where-Object {
@@ -164,7 +166,7 @@ if ([string]::IsNullOrWhiteSpace($bridgeSource)) {
 }
 Copy-Item -LiteralPath $bridgeSource -Destination (Join-Path $nativeRoot "t1bridge.dll") -Force
 
-# 过滤驱动需要 INF、SYS 和 CAT 三个文件；没有完整包时才尝试调用 MSBuild。
+# 过滤驱动需要全部 INF、SYS 和 CAT 文件；没有完整包时才尝试调用 MSBuild。
 $driverPackage = $null
 if (-not $SkipNativeBuild) {
     $msbuild = Resolve-MSBuild
@@ -185,9 +187,13 @@ $driverPackage = Find-DriverPackage @(
 if ($null -eq $driverPackage) {
     throw "找不到完整驱动包；需要 t1filter.inf、t1filter.sys 和 .cat。"
 }
-Copy-Item -LiteralPath $driverPackage.Inf.FullName -Destination (Join-Path $driverRoot "t1filter.inf") -Force
+foreach ($inf in @($driverPackage.Infs)) {
+    Copy-Item -LiteralPath $inf.FullName -Destination (Join-Path $driverRoot $inf.Name) -Force
+}
 Copy-Item -LiteralPath $driverPackage.Sys.FullName -Destination (Join-Path $driverRoot "t1filter.sys") -Force
-Copy-Item -LiteralPath $driverPackage.Cat.FullName -Destination (Join-Path $driverRoot $driverPackage.Cat.Name) -Force
+foreach ($cat in @($driverPackage.Cats)) {
+    Copy-Item -LiteralPath $cat.FullName -Destination (Join-Path $driverRoot $cat.Name) -Force
+}
 
 $signatureReport = @(
     $driverRoot | Get-ChildItem -File | Where-Object { $_.Extension -in @(".sys", ".cat") } |
@@ -226,6 +232,7 @@ if (-not $SourceApp -and $null -ne $pyinstaller) {
     $pyinstallerArguments = @(
         "--noconfirm", "--clean", "--windowed", "--onedir",
         "--name", "T1Remote",
+        "--uac-admin",
         "--icon", (Join-Path $projectRoot "assets/t1-remote-icon.ico"),
         "--distpath", $appRoot,
         "--workpath", $pyWork,
@@ -283,13 +290,18 @@ if ($null -ne $vbCableSource) {
     Write-Warning "未找到 VB-CABLE 安装器，跳过 VBCable/ 目录；语音功能需要用户自行安装虚拟声卡。"
 }
 
+$driverNames = @(
+    @($driverPackage.Infs | ForEach-Object { $_.Name })
+    $driverPackage.Sys.Name
+    @($driverPackage.Cats | ForEach-Object { $_.Name })
+)
 $manifest = [ordered]@{
     project = "t1-remote"
     version = $Version
     package = $packageName
     architecture = "x64"
     app_mode = $appMode
-    driver = @("t1filter.inf", "t1filter.sys", $driverPackage.Cat.Name)
+    driver = $driverNames
     bridge = "t1bridge.dll"
     vb_cable_installer = $vbCableInstallerName
     built_at = (Get-Date).ToString("o")
