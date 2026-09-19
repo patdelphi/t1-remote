@@ -73,7 +73,7 @@ pwsh -File .\tools\build_release.ps1 -PythonPath C:\Python313\python.exe
 
 ## 发布包安装（最终用户）
 
-发布包是带时间戳的 ZIP（如 `dist/T1Remote-v0.2.0-win-x64-20260915-140114.zip`），**不需要 Python 环境**，直接给最终用户安装。
+发布包是带时间戳的 ZIP（如 `dist/T1Remote-v0.2.2-win-x64-20260915-140114.zip`），**不需要 Python 环境**，直接给最终用户安装。
 
 ### 所需条件
 

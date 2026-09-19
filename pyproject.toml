@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "t1-remote"
-version = "0.2.1"
+version = "0.2.2"
 description = "T1 Remote Windows HID mapping and diagnostics"
 requires-python = ">=3.11"
 dependencies = [

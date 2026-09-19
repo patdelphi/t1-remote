@@ -8,7 +8,7 @@
 | --- | --- |
 | `App/` | PyInstaller 单目录 App，或可回退的 Python 源码 App |
 | `Native/t1bridge.dll` | 用户态驱动桥接 DLL |
-| `Driver/` | `t1filter.inf`、`t1filter.sys` 和目录中的 `.cat` 驱动目录文件 |
+| `Driver/` | `t1filter.inf`、`t1filter_keyboard.inf`、`t1filter.sys` 和两个对应的 `.cat` 驱动目录文件 |
 | `VBCable/`（可选） | VB-CABLE 虚拟声卡安装器，由 `build_release.ps1 -VbCableInstaller` 或自动扫描打入 |
 | `Install-T1Remote.ps1` | 交互引导安装 App、驱动和开始菜单快捷方式，可选手动装 VB-CABLE |
 | `Uninstall-T1Remote.ps1` | 卸载驱动、App 和快捷方式 |
